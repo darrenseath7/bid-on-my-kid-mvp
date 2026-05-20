@@ -1,20 +1,21 @@
 import OpenAI from "openai";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(req: Request) {
   try {
+    const apiKey = process.env.OPENAI_API_KEY;
+
+    if (!apiKey) {
+      return Response.json(
+        { error: "Missing OPENAI_API_KEY" },
+        { status: 500 }
+      );
+    }
+
+    const openai = new OpenAI({ apiKey });
+
     const body = await req.json();
 
-    const {
-      childName,
-      grade,
-      highestBid,
-      bidderName,
-      mode,
-    } = body;
+    const { childName, grade, highestBid, bidderName, mode } = body;
 
     let prompt = "";
 
@@ -24,17 +25,15 @@ You are a funny, charismatic South African school auction MC.
 
 Create a short premium-art-auction-style introduction for a child's artwork.
 
-The tone must be:
-- witty,
-- warm,
-- emotionally engaging,
-- slightly cheeky,
-- premium,
-- playful.
+Tone:
+- witty
+- warm
+- emotionally engaging
+- slightly cheeky
+- premium
+- playful
 
-Do not sound robotic.
-
-Artwork artist:
+Artist:
 ${childName}
 ${grade}
 
@@ -46,20 +45,10 @@ Keep response under 120 words.
       prompt = `
 You are a live South African school auction MC reacting to live bids.
 
-Current highest bid:
-R${highestBid}
+Current highest bid: R${highestBid}
+Leading bidder: ${bidderName}
 
-Leading bidder:
-${bidderName}
-
-Create ONE funny live reaction line.
-
-Examples:
-- “Grandparents entering the chat. Dangerous scenes.”
-- “Someone clearly wants favourite-parent status tonight.”
-- “At this point this artwork may need armed security.”
-
-Keep it witty and short.
+Create one funny live reaction line. Keep it short.
 `;
     }
 
@@ -69,11 +58,8 @@ You are a charismatic South African auction MC.
 
 The artwork has just SOLD.
 
-Winning bidder:
-${bidderName}
-
-Winning amount:
-R${highestBid}
+Winning bidder: ${bidderName}
+Winning amount: R${highestBid}
 
 Create a funny celebratory sold message.
 `;
@@ -84,8 +70,7 @@ Create a funny celebratory sold message.
       messages: [
         {
           role: "system",
-          content:
-            "You are an elite South African live auction MC.",
+          content: "You are an elite South African live auction MC.",
         },
         {
           role: "user",
@@ -104,12 +89,8 @@ Create a funny celebratory sold message.
     console.error(error);
 
     return Response.json(
-      {
-        error: "AI generation failed",
-      },
-      {
-        status: 500,
-      }
+      { error: "AI generation failed" },
+      { status: 500 }
     );
   }
 }
