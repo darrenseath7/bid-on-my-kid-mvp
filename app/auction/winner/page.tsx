@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import BrandHeader from "@/components/BrandHeader";
 import { supabase } from "@/lib/supabase";
 
 type AuctionState = {
@@ -57,192 +58,222 @@ export default function WinnerPage() {
 
   if (!auction || !school) {
     return (
-      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+      <main className="min-h-screen bg-[#07152b] text-white flex items-center justify-center">
         Loading certificate...
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-100 py-10 px-5">
-      <div className="max-w-3xl mx-auto">
+    <main className="min-h-screen bg-[#f7f5f0] text-[#07152b] py-10 px-5">
 
-        {/* CERTIFICATE */}
-        <div className="bg-white rounded-[40px] shadow-2xl overflow-hidden border">
+      <div className="max-w-6xl mx-auto">
 
-          {/* HEADER */}
-          <div className="bg-black text-white p-10 text-center">
-            <p className="uppercase tracking-[0.4em] text-xs mb-4">
-              Bid On My Kid
-            </p>
+        {/* HEADER */}
+        <div className="mb-8 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <BrandHeader />
 
-            <h1 className="text-6xl font-black mb-4">
-              WINNER
-            </h1>
+          <button
+            onClick={() => window.print()}
+            className="bg-[#07152b] text-white rounded-2xl px-8 py-5 font-black shadow-xl"
+          >
+            Download Certificate
+          </button>
+        </div>
 
-            <p className="text-xl text-neutral-300">
-              Official Auction Certificate & Invoice
-            </p>
-          </div>
+        {/* MAIN CARD */}
+        <div className="bg-white rounded-[42px] overflow-hidden border border-black/5 shadow-[0_40px_100px_rgba(0,0,0,0.08)]">
 
-          {/* CONTENT */}
-          <div className="p-10">
+          {/* TOP SECTION */}
+          <div className="bg-[#07152b] text-white p-10 lg:p-14">
 
-            <div className="grid md:grid-cols-2 gap-10">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
 
-              {/* LEFT */}
               <div>
-                <div className="rounded-3xl overflow-hidden border shadow-lg">
-                  <img
-                    src={auction.artwork_url}
-                    alt="Artwork"
-                    className="w-full h-[420px] object-cover"
-                  />
+                <p className="uppercase tracking-[0.35em] text-xs text-white/40 font-black mb-4">
+                  Official BragWall Winner Certificate
+                </p>
+
+                <h1 className="text-6xl lg:text-8xl font-black leading-none mb-6">
+                  SOLD
+                </h1>
+
+                <p className="text-2xl text-white/70 leading-relaxed max-w-2xl">
+                  Congratulations on securing tonight’s masterpiece and supporting your school community.
+                </p>
+              </div>
+
+              <div className="bg-white/10 rounded-[32px] p-8 min-w-[320px]">
+                <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
+                  Winning Bidder
+                </p>
+
+                <h2 className="text-5xl font-black mb-6">
+                  {auction.leading_bidder}
+                </h2>
+
+                <div className="bg-[#16d66d] text-[#07152b] rounded-[24px] px-6 py-5 inline-block">
+                  <p className="uppercase tracking-[0.3em] text-xs mb-2">
+                    Winning Bid
+                  </p>
+
+                  <div className="text-5xl font-black">
+                    R{auction.current_bid.toLocaleString()}
+                  </div>
                 </div>
               </div>
 
-              {/* RIGHT */}
-              <div className="flex flex-col justify-between">
+            </div>
+          </div>
 
-                <div>
+          {/* BODY */}
+          <div className="p-8 lg:p-12">
 
-                  <div className="mb-8">
-                    <p className="text-sm uppercase tracking-widest text-neutral-500 mb-2">
-                      Winning Bidder
-                    </p>
+            <div className="grid xl:grid-cols-[1fr_0.9fr] gap-10">
 
-                    <h2 className="text-4xl font-black">
-                      {auction.leading_bidder}
-                    </h2>
-                  </div>
+              {/* LEFT */}
+              <div>
 
-                  <div className="mb-8">
-                    <p className="text-sm uppercase tracking-widest text-neutral-500 mb-2">
-                      Artwork
-                    </p>
+                <div className="mb-8">
+                  <p className="uppercase tracking-[0.3em] text-xs text-slate-400 font-black mb-4">
+                    Awarded Artwork
+                  </p>
 
-                    <h3 className="text-3xl font-black">
-                      {auction.child_name}{" "}
-                      {auction.child_surname}
-                    </h3>
+                  <h3 className="text-5xl font-black leading-tight mb-3">
+                    {auction.child_name} {auction.child_surname}
+                  </h3>
 
-                    <p className="text-xl text-neutral-500 mt-2">
-                      {auction.grade}
-                    </p>
-                  </div>
+                  <p className="text-2xl text-slate-500">
+                    {auction.grade}
+                  </p>
+                </div>
 
-                  <div className="mb-8">
-                    <p className="text-sm uppercase tracking-widest text-neutral-500 mb-2">
-                      Winning Amount
-                    </p>
+                {/* FRAMED ARTWORK */}
+                <div className="relative">
 
-                    <div className="text-6xl font-black text-green-500">
-                      R{auction.current_bid.toLocaleString()}
+                  <div className="bg-gradient-to-br from-[#70420f] to-[#2a1707] p-5 rounded-[40px] shadow-[0_40px_100px_rgba(0,0,0,0.18)]">
+
+                    <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-3 rounded-[30px]">
+
+                      <div className="bg-[#f8f5ef] rounded-[24px] p-5">
+
+                        <div className="rounded-[18px] overflow-hidden bg-white shadow-2xl">
+                          <img
+                            src={auction.artwork_url}
+                            alt="Artwork"
+                            className="w-full max-h-[700px] object-contain"
+                          />
+                        </div>
+
+                      </div>
+
                     </div>
                   </div>
 
                 </div>
 
+              </div>
+
+              {/* RIGHT */}
+              <div className="space-y-6">
+
                 {/* PAYMENT */}
-                <div className="bg-neutral-100 rounded-3xl p-6 border">
-                  <p className="text-sm uppercase tracking-widest text-neutral-500 mb-3">
+                <div className="bg-[#f7f5f0] rounded-[32px] p-8 border border-black/5">
+
+                  <p className="uppercase tracking-[0.3em] text-xs text-slate-400 font-black mb-5">
                     Payment Instructions
                   </p>
 
-                  <div className="space-y-2 text-lg">
+                  <div className="space-y-5">
 
-                    <p>
-                      <span className="font-bold">
-                        School:
-                      </span>{" "}
-                      {school.school_name}
-                    </p>
+                    <DetailRow
+                      label="School"
+                      value={school.school_name}
+                    />
 
-                    <p>
-                      <span className="font-bold">
-                        Bank:
-                      </span>{" "}
-                      {school.bank_name}
-                    </p>
+                    <DetailRow
+                      label="Bank"
+                      value={school.bank_name}
+                    />
 
-                    <p>
-                      <span className="font-bold">
-                        Account Name:
-                      </span>{" "}
-                      {school.account_name}
-                    </p>
+                    <DetailRow
+                      label="Account Name"
+                      value={school.account_name}
+                    />
 
-                    <p>
-                      <span className="font-bold">
-                        Account Number:
-                      </span>{" "}
-                      {school.account_number}
-                    </p>
+                    <DetailRow
+                      label="Account Number"
+                      value={school.account_number}
+                    />
 
-                    <p>
-                      <span className="font-bold">
-                        Branch Code:
-                      </span>{" "}
-                      {school.branch_code}
-                    </p>
+                    <DetailRow
+                      label="Branch Code"
+                      value={school.branch_code}
+                    />
 
-                    <p>
-                      <span className="font-bold">
-                        Reference:
-                      </span>{" "}
-                      {school.payment_reference_prefix}-
-                      {auction.leading_bidder}
-                    </p>
+                    <DetailRow
+                      label="Reference"
+                      value={`${school.payment_reference_prefix}-${auction.leading_bidder}`}
+                    />
 
                   </div>
 
-                  <div className="mt-6 pt-6 border-t">
-                    <p className="text-sm uppercase tracking-widest text-neutral-500 mb-3">
-                      Collection Instructions
-                    </p>
+                </div>
 
-                    <p className="text-base leading-relaxed">
-                      {school.collection_instructions}
-                    </p>
-                  </div>
+                {/* COLLECTION */}
+                <div className="bg-[#07152b] text-white rounded-[32px] p-8">
+
+                  <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-5">
+                    Collection Instructions
+                  </p>
+
+                  <p className="text-xl leading-relaxed text-white/80">
+                    {school.collection_instructions}
+                  </p>
+
+                </div>
+
+                {/* MESSAGE */}
+                <div className="bg-[#16d66d] text-[#07152b] rounded-[32px] p-8 shadow-xl">
+
+                  <p className="uppercase tracking-[0.3em] text-xs font-black mb-4">
+                    BragWall Message
+                  </p>
+
+                  <p className="text-2xl font-black leading-relaxed">
+                    Thank you for supporting creativity, confidence, and your school community through BragWall.
+                  </p>
+
                 </div>
 
               </div>
-            </div>
 
-            {/* FOOTER */}
-            <div className="mt-10 border-t pt-8 text-center">
-              <p className="text-2xl font-black mb-3">
-                Congratulations on securing this masterpiece.
-              </p>
-
-              <p className="text-neutral-500 text-lg">
-                Thank you for supporting your school community through Bid On My Kid.
-              </p>
             </div>
 
           </div>
         </div>
 
-        {/* ACTIONS */}
-        <div className="flex gap-4 justify-center mt-8">
-
-          <button
-            onClick={() => window.print()}
-            className="bg-black text-white rounded-2xl px-8 py-5 font-black text-xl"
-          >
-            Download Certificate
-          </button>
-
-          <a
-            href="/auction/demo"
-            className="bg-white border rounded-2xl px-8 py-5 font-black text-xl"
-          >
-            Back to Auction
-          </a>
-
-        </div>
       </div>
     </main>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div>
+      <p className="uppercase tracking-[0.25em] text-xs text-slate-400 font-black mb-2">
+        {label}
+      </p>
+
+      <p className="text-2xl font-black">
+        {value}
+      </p>
+    </div>
   );
 }
