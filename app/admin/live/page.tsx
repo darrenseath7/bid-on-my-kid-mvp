@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import BrandHeader from "@/components/BrandHeader";
 import { supabase } from "@/lib/supabase";
@@ -22,10 +22,12 @@ type Artwork = {
   sort_order: number;
   child_name: string;
   child_surname: string;
-  status: string;
-  sold_amount: number;
+  grade: string;
   artwork_url: string;
   ai_intro: string;
+  status: string;
+  sold_amount: number;
+  winning_bidder: string;
 };
 
 type Bid = {
@@ -58,7 +60,7 @@ export default function LiveAuctionPage() {
     fetchBids();
 
     const auctionChannel = supabase
-      .channel("bragwall-live-room-timer")
+      .channel("live-admin-final")
       .on(
         "postgres_changes",
         {
@@ -68,25 +70,15 @@ export default function LiveAuctionPage() {
           filter: "auction_code=eq.demo",
         },
         (payload) => {
-          const updated =
-            payload.new as AuctionState;
-
-          setAuction(updated);
-
-          if (
-            updated.current_bid > 0 &&
-            updated.status !== "sold"
-          ) {
-            setMcText(
-              `${updated.leading_bidder} is pushing hard at R${updated.current_bid.toLocaleString()}.`
-            );
-          }
+          setAuction(
+            payload.new as AuctionState
+          );
         }
       )
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("bragwall-live-bids-timer")
+      .channel("live-admin-bids-final")
       .on(
         "postgres_changes",
         {
@@ -205,7 +197,7 @@ export default function LiveAuctionPage() {
       ).toISOString();
 
       setMcText(
-        "Going twice. This masterpiece is moments away from glory."
+        "Going twice. Someone is moments away from eternal bragging rights."
       );
     }
 
@@ -213,8 +205,6 @@ export default function LiveAuctionPage() {
       status === "sold" &&
       auction
     ) {
-      deadline = null;
-
       setMcText(
         `SOLD TO ${auction.leading_bidder.toUpperCase()} FOR R${auction.current_bid.toLocaleString()}!`
       );
@@ -230,10 +220,83 @@ export default function LiveAuctionPage() {
       .eq("auction_code", "demo");
   }
 
+  async function nextArtwork() {
+    const current =
+      artworks.find(
+        (item) =>
+          item.status === "live"
+      );
+
+    if (!current) return;
+
+    const next = artworks.find(
+      (item) =>
+        item.sort_order ===
+        current.sort_order + 1
+    );
+
+    if (!next) {
+      alert(
+        "No more artworks in queue."
+      );
+      return;
+    }
+
+    await supabase
+      .from("demo_artworks")
+      .update({
+        status: "sold",
+        sold_amount:
+          auction?.current_bid || 0,
+        winning_bidder:
+          auction?.leading_bidder ||
+          "",
+      })
+      .eq("id", current.id);
+
+    await supabase
+      .from("demo_artworks")
+      .update({
+        status: "live",
+      })
+      .eq("id", next.id);
+
+    await supabase
+      .from("live_bids")
+      .delete()
+      .eq("auction_code", "demo");
+
+    await supabase
+      .from("live_auction_state")
+      .update({
+        child_name:
+          next.child_name,
+        child_surname:
+          next.child_surname,
+        grade: next.grade,
+        artwork_url:
+          next.artwork_url,
+        current_bid: 0,
+        leading_bidder:
+          "No bids yet",
+        status: "open",
+        status_deadline: null,
+      })
+      .eq("auction_code", "demo");
+
+    fetchArtworks();
+    fetchBids();
+
+    setMcText(
+      next.ai_intro ||
+        "Next masterpiece ready for bidding."
+    );
+  }
+
   if (!auction) {
     return (
       <main className="min-h-screen bg-[#07152b] text-white flex items-center justify-center">
-        Loading BragWall control room...
+        Loading BragWall...
       </main>
     );
   }
@@ -255,7 +318,6 @@ export default function LiveAuctionPage() {
 
       <div className="grid xl:grid-cols-[260px_1fr] min-h-screen">
 
-        {/* SIDEBAR */}
         <aside className="hidden xl:flex bg-[#061124] border-r border-white/10 p-6 flex-col">
 
           <div className="bg-white rounded-2xl p-4 mb-8">
@@ -278,20 +340,6 @@ export default function LiveAuctionPage() {
               Live Auction
             </a>
 
-            <a
-              href="/admin/artworks"
-              className="block rounded-2xl px-4 py-3 hover:bg-white/10"
-            >
-              Artworks
-            </a>
-
-            <a
-              href="/admin/school"
-              className="block rounded-2xl px-4 py-3 hover:bg-white/10"
-            >
-              School Profile
-            </a>
-
           </nav>
 
           <div className="mt-auto text-xs text-white/40">
@@ -300,13 +348,12 @@ export default function LiveAuctionPage() {
 
         </aside>
 
-        {/* MAIN */}
         <section className="p-5 lg:p-8">
 
-          {/* HEADER */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
 
             <div>
+
               <p className="uppercase tracking-[0.35em] text-xs text-white/40 font-black mb-3">
                 Live Auction Control Room
               </p>
@@ -319,6 +366,7 @@ export default function LiveAuctionPage() {
               <p className="text-white/50 text-xl mt-3">
                 {auction.grade}
               </p>
+
             </div>
 
             <div className="flex items-center gap-4">
@@ -338,13 +386,18 @@ export default function LiveAuctionPage() {
                   }}
                   className="bg-[#ef2b20] rounded-[28px] px-8 py-5 shadow-2xl"
                 >
+
                   <p className="uppercase tracking-[0.25em] text-xs text-white/50 font-black mb-1">
                     Countdown
                   </p>
 
                   <div className="text-5xl font-black">
-                    {secondsRemaining}s
+                    {
+                      secondsRemaining
+                    }
+                    s
                   </div>
+
                 </motion.div>
               )}
 
@@ -356,7 +409,6 @@ export default function LiveAuctionPage() {
 
           </div>
 
-          {/* LIVE STATUS STRIP */}
           <div className="grid md:grid-cols-4 gap-4 mb-8">
 
             <LiveStat
@@ -387,13 +439,10 @@ export default function LiveAuctionPage() {
 
           </div>
 
-          {/* MAIN GRID */}
           <div className="grid xl:grid-cols-[1fr_0.9fr] gap-6">
 
-            {/* LEFT */}
             <div className="space-y-6">
 
-              {/* ARTWORK */}
               <div className="bg-white/5 border border-white/10 rounded-[36px] p-5 shadow-2xl">
 
                 <div className="bg-gradient-to-br from-[#70420f] to-[#2a1707] p-5 rounded-[32px]">
@@ -422,7 +471,6 @@ export default function LiveAuctionPage() {
 
               </div>
 
-              {/* AI MC */}
               <div className="bg-white/5 border border-white/10 rounded-[32px] p-6">
 
                 <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
@@ -437,10 +485,8 @@ export default function LiveAuctionPage() {
 
             </div>
 
-            {/* RIGHT */}
             <div className="space-y-6">
 
-              {/* BID FEED */}
               <div className="bg-white/5 border border-white/10 rounded-[32px] overflow-hidden">
 
                 <div className="p-5 border-b border-white/10 flex items-center justify-between">
@@ -472,6 +518,7 @@ export default function LiveAuctionPage() {
                     >
 
                       <div>
+
                         <p className="font-black text-lg">
                           {index === 0
                             ? "🏆 "
@@ -484,6 +531,7 @@ export default function LiveAuctionPage() {
                         <p className="text-xs text-white/40">
                           Live Bid
                         </p>
+
                       </div>
 
                       <p className="text-3xl font-black text-[#16d66d]">
@@ -498,7 +546,6 @@ export default function LiveAuctionPage() {
 
               </div>
 
-              {/* CONTROLS */}
               <div className="grid grid-cols-2 gap-4">
 
                 <button
@@ -533,6 +580,7 @@ export default function LiveAuctionPage() {
                 </button>
 
                 <button
+                  onClick={nextArtwork}
                   className="bg-white text-[#07152b] rounded-2xl py-6 font-black text-xl shadow-xl"
                 >
                   Next Artwork
