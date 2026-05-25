@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import BrandHeader from "@/components/BrandHeader";
 import { supabase } from "@/lib/supabase";
 
