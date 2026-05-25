@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import BrandHeader from "@/components/BrandHeader";
 import { supabase } from "@/lib/supabase";
 
 export default function ArtworkUploadPage() {
@@ -52,6 +53,7 @@ export default function ArtworkUploadPage() {
     if (uploadError) {
       setUploading(false);
       setMessage(uploadError.message);
+
       return;
     }
 
@@ -132,199 +134,227 @@ export default function ArtworkUploadPage() {
     setUploading(false);
 
     setMessage(
-      "Artwork enhanced, framed beautifully, and added to the auction queue."
+      "Artwork enhanced, framed beautifully, and added to the BragWall auction queue."
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white py-10 px-5">
+    <main className="min-h-screen bg-[#f7f5f0] text-[#07152b]">
 
-      {/* BACKGROUND GLOW */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent_45%)] pointer-events-none" />
+      <div className="max-w-7xl mx-auto px-5 py-8">
 
-      <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10">
+        {/* TOP BAR */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-10">
 
-        {/* LEFT */}
-        <div>
+          <BrandHeader />
 
-          <p className="uppercase tracking-[0.3em] text-xs text-neutral-500 mb-3">
-            Bid On My Kid
-          </p>
-
-          <h1 className="text-6xl font-black leading-tight mb-6">
-            AI artwork onboarding.
-          </h1>
-
-          <p className="text-neutral-400 text-xl leading-relaxed mb-10">
-            Upload a child’s artwork and instantly transform it into a premium framed gallery piece ready for live auction.
-          </p>
-
-          <div className="bg-neutral-900 border border-neutral-800 rounded-[36px] p-6 space-y-5 shadow-2xl">
-
-            <div>
-              <label className="block text-sm font-bold mb-2">
-                Child Name
-              </label>
-
-              <input
-                value={childName}
-                onChange={(event) =>
-                  setChildName(
-                    event.target.value
-                  )
-                }
-                className="w-full rounded-2xl bg-black border border-neutral-700 px-5 py-4 text-white"
-                placeholder="Ethan"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold mb-2">
-                Child Surname
-              </label>
-
-              <input
-                value={childSurname}
-                onChange={(event) =>
-                  setChildSurname(
-                    event.target.value
-                  )
-                }
-                className="w-full rounded-2xl bg-black border border-neutral-700 px-5 py-4 text-white"
-                placeholder="Smith"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold mb-2">
-                Grade
-              </label>
-
-              <input
-                value={grade}
-                onChange={(event) =>
-                  setGrade(
-                    event.target.value
-                  )
-                }
-                className="w-full rounded-2xl bg-black border border-neutral-700 px-5 py-4 text-white"
-                placeholder="Grade 3"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold mb-2">
-                Artwork Image
-              </label>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(event) =>
-                  setFile(
-                    event.target.files?.[0] ||
-                      null
-                  )
-                }
-                className="w-full rounded-2xl bg-black border border-neutral-700 px-5 py-4 text-white"
-              />
-            </div>
-
-            <button
-              onClick={uploadArtwork}
-              disabled={uploading}
-              className="w-full bg-green-400 text-black rounded-2xl py-5 font-black text-xl disabled:opacity-50 shadow-2xl"
+          <div className="flex gap-3">
+            <a
+              href="/admin"
+              className="rounded-2xl bg-white border border-black/5 px-6 py-4 font-black shadow-sm"
             >
-              {uploading
-                ? "Enhancing Artwork..."
-                : "Enhance & Upload Artwork"}
-            </button>
+              Dashboard
+            </a>
 
-            {message && (
-              <div className="bg-black border border-neutral-700 rounded-2xl p-4 font-bold">
-                {message}
-              </div>
-            )}
+            <a
+              href="/admin/live"
+              className="rounded-2xl bg-[#07152b] text-white px-6 py-4 font-black shadow-xl"
+            >
+              Live Auction
+            </a>
           </div>
 
         </div>
 
-        {/* RIGHT */}
-        <div className="flex items-center justify-center">
+        {/* HERO */}
+        <div className="mb-10">
+          <p className="uppercase tracking-[0.35em] text-xs font-black text-[#2878cf] mb-4">
+            Artwork Onboarding
+          </p>
 
-          {!previewUrl ? (
-            <div className="bg-neutral-900 border border-neutral-800 rounded-[40px] p-10 text-center w-full shadow-2xl">
-              <div className="text-7xl mb-6">
-                🎨
+          <h1 className="text-6xl lg:text-8xl font-black leading-[0.92] tracking-tight mb-6">
+            Turn student art into a premium auction experience.
+          </h1>
+
+          <p className="text-2xl text-slate-500 leading-relaxed max-w-4xl">
+            Upload student artwork, generate AI auction commentary, and instantly transform each piece into a framed BragWall masterpiece.
+          </p>
+        </div>
+
+        {/* CONTENT */}
+        <div className="grid xl:grid-cols-[0.9fr_1.1fr] gap-8">
+
+          {/* LEFT */}
+          <div className="bg-white rounded-[36px] p-8 shadow-xl border border-black/5">
+
+            <h2 className="text-3xl font-black mb-8">
+              Upload Artwork
+            </h2>
+
+            <div className="space-y-5">
+
+              <div>
+                <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+                  Child Name
+                </label>
+
+                <input
+                  value={childName}
+                  onChange={(event) =>
+                    setChildName(
+                      event.target.value
+                    )
+                  }
+                  className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg outline-none"
+                  placeholder="Ethan"
+                />
               </div>
 
-              <h2 className="text-3xl font-black mb-4">
-                Gallery Preview
-              </h2>
+              <div>
+                <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+                  Child Surname
+                </label>
 
-              <p className="text-neutral-400 text-lg">
-                Upload an artwork to see the premium framed presentation.
-              </p>
+                <input
+                  value={childSurname}
+                  onChange={(event) =>
+                    setChildSurname(
+                      event.target.value
+                    )
+                  }
+                  className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg outline-none"
+                  placeholder="Smith"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+                  Grade
+                </label>
+
+                <input
+                  value={grade}
+                  onChange={(event) =>
+                    setGrade(
+                      event.target.value
+                    )
+                  }
+                  className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg outline-none"
+                  placeholder="Grade 3"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+                  Artwork Image
+                </label>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) =>
+                    setFile(
+                      event.target.files?.[0] ||
+                        null
+                    )
+                  }
+                  className="w-full rounded-2xl border border-slate-200 px-5 py-5 bg-white"
+                />
+              </div>
+
+              <button
+                onClick={uploadArtwork}
+                disabled={uploading}
+                className="w-full bg-[#07152b] text-white rounded-2xl py-6 font-black text-xl shadow-xl disabled:opacity-50"
+              >
+                {uploading
+                  ? "Enhancing Artwork..."
+                  : "Enhance & Upload Artwork"}
+              </button>
+
+              {message && (
+                <div className="rounded-2xl bg-[#07152b] text-white p-5 font-bold">
+                  {message}
+                </div>
+              )}
+
             </div>
-          ) : (
-            <div className="w-full">
+          </div>
 
-              <div className="mb-5 text-center">
-                <p className="uppercase tracking-[0.3em] text-xs text-neutral-500 mb-3">
-                  AI Enhanced Gallery Presentation
-                </p>
+          {/* RIGHT */}
+          <div>
 
-                <h2 className="text-4xl font-black">
-                  {childName || "Child"}{" "}
-                  {childSurname || ""}
+            {!previewUrl ? (
+              <div className="bg-white rounded-[36px] p-12 border border-black/5 shadow-xl h-full flex flex-col items-center justify-center text-center">
+
+                <div className="text-8xl mb-8">
+                  🎨
+                </div>
+
+                <h2 className="text-5xl font-black mb-5">
+                  Gallery Preview
                 </h2>
 
-                <p className="text-neutral-400 text-lg mt-2">
-                  {grade}
+                <p className="text-slate-500 text-2xl leading-relaxed max-w-xl">
+                  Upload artwork to see the premium BragWall framed presentation.
                 </p>
+
               </div>
+            ) : (
+              <div>
 
-              {/* PREMIUM FRAME */}
-              <div className="relative">
+                <div className="mb-6 text-center">
+                  <p className="uppercase tracking-[0.3em] text-xs font-black text-[#2878cf] mb-4">
+                    BragWall Enhanced Preview
+                  </p>
 
-                {/* OUTER FRAME */}
-                <div className="bg-gradient-to-br from-[#3f2b14] via-[#6d4c1f] to-[#2a1909] p-5 rounded-[40px] shadow-[0_40px_100px_rgba(0,0,0,0.9)]">
+                  <h2 className="text-5xl font-black leading-tight">
+                    {childName || "Child"}{" "}
+                    {childSurname || ""}
+                  </h2>
 
-                  {/* INNER GOLD FRAME */}
-                  <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-3 rounded-[30px]">
+                  <p className="text-slate-500 text-2xl mt-3">
+                    {grade}
+                  </p>
+                </div>
 
-                    {/* MAT BOARD */}
-                    <div className="bg-[#f8f5ef] rounded-[24px] p-6">
+                {/* PREMIUM FRAME */}
+                <div className="relative">
 
-                      {/* ARTWORK */}
-                      <div className="rounded-[18px] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.4)] border border-black/10 bg-white">
+                  <div className="bg-gradient-to-br from-[#70420f] to-[#2a1707] p-5 rounded-[40px] shadow-[0_40px_100px_rgba(0,0,0,0.18)]">
 
-                        <img
-                          src={previewUrl}
-                          alt="Artwork Preview"
-                          className="
-                            w-full
-                            max-h-[700px]
-                            object-contain
-                            contrast-110
-                            saturate-110
-                            brightness-105
-                          "
-                        />
+                    <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-3 rounded-[30px]">
+
+                      <div className="bg-[#f8f5ef] rounded-[24px] p-6">
+
+                        <div className="rounded-[18px] overflow-hidden bg-white shadow-2xl">
+
+                          <img
+                            src={previewUrl}
+                            alt="Artwork Preview"
+                            className="
+                              w-full
+                              max-h-[760px]
+                              object-contain
+                              contrast-110
+                              saturate-110
+                              brightness-105
+                            "
+                          />
+
+                        </div>
 
                       </div>
 
                     </div>
                   </div>
+
                 </div>
 
-                {/* SPOTLIGHT */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.15),transparent_35%)] pointer-events-none rounded-[40px]" />
-
               </div>
+            )}
 
-            </div>
-          )}
+          </div>
 
         </div>
       </div>
