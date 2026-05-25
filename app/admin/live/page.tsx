@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import BrandHeader from "@/components/BrandHeader";
 import { supabase } from "@/lib/supabase";
@@ -14,6 +14,7 @@ type AuctionState = {
   leading_bidder: string;
   status: string;
   total_raised: number;
+  status_deadline?: string | null;
 };
 
 type Artwork = {
@@ -48,13 +49,16 @@ export default function LiveAuctionPage() {
       "Welcome to tonight’s masterpiece showdown."
     );
 
+  const [secondsRemaining, setSecondsRemaining] =
+    useState(0);
+
   useEffect(() => {
     fetchAuction();
     fetchArtworks();
     fetchBids();
 
     const auctionChannel = supabase
-      .channel("bragwall-live-room")
+      .channel("bragwall-live-room-timer")
       .on(
         "postgres_changes",
         {
@@ -82,7 +86,7 @@ export default function LiveAuctionPage() {
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("bragwall-live-bids")
+      .channel("bragwall-live-bids-timer")
       .on(
         "postgres_changes",
         {
@@ -105,6 +109,42 @@ export default function LiveAuctionPage() {
       supabase.removeChannel(bidsChannel);
     };
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (
+        auction?.status_deadline
+      ) {
+        const remaining =
+          Math.max(
+            0,
+            Math.floor(
+              (
+                new Date(
+                  auction.status_deadline
+                ).getTime() -
+                Date.now()
+              ) / 1000
+            )
+          );
+
+        setSecondsRemaining(
+          remaining
+        );
+
+        if (
+          remaining === 0 &&
+          auction.status ===
+            "going twice"
+        ) {
+          updateStatus("sold");
+        }
+      }
+    }, 1000);
+
+    return () =>
+      clearInterval(interval);
+  }, [auction]);
 
   async function fetchAuction() {
     const { data } = await supabase
@@ -143,30 +183,51 @@ export default function LiveAuctionPage() {
   async function updateStatus(
     status: string
   ) {
-    await supabase
-      .from("live_auction_state")
-      .update({
-        status,
-      })
-      .eq("auction_code", "demo");
+    let deadline = null;
 
-    if (status === "going once") {
+    if (
+      status === "going once"
+    ) {
+      deadline = new Date(
+        Date.now() + 15000
+      ).toISOString();
+
       setMcText(
         "Going once. Tension levels are climbing beautifully."
       );
     }
 
-    if (status === "going twice") {
+    if (
+      status === "going twice"
+    ) {
+      deadline = new Date(
+        Date.now() + 10000
+      ).toISOString();
+
       setMcText(
-        "Going twice. Someone is about to earn serious bragging rights."
+        "Going twice. This masterpiece is moments away from glory."
       );
     }
 
-    if (status === "sold" && auction) {
+    if (
+      status === "sold" &&
+      auction
+    ) {
+      deadline = null;
+
       setMcText(
         `SOLD TO ${auction.leading_bidder.toUpperCase()} FOR R${auction.current_bid.toLocaleString()}!`
       );
     }
+
+    await supabase
+      .from("live_auction_state")
+      .update({
+        status,
+        status_deadline:
+          deadline,
+      })
+      .eq("auction_code", "demo");
   }
 
   if (!auction) {
@@ -179,8 +240,15 @@ export default function LiveAuctionPage() {
 
   const currentArtworkIndex =
     artworks.findIndex(
-      (item) => item.status === "live"
+      (item) =>
+        item.status === "live"
     ) + 1;
+
+  const timerActive =
+    auction.status ===
+      "going once" ||
+    auction.status ===
+      "going twice";
 
   return (
     <main className="min-h-screen bg-[#07152b] text-white">
@@ -253,9 +321,38 @@ export default function LiveAuctionPage() {
               </p>
             </div>
 
-            <StatusPill
-              status={auction.status}
-            />
+            <div className="flex items-center gap-4">
+
+              {timerActive && (
+                <motion.div
+                  animate={{
+                    scale: [
+                      1,
+                      1.05,
+                      1,
+                    ],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 1,
+                  }}
+                  className="bg-[#ef2b20] rounded-[28px] px-8 py-5 shadow-2xl"
+                >
+                  <p className="uppercase tracking-[0.25em] text-xs text-white/50 font-black mb-1">
+                    Countdown
+                  </p>
+
+                  <div className="text-5xl font-black">
+                    {secondsRemaining}s
+                  </div>
+                </motion.div>
+              )}
+
+              <StatusPill
+                status={auction.status}
+              />
+
+            </div>
 
           </div>
 
@@ -270,7 +367,9 @@ export default function LiveAuctionPage() {
 
             <LiveStat
               label="Leading Bidder"
-              value={auction.leading_bidder}
+              value={
+                auction.leading_bidder
+              }
               color="#ffffff"
             />
 
@@ -358,12 +457,6 @@ export default function LiveAuctionPage() {
 
                 <div className="divide-y divide-white/10 max-h-[420px] overflow-auto">
 
-                  {bids.length === 0 && (
-                    <div className="p-5 text-white/40">
-                      No bids yet.
-                    </div>
-                  )}
-
                   {bids.map((bid, index) => (
                     <motion.div
                       key={bid.id}
@@ -400,42 +493,6 @@ export default function LiveAuctionPage() {
 
                     </motion.div>
                   ))}
-
-                </div>
-
-              </div>
-
-              {/* FUNDRAISING */}
-              <div className="bg-white rounded-[32px] p-6 text-[#07152b] shadow-2xl">
-
-                <p className="uppercase tracking-[0.25em] text-xs text-slate-400 font-black mb-4">
-                  Fundraising Goal
-                </p>
-
-                <div className="w-full h-5 bg-slate-100 rounded-full overflow-hidden mb-5">
-
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{
-                      width: "62%",
-                    }}
-                    transition={{
-                      duration: 1.2,
-                    }}
-                    className="h-full bg-[#16d66d]"
-                  />
-
-                </div>
-
-                <div className="flex items-center justify-between">
-
-                  <h2 className="text-5xl font-black">
-                    R125,000
-                  </h2>
-
-                  <p className="text-slate-400 font-bold">
-                    Goal: R200,000
-                  </p>
 
                 </div>
 
