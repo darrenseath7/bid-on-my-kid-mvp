@@ -64,7 +64,7 @@ export default function DemoAuctionPage() {
     fetchActivities();
 
     const auctionChannel = supabase
-      .channel("bw-parent-polished-auction")
+      .channel("bw-parent-clean-activity-auction")
       .on(
         "postgres_changes",
         {
@@ -101,24 +101,23 @@ export default function DemoAuctionPage() {
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("bw-parent-polished-bids")
+      .channel("bw-parent-clean-activity-bids")
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "live_bids",
+          filter: "auction_code=eq.demo",
         },
-        (payload) => {
-          setBids((current) =>
-            [payload.new as Bid, ...current].sort((a, b) => b.amount - a.amount)
-          );
+        () => {
+          fetchBids();
         }
       )
       .subscribe();
 
     const activityChannel = supabase
-      .channel("bw-parent-polished-activity")
+      .channel("bw-parent-clean-activity-feed")
       .on(
         "postgres_changes",
         {
@@ -257,44 +256,90 @@ export default function DemoAuctionPage() {
     await addActivity(`${bidderName} bid R${amount.toLocaleString()}`);
   }
 
+  const dynamicArtworkStory =
+    auction?.mc_commentary ||
+    fallbackCommentary[commentIndex] ||
+    "Parents, prepare yourselves. Tonight’s masterpieces may cause sudden generosity, family rivalry, and fridge-door upgrades.";
+
   if (!joined) {
     return (
-      <main className="min-h-screen bg-[#f7f5f0] flex items-center justify-center px-5">
-        <div className="w-full max-w-md bg-white rounded-[36px] p-8 shadow-2xl border border-black/5">
+      <main className="min-h-screen bg-[#fbf8f1] text-[#07152b] px-5 py-8">
+        <div className="max-w-md mx-auto">
           <div className="mb-8">
-            <BrandHeader />
+            <BrandHeader center />
           </div>
 
-          <h1 className="text-5xl font-black text-[#07152b] leading-tight mb-5">
-            Join tonight’s auction.
-          </h1>
+          <div className="bg-white rounded-[40px] p-7 shadow-2xl border border-black/5 mb-6">
+            <p className="uppercase tracking-[0.35em] text-xs text-[#0b63ce] font-black mb-4">
+              Welcome Parents
+            </p>
 
-          <p className="text-slate-500 text-lg mb-8">
-            Enter your bidder name and get ready to bid for bragging rights.
-          </p>
+            <h1 className="text-5xl font-black leading-[0.95] mb-5">
+              Welcome to tonight’s BragWall auction.
+            </h1>
 
-          <input
-            value={bidderName}
-            onChange={(e) => setBidderName(e.target.value)}
-            placeholder="Example: Darren S"
-            className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg mb-5 outline-none"
-          />
+            <p className="text-slate-600 text-lg leading-relaxed mb-7">
+              Tonight we celebrate young creativity, raise funds for the school,
+              and give a few proud families serious bragging rights.
+            </p>
 
-          <button
-            onClick={() => {
-              if (bidderName.trim()) {
-                audioUnlockedRef.current = true;
-                setJoined(true);
+            <div className="grid gap-3 mb-7">
+              <WelcomeStep
+                number="1"
+                title="Join with your bidder name"
+                text="Use your name or family name so the school knows who won."
+              />
 
-                if (auction?.status !== "waiting") {
-                  addActivity(`${bidderName} joined the auction`);
+              <WelcomeStep
+                number="2"
+                title="Bid live from your phone"
+                text="Tap +R100, +R200, or +R300 while the artwork is live."
+              />
+
+              <WelcomeStep
+                number="3"
+                title="Win, pay, and collect"
+                text="If you win, your certificate and payment details appear after SOLD."
+              />
+            </div>
+
+            <div className="bg-[#07152b] text-white rounded-[28px] p-6 mb-6">
+              <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
+                Tonight’s Featured Artwork
+              </p>
+
+              <p className="text-xl font-black leading-relaxed">
+                “{dynamicArtworkStory}”
+              </p>
+            </div>
+
+            <input
+              value={bidderName}
+              onChange={(e) => setBidderName(e.target.value)}
+              placeholder="Example: Darren S"
+              className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg mb-4 outline-none"
+            />
+
+            <button
+              onClick={() => {
+                if (bidderName.trim()) {
+                  audioUnlockedRef.current = true;
+                  setJoined(true);
+
+                  if (auction?.status !== "waiting") {
+                    addActivity(`${bidderName} joined the auction`);
+                  }
                 }
-              }
-            }}
-            className="w-full bg-[#07152b] text-white rounded-2xl py-5 font-black text-xl shadow-xl"
-          >
-            ENTER AUCTION
-          </button>
+              }}
+              className="w-full bg-[#07152b] text-white rounded-2xl py-5 font-black text-xl shadow-xl"
+            >
+              ENTER AUCTION
+            </button>
+          </div>
+
+          <p className="text-center text-slate-400 font-bold">
+            Young Art • Big Pride
+          </p>
         </div>
       </main>
     );
@@ -325,23 +370,36 @@ export default function DemoAuctionPage() {
 
           <div className="bg-white/10 border border-white/10 rounded-[36px] p-8 shadow-2xl">
             <p className="uppercase tracking-[0.35em] text-xs text-white/40 font-black mb-4">
-              Waiting Room
+              Parent Waiting Room
             </p>
 
             <h1 className="text-6xl font-black leading-none mb-6">
-              Auction starting soon.
+              You’re in. Auction starts soon.
             </h1>
 
             <p className="text-white/70 text-xl leading-relaxed mb-8">
-              You’re in. The school will begin the live auction shortly.
+              Keep this page open. When the school starts the auction, the first
+              artwork will appear automatically.
             </p>
 
-            <div className="bg-white/10 rounded-[28px] p-6">
+            <div className="bg-white/10 rounded-[28px] p-6 mb-6">
               <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
-                AI Auction MC
+                How bidding works
               </p>
 
-              <p className="text-2xl leading-relaxed font-bold">
+              <div className="space-y-3 text-white/80 font-bold">
+                <p>• Watch the featured artwork go live.</p>
+                <p>• Tap a bid button to raise the price.</p>
+                <p>• If you win, download your winner certificate.</p>
+              </div>
+            </div>
+
+            <div className="bg-[#16d66d] text-[#07152b] rounded-[28px] p-6">
+              <p className="uppercase tracking-[0.3em] text-xs font-black mb-3">
+                Tonight’s Featured Artwork
+              </p>
+
+              <p className="text-2xl leading-relaxed font-black">
                 “{commentary}”
               </p>
             </div>
@@ -412,7 +470,7 @@ export default function DemoAuctionPage() {
                 href="/auction/winner"
                 className="bg-white text-[#07152b] rounded-[28px] px-8 py-5 inline-block font-black text-xl"
               >
-                View Certificate
+                View / Download Certificate
               </a>
             </div>
           </motion.div>
@@ -492,30 +550,26 @@ export default function DemoAuctionPage() {
           </p>
         </motion.div>
 
-        <div className="bg-[#07152b] text-white rounded-[28px] p-5 mb-6 shadow-xl">
-          <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
-            Live Activity
-          </p>
+        {activities.length > 0 && (
+          <div className="bg-[#07152b] text-white rounded-[28px] p-5 mb-6 shadow-xl">
+            <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
+              Live Activity
+            </p>
 
-          <div className="space-y-3">
-            {activities.length === 0 && (
-              <p className="text-white/40 font-bold">
-                Activity will appear once bidding starts.
-              </p>
-            )}
-
-            {activities.slice(0, 4).map((activity) => (
-              <motion.div
-                key={activity.id}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-lg font-bold text-white/85"
-              >
-                • {activity.message}
-              </motion.div>
-            ))}
+            <div className="space-y-3">
+              {activities.slice(0, 4).map((activity) => (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-lg font-bold text-white/85"
+                >
+                  • {activity.message}
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <motion.div
           animate={{
@@ -594,7 +648,9 @@ export default function DemoAuctionPage() {
                   key={increment}
                   onClick={() => placeBid(increment)}
                   className="rounded-[24px] py-5 font-black text-2xl shadow-lg transition text-white disabled:opacity-40"
-                  disabled={auction.status === "sold" || auction.status === "waiting"}
+                  disabled={
+                    auction.status === "sold" || auction.status === "waiting"
+                  }
                   style={{
                     background:
                       increment === 100
@@ -613,5 +669,28 @@ export default function DemoAuctionPage() {
         </div>
       )}
     </main>
+  );
+}
+
+function WelcomeStep({
+  number,
+  title,
+  text,
+}: {
+  number: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="flex gap-4 bg-[#f7f5f0] rounded-[24px] p-4">
+      <div className="w-11 h-11 rounded-full bg-[#07152b] text-white flex items-center justify-center font-black shrink-0">
+        {number}
+      </div>
+
+      <div>
+        <h3 className="font-black text-lg">{title}</h3>
+        <p className="text-slate-500 font-bold">{text}</p>
+      </div>
+    </div>
   );
 }
