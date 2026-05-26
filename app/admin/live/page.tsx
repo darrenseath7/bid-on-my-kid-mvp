@@ -15,6 +15,7 @@ type AuctionState = {
   status: string;
   total_raised: number;
   status_deadline?: string | null;
+  mc_commentary?: string | null;
 };
 
 type Artwork = {
@@ -36,6 +37,12 @@ type Bid = {
   amount: number;
 };
 
+type Activity = {
+  id: string;
+  message: string;
+  created_at: string;
+};
+
 export default function LiveAuctionPage() {
   const [auction, setAuction] =
     useState<AuctionState | null>(null);
@@ -45,6 +52,9 @@ export default function LiveAuctionPage() {
 
   const [bids, setBids] =
     useState<Bid[]>([]);
+
+  const [activities, setActivities] =
+    useState<Activity[]>([]);
 
   const [mcText, setMcText] =
     useState(
@@ -58,9 +68,10 @@ export default function LiveAuctionPage() {
     fetchAuction();
     fetchArtworks();
     fetchBids();
+    fetchActivities();
 
     const auctionChannel = supabase
-      .channel("live-admin-final")
+      .channel("admin-live-auction-feed")
       .on(
         "postgres_changes",
         {
@@ -70,15 +81,25 @@ export default function LiveAuctionPage() {
           filter: "auction_code=eq.demo",
         },
         (payload) => {
-          setAuction(
-            payload.new as AuctionState
-          );
+          const updated =
+            payload.new as AuctionState;
+
+          setAuction(updated);
+
+          if (
+            updated.current_bid > 0 &&
+            updated.status !== "sold"
+          ) {
+            setMcText(
+              `${updated.leading_bidder} is pushing hard at R${updated.current_bid.toLocaleString()}.`
+            );
+          }
         }
       )
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("live-admin-bids-final")
+      .channel("admin-live-bids-feed")
       .on(
         "postgres_changes",
         {
@@ -96,9 +117,28 @@ export default function LiveAuctionPage() {
       )
       .subscribe();
 
+    const activityChannel = supabase
+      .channel("admin-live-activity")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "live_activity_feed",
+        },
+        (payload) => {
+          setActivities((current) => [
+            payload.new as Activity,
+            ...current,
+          ]);
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(auctionChannel);
       supabase.removeChannel(bidsChannel);
+      supabase.removeChannel(activityChannel);
     };
   }, []);
 
@@ -172,6 +212,30 @@ export default function LiveAuctionPage() {
     setBids(data || []);
   }
 
+  async function fetchActivities() {
+    const { data } = await supabase
+      .from("live_activity_feed")
+      .select("*")
+      .eq("auction_code", "demo")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(12);
+
+    setActivities(data || []);
+  }
+
+  async function addActivity(
+    message: string
+  ) {
+    await supabase
+      .from("live_activity_feed")
+      .insert({
+        auction_code: "demo",
+        message,
+      });
+  }
+
   async function updateStatus(
     status: string
   ) {
@@ -187,6 +251,10 @@ export default function LiveAuctionPage() {
       setMcText(
         "Going once. Tension levels are climbing beautifully."
       );
+
+      addActivity(
+        "Going Once has started"
+      );
     }
 
     if (
@@ -199,6 +267,10 @@ export default function LiveAuctionPage() {
       setMcText(
         "Going twice. Someone is moments away from eternal bragging rights."
       );
+
+      addActivity(
+        "Going Twice has started"
+      );
     }
 
     if (
@@ -207,6 +279,10 @@ export default function LiveAuctionPage() {
     ) {
       setMcText(
         `SOLD TO ${auction.leading_bidder.toUpperCase()} FOR R${auction.current_bid.toLocaleString()}!`
+      );
+
+      addActivity(
+        `SOLD to ${auction.leading_bidder} for R${auction.current_bid.toLocaleString()}`
       );
     }
 
@@ -284,6 +360,10 @@ export default function LiveAuctionPage() {
       })
       .eq("auction_code", "demo");
 
+    await addActivity(
+      `Now auctioning ${next.child_name} ${next.child_surname}`
+    );
+
     fetchArtworks();
     fetchBids();
 
@@ -301,12 +381,6 @@ export default function LiveAuctionPage() {
     );
   }
 
-  const currentArtworkIndex =
-    artworks.findIndex(
-      (item) =>
-        item.status === "live"
-    ) + 1;
-
   const timerActive =
     auction.status ===
       "going once" ||
@@ -318,6 +392,7 @@ export default function LiveAuctionPage() {
 
       <div className="grid xl:grid-cols-[260px_1fr] min-h-screen">
 
+        {/* SIDEBAR */}
         <aside className="hidden xl:flex bg-[#061124] border-r border-white/10 p-6 flex-col">
 
           <div className="bg-white rounded-2xl p-4 mb-8">
@@ -348,8 +423,10 @@ export default function LiveAuctionPage() {
 
         </aside>
 
+        {/* MAIN */}
         <section className="p-5 lg:p-8">
 
+          {/* HEADER */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
 
             <div>
@@ -363,84 +440,43 @@ export default function LiveAuctionPage() {
                 {auction.child_surname}
               </h1>
 
-              <p className="text-white/50 text-xl mt-3">
-                {auction.grade}
-              </p>
-
             </div>
 
-            <div className="flex items-center gap-4">
+            {timerActive && (
+              <motion.div
+                animate={{
+                  scale: [
+                    1,
+                    1.05,
+                    1,
+                  ],
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 1,
+                }}
+                className="bg-[#ef2b20] rounded-[28px] px-8 py-5 shadow-2xl"
+              >
 
-              {timerActive && (
-                <motion.div
-                  animate={{
-                    scale: [
-                      1,
-                      1.05,
-                      1,
-                    ],
-                  }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 1,
-                  }}
-                  className="bg-[#ef2b20] rounded-[28px] px-8 py-5 shadow-2xl"
-                >
+                <p className="uppercase tracking-[0.25em] text-xs text-white/50 font-black mb-1">
+                  Countdown
+                </p>
 
-                  <p className="uppercase tracking-[0.25em] text-xs text-white/50 font-black mb-1">
-                    Countdown
-                  </p>
+                <div className="text-5xl font-black">
+                  {
+                    secondsRemaining
+                  }
+                  s
+                </div>
 
-                  <div className="text-5xl font-black">
-                    {
-                      secondsRemaining
-                    }
-                    s
-                  </div>
-
-                </motion.div>
-              )}
-
-              <StatusPill
-                status={auction.status}
-              />
-
-            </div>
-
-          </div>
-
-          <div className="grid md:grid-cols-4 gap-4 mb-8">
-
-            <LiveStat
-              label="Current Bid"
-              value={`R${auction.current_bid.toLocaleString()}`}
-              color="#16d66d"
-            />
-
-            <LiveStat
-              label="Leading Bidder"
-              value={
-                auction.leading_bidder
-              }
-              color="#ffffff"
-            />
-
-            <LiveStat
-              label="Parents Online"
-              value="47"
-              color="#ffc107"
-            />
-
-            <LiveStat
-              label="Artwork"
-              value={`${currentArtworkIndex}/${artworks.length}`}
-              color="#2878cf"
-            />
+              </motion.div>
+            )}
 
           </div>
 
           <div className="grid xl:grid-cols-[1fr_0.9fr] gap-6">
 
+            {/* LEFT */}
             <div className="space-y-6">
 
               <div className="bg-white/5 border border-white/10 rounded-[36px] p-5 shadow-2xl">
@@ -485,67 +521,46 @@ export default function LiveAuctionPage() {
 
             </div>
 
+            {/* RIGHT */}
             <div className="space-y-6">
 
+              {/* ACTIVITY FEED */}
               <div className="bg-white/5 border border-white/10 rounded-[32px] overflow-hidden">
 
-                <div className="p-5 border-b border-white/10 flex items-center justify-between">
+                <div className="p-5 border-b border-white/10">
 
                   <h3 className="text-2xl font-black">
-                    Live Bid Feed
+                    Live Activity Feed
                   </h3>
-
-                  <p className="text-sm text-white/40">
-                    {bids.length} bids
-                  </p>
 
                 </div>
 
-                <div className="divide-y divide-white/10 max-h-[420px] overflow-auto">
+                <div className="divide-y divide-white/10 max-h-[240px] overflow-auto">
 
-                  {bids.map((bid, index) => (
-                    <motion.div
-                      key={bid.id}
-                      initial={{
-                        opacity: 0,
-                        x: 20,
-                      }}
-                      animate={{
-                        opacity: 1,
-                        x: 0,
-                      }}
-                      className="p-5 flex items-center justify-between"
-                    >
-
-                      <div>
-
-                        <p className="font-black text-lg">
-                          {index === 0
-                            ? "🏆 "
-                            : ""}
-                          {
-                            bid.bidder_name
-                          }
-                        </p>
-
-                        <p className="text-xs text-white/40">
-                          Live Bid
-                        </p>
-
-                      </div>
-
-                      <p className="text-3xl font-black text-[#16d66d]">
-                        R
-                        {bid.amount.toLocaleString()}
-                      </p>
-
-                    </motion.div>
-                  ))}
+                  {activities.map(
+                    (activity) => (
+                      <motion.div
+                        key={activity.id}
+                        initial={{
+                          opacity: 0,
+                          x: 20,
+                        }}
+                        animate={{
+                          opacity: 1,
+                          x: 0,
+                        }}
+                        className="p-5 text-lg font-bold text-white/85"
+                      >
+                        • {activity.message}
+                      </motion.div>
+                    )
+                  )}
 
                 </div>
 
               </div>
 
+              {/* CONTROLS */}
               <div className="grid grid-cols-2 gap-4">
 
                 <button
@@ -597,67 +612,5 @@ export default function LiveAuctionPage() {
       </div>
 
     </main>
-  );
-}
-
-function LiveStat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: string;
-}) {
-  return (
-    <div className="bg-white rounded-[28px] p-6 text-[#07152b] shadow-xl">
-
-      <p className="uppercase tracking-[0.25em] text-xs text-slate-400 font-black mb-3">
-        {label}
-      </p>
-
-      <h2
-        className="text-4xl font-black leading-tight"
-        style={{
-          color,
-        }}
-      >
-        {value}
-      </h2>
-
-    </div>
-  );
-}
-
-function StatusPill({
-  status,
-}: {
-  status: string;
-}) {
-  const styles =
-    status === "open"
-      ? "bg-[#16d66d]/20 text-[#16d66d] border-[#16d66d]/40"
-      : status === "going once"
-      ? "bg-[#16b85d]/20 text-[#16d66d] border-[#16d66d]/40"
-      : status === "going twice"
-      ? "bg-[#ffc107]/20 text-[#ffc107] border-[#ffc107]/40"
-      : status === "sold"
-      ? "bg-[#ef2b20]/20 text-[#ff6b61] border-[#ef2b20]/40"
-      : "bg-white/10 text-white border-white/20";
-
-  return (
-    <div
-      className={`
-        rounded-2xl
-        border
-        px-6
-        py-4
-        font-black
-        text-lg
-        ${styles}
-      `}
-    >
-      {status.toUpperCase()}
-    </div>
   );
 }
