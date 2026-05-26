@@ -13,14 +13,28 @@ export default function BrandHeader({
         <img
           src="/bragwall-logo.png"
           alt="BragWall"
-          className="h-16 w-auto object-contain"
+          className="
+            h-24
+            md:h-28
+            w-auto
+            object-contain
+          "
         />
       </div>
 
       <p
-        className={`mt-2 uppercase tracking-[0.45em] text-[10px] font-bold ${
-          dark ? "text-white/50" : "text-slate-400"
-        }`}
+        className={`
+          mt-4
+          uppercase
+          tracking-[0.45em]
+          text-[11px]
+          font-black
+          ${
+            dark
+              ? "text-white/50"
+              : "text-slate-400"
+          }
+        `}
       >
         Young Art • Big Pride
       </p>
