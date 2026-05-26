@@ -47,7 +47,6 @@ export default function DemoAuctionPage() {
   const [commentIndex, setCommentIndex] = useState(0);
 
   const previousStatusRef = useRef<string | null>(null);
-  const previousLeaderRef = useRef<string | null>(null);
   const audioUnlockedRef = useRef(false);
 
   function playSound(src: string) {
@@ -64,7 +63,7 @@ export default function DemoAuctionPage() {
     fetchActivities();
 
     const auctionChannel = supabase
-      .channel("bw-parent-clean-activity-auction")
+      .channel("bw-parent-every-bid-auction")
       .on(
         "postgres_changes",
         {
@@ -84,40 +83,31 @@ export default function DemoAuctionPage() {
             playSound("/sounds/gavel.mp3");
           }
 
-          if (
-            previousLeaderRef.current &&
-            previousLeaderRef.current !== updated.leading_bidder &&
-            updated.leading_bidder !== "No bids yet"
-          ) {
-            playSound("/sounds/bid-ding.mp3");
-          }
-
           previousStatusRef.current = updated.status;
-          previousLeaderRef.current = updated.leading_bidder;
-
           setAuction(updated);
         }
       )
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("bw-parent-clean-activity-bids")
+      .channel("bw-parent-every-bid-bids")
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "live_bids",
           filter: "auction_code=eq.demo",
         },
         () => {
+          playSound("/sounds/bid-ding.mp3");
           fetchBids();
         }
       )
       .subscribe();
 
     const activityChannel = supabase
-      .channel("bw-parent-clean-activity-feed")
+      .channel("bw-parent-every-bid-activity")
       .on(
         "postgres_changes",
         {
@@ -176,7 +166,6 @@ export default function DemoAuctionPage() {
     if (data) {
       setAuction(data);
       previousStatusRef.current = data.status;
-      previousLeaderRef.current = data.leading_bidder;
     }
   }
 
@@ -572,6 +561,7 @@ export default function DemoAuctionPage() {
         )}
 
         <motion.div
+          key={auction.current_bid}
           animate={{
             scale: [1, 1.02, 1],
           }}
