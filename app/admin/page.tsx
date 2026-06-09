@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import BrandHeader from "@/components/BrandHeader";
+import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { supabase } from "@/lib/supabase";
 
 type Artwork = {
@@ -158,6 +159,10 @@ export default function AdminDashboardPage() {
             <MobileNavItem href="/admin/artworks" label="Artworks" />
             <MobileNavItem href="/admin/school" label="School" />
             <MobileNavItem href="/admin/sales" label="Sales" />
+          </div>
+
+          <div className="mt-3">
+            <AdminLogoutButton />
           </div>
         </div>
 
@@ -483,14 +488,18 @@ function AdminSidebar() {
         <SidebarItem href="/auction/demo" label="Parent View" />
       </nav>
 
-      <div className="mt-auto bg-white/5 border border-white/10 rounded-3xl p-5">
-        <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-3">
-          BragWall
-        </p>
+      <div className="mt-auto space-y-4">
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-5">
+          <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-3">
+            BragWall
+          </p>
 
-        <p className="text-white/70 font-bold leading-relaxed">
-          Young art, big pride, live fundraising.
-        </p>
+          <p className="text-white/70 font-bold leading-relaxed">
+            Young art, big pride, live fundraising.
+          </p>
+        </div>
+
+        <AdminLogoutButton />
       </div>
     </aside>
   );
