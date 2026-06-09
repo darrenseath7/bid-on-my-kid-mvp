@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import BrandHeader from "@/components/BrandHeader";
 import { supabase } from "@/lib/supabase";
@@ -16,6 +16,11 @@ type AuctionState = {
   total_raised: number;
   status_deadline?: string | null;
   mc_commentary?: string | null;
+  bid_pause_until?: string | null;
+  next_bid_amount?: number | null;
+  last_bid_at?: string | null;
+  winner_email?: string | null;
+  winner_email_submitted_at?: string | null;
 };
 
 type Artwork = {
@@ -29,6 +34,9 @@ type Artwork = {
   status: string;
   sold_amount: number;
   winning_bidder: string | null;
+  winner_email?: string | null;
+  invoice_email_requested_at?: string | null;
+  certificate_email_requested_at?: string | null;
 };
 
 type Bid = {
@@ -53,11 +61,13 @@ export default function LiveAuctionPage() {
     "Welcome to tonight’s masterpiece showdown."
   );
 
+  const autoNextKeyRef = useRef("");
+
   useEffect(() => {
     fetchAll();
 
     const auctionChannel = supabase
-      .channel("bw-admin-auction-prev-next")
+      .channel("bw-admin-auto-next-auction")
       .on(
         "postgres_changes",
         {
@@ -78,7 +88,7 @@ export default function LiveAuctionPage() {
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("bw-admin-bids-prev-next")
+      .channel("bw-admin-auto-next-bids")
       .on(
         "postgres_changes",
         {
@@ -94,7 +104,7 @@ export default function LiveAuctionPage() {
       .subscribe();
 
     const activityChannel = supabase
-      .channel("bw-admin-activity-prev-next")
+      .channel("bw-admin-auto-next-activity")
       .on(
         "postgres_changes",
         {
@@ -110,7 +120,7 @@ export default function LiveAuctionPage() {
       .subscribe();
 
     const artworksChannel = supabase
-      .channel("bw-admin-artworks-prev-next")
+      .channel("bw-admin-auto-next-artworks")
       .on(
         "postgres_changes",
         {
@@ -155,6 +165,52 @@ export default function LiveAuctionPage() {
 
     return () => clearInterval(interval);
   }, [auction]);
+
+  useEffect(() => {
+    if (!auction) return;
+    if (auction.status !== "sold") return;
+    if (!auction.winner_email_submitted_at) return;
+    if (artworks.length === 0) return;
+
+    const current = getCurrentArtwork();
+
+    if (!current) return;
+
+    const autoNextKey = `${current.id}-${auction.winner_email_submitted_at}`;
+
+    if (autoNextKeyRef.current === autoNextKey) return;
+
+    autoNextKeyRef.current = autoNextKey;
+
+    const timer = setTimeout(async () => {
+      const next = artworks
+        .filter(
+          (item) =>
+            item.sort_order > current.sort_order && item.status !== "sold"
+        )
+        .sort((a, b) => a.sort_order - b.sort_order)[0];
+
+      if (next) {
+        await moveToArtwork(next);
+        return;
+      }
+
+      await supabase
+        .from("live_auction_state")
+        .update({
+          status: "finished",
+          status_deadline: null,
+          bid_pause_until: null,
+          mc_commentary:
+            "All artworks have been auctioned. Thank you for supporting BragWall and tonight’s young artists.",
+        })
+        .eq("auction_code", "demo");
+
+      await fetchAll();
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, [auction, artworks]);
 
   async function fetchAll() {
     await Promise.all([
@@ -219,6 +275,17 @@ export default function LiveAuctionPage() {
   }
 
   function getCurrentArtwork() {
+    if (auction) {
+      const matchedArtwork = artworks.find(
+        (item) =>
+          item.child_name === auction.child_name &&
+          item.child_surname === auction.child_surname &&
+          item.artwork_url === auction.artwork_url
+      );
+
+      if (matchedArtwork) return matchedArtwork;
+    }
+
     return (
       artworks.find((item) => item.status === "live") ||
       artworks.find((item) => item.sort_order === 1) ||
@@ -250,6 +317,11 @@ export default function LiveAuctionPage() {
         current_bid: 0,
         leading_bidder: "No bids yet",
         status_deadline: null,
+        bid_pause_until: null,
+        next_bid_amount: 100,
+        last_bid_at: null,
+        winner_email: null,
+        winner_email_submitted_at: null,
         mc_commentary:
           current?.ai_intro ||
           "The first masterpiece is live. Parents, prepare yourselves.",
@@ -299,6 +371,9 @@ export default function LiveAuctionPage() {
             status: "sold",
             sold_amount: auction.current_bid,
             winning_bidder: auction.leading_bidder,
+            winner_email: null,
+            invoice_email_requested_at: null,
+            certificate_email_requested_at: null,
           })
           .eq("id", current.id);
       }
@@ -317,7 +392,11 @@ export default function LiveAuctionPage() {
       .update({
         status,
         status_deadline: deadline,
+        bid_pause_until: null,
         mc_commentary: commentary,
+        winner_email: status === "sold" ? null : auction.winner_email || null,
+        winner_email_submitted_at:
+          status === "sold" ? null : auction.winner_email_submitted_at || null,
       })
       .eq("auction_code", "demo");
 
@@ -356,6 +435,11 @@ export default function LiveAuctionPage() {
         leading_bidder: "No bids yet",
         status: "open",
         status_deadline: null,
+        bid_pause_until: null,
+        next_bid_amount: 100,
+        last_bid_at: null,
+        winner_email: null,
+        winner_email_submitted_at: null,
         mc_commentary:
           target.ai_intro ||
           "This masterpiece is ready. Bidders, compose yourselves.",
@@ -378,9 +462,11 @@ export default function LiveAuctionPage() {
       return;
     }
 
-    const next = artworks.find(
-      (item) => item.sort_order === current.sort_order + 1
-    );
+    const next = artworks
+      .filter(
+        (item) => item.sort_order > current.sort_order && item.status !== "sold"
+      )
+      .sort((a, b) => a.sort_order - b.sort_order)[0];
 
     if (!next) {
       alert("No more artworks in the queue.");
@@ -398,9 +484,9 @@ export default function LiveAuctionPage() {
       return;
     }
 
-    const previous = artworks.find(
-      (item) => item.sort_order === current.sort_order - 1
-    );
+    const previous = artworks
+      .filter((item) => item.sort_order < current.sort_order)
+      .sort((a, b) => b.sort_order - a.sort_order)[0];
 
     if (!previous) {
       alert("You are already on the first artwork.");
@@ -419,6 +505,9 @@ export default function LiveAuctionPage() {
         status: "pending",
         sold_amount: 0,
         winning_bidder: null,
+        winner_email: null,
+        invoice_email_requested_at: null,
+        certificate_email_requested_at: null,
       })
       .eq("auction_code", "demo");
 
@@ -448,6 +537,11 @@ export default function LiveAuctionPage() {
         leading_bidder: "No bids yet",
         status: "waiting",
         status_deadline: null,
+        bid_pause_until: null,
+        next_bid_amount: 100,
+        last_bid_at: null,
+        winner_email: null,
+        winner_email_submitted_at: null,
         mc_commentary:
           firstArtwork.ai_intro ||
           "Welcome to BragWall. The auction will begin shortly.",
@@ -481,6 +575,7 @@ export default function LiveAuctionPage() {
     auction.status === "going once" || auction.status === "going twice";
 
   const sold = auction.status === "sold";
+  const winnerEmailSubmitted = Boolean(auction.winner_email_submitted_at);
 
   return (
     <main className="min-h-screen bg-[#07152b] text-white">
@@ -634,7 +729,7 @@ export default function LiveAuctionPage() {
               {sold && (
                 <div className="bg-[#16d66d] text-[#07152b] rounded-[32px] p-7 shadow-2xl">
                   <p className="uppercase tracking-[0.3em] text-xs font-black mb-4">
-                    Winner Certificate Ready
+                    Sold Artwork
                   </p>
 
                   <h2 className="text-5xl font-black mb-4">SOLD</h2>
@@ -647,21 +742,35 @@ export default function LiveAuctionPage() {
                     Amount: R{auction.current_bid.toLocaleString()}
                   </p>
 
-                  <a
-                    href="/auction/winner"
-                    className="inline-block bg-[#07152b] text-white rounded-2xl px-8 py-5 font-black shadow-xl"
-                  >
-                    Open Winner Certificate
-                  </a>
+                  {winnerEmailSubmitted ? (
+                    <div className="bg-[#07152b] text-white rounded-2xl p-5">
+                      <p className="font-black text-lg mb-2">
+                        Winner email received.
+                      </p>
+
+                      <p className="text-white/70 font-bold">
+                        Moving to the next artwork automatically...
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-[#07152b] text-white rounded-2xl p-5">
+                      <p className="font-black text-lg mb-2">
+                        Waiting for winner email.
+                      </p>
+
+                      <p className="text-white/70 font-bold">
+                        The winning parent must enter their email before the
+                        auction moves to the next artwork.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
               <div className="bg-white/5 border border-white/10 rounded-[32px] overflow-hidden">
                 <div className="p-5 border-b border-white/10 flex items-center justify-between">
                   <h3 className="text-2xl font-black">Live Activity</h3>
-                  <p className="text-sm text-white/40">
-                    clears per artwork
-                  </p>
+                  <p className="text-sm text-white/40">clears per artwork</p>
                 </div>
 
                 <div className="divide-y divide-white/10 max-h-[240px] overflow-auto">
@@ -849,6 +958,8 @@ function StatusPill({ status }: { status: string }) {
       ? "bg-[#ffc107]/20 text-[#ffc107] border-[#ffc107]/40"
       : status === "sold"
       ? "bg-[#ef2b20]/20 text-[#ff6b61] border-[#ef2b20]/40"
+      : status === "finished"
+      ? "bg-[#2878cf]/20 text-[#6fb0ff] border-[#2878cf]/40"
       : "bg-white/10 text-white border-white/20";
 
   return (

@@ -1,0 +1,439 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import BrandHeader from "@/components/BrandHeader";
+import { supabase } from "@/lib/supabase";
+
+type SoldArtwork = {
+  id: string;
+  sort_order: number;
+  child_name: string;
+  child_surname: string;
+  grade: string;
+  artwork_url: string;
+  status: string;
+  sold_amount: number | null;
+  winning_bidder: string | null;
+  winner_email?: string | null;
+  invoice_email_requested_at?: string | null;
+  certificate_email_requested_at?: string | null;
+};
+
+export default function AdminSalesPage() {
+  const [sales, setSales] = useState<SoldArtwork[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchSales();
+
+    const salesChannel = supabase
+      .channel("admin-sales-page")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "demo_artworks",
+          filter: "auction_code=eq.demo",
+        },
+        () => fetchSales()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(salesChannel);
+    };
+  }, []);
+
+  async function fetchSales() {
+    setLoading(true);
+
+    const { data } = await supabase
+      .from("demo_artworks")
+      .select("*")
+      .eq("auction_code", "demo")
+      .eq("status", "sold")
+      .order("sort_order", { ascending: true });
+
+    setSales(data || []);
+    setLoading(false);
+  }
+
+  const totalRaised = useMemo(() => {
+    return sales.reduce((total, item) => total + (item.sold_amount || 0), 0);
+  }, [sales]);
+
+  const emailsCaptured = sales.filter((item) => item.winner_email).length;
+  const emailsMissing = sales.filter((item) => !item.winner_email).length;
+
+  return (
+    <main className="min-h-screen bg-[#07152b] text-white">
+      <div className="lg:grid lg:grid-cols-[280px_1fr] min-h-screen">
+        <AdminSidebar />
+
+        <div className="lg:hidden bg-[#061124] border-b border-white/10 px-4 py-4 sticky top-0 z-40">
+          <div className="bg-white rounded-2xl p-3 mb-4 w-fit">
+            <BrandHeader />
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            <MobileNavItem href="/admin" label="Dashboard" />
+            <MobileNavItem href="/admin/events/new" label="New Event" />
+            <MobileNavItem href="/admin/live" label="Live" />
+            <MobileNavItem href="/admin/artworks" label="Artworks" />
+            <MobileNavItem href="/admin/school" label="School" />
+            <MobileNavItem href="/admin/sales" label="Sales" active />
+          </div>
+        </div>
+
+        <section className="px-5 py-7 lg:px-8 lg:py-10">
+          <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6 mb-8">
+            <div>
+              <p className="uppercase tracking-[0.35em] text-xs text-white/40 font-black mb-4">
+                Sales / Invoices
+              </p>
+
+              <h1 className="text-5xl lg:text-7xl font-black leading-none mb-4">
+                Winner records.
+              </h1>
+
+              <p className="text-white/55 text-xl max-w-3xl leading-relaxed">
+                Revisit sold artworks, winner emails, invoice requests,
+                certificate requests, and payment follow-ups.
+              </p>
+            </div>
+
+            <button
+              onClick={fetchSales}
+              className="rounded-2xl bg-white text-[#07152b] px-6 py-4 font-black shadow-xl w-fit"
+            >
+              Refresh
+            </button>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4 mb-8">
+            <StatCard
+              label="Total Sales"
+              value={`R${totalRaised.toLocaleString()}`}
+              subtext="From sold artworks"
+              color="#16d66d"
+            />
+
+            <StatCard
+              label="Winner Emails"
+              value={`${emailsCaptured}`}
+              subtext="Captured successfully"
+              color="#2878cf"
+            />
+
+            <StatCard
+              label="Missing Emails"
+              value={`${emailsMissing}`}
+              subtext="Need follow-up"
+              color="#ffc107"
+            />
+          </div>
+
+          <section className="bg-white/5 border border-white/10 rounded-[36px] overflow-hidden shadow-2xl">
+            <div className="p-6 border-b border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-3xl font-black">Sold Artworks</h2>
+                <p className="text-white/40 mt-1">
+                  {sales.length} sold artwork records
+                </p>
+              </div>
+
+              <a
+                href="/admin/live"
+                className="rounded-2xl bg-[#16d66d] text-[#07152b] px-5 py-3 font-black w-fit"
+              >
+                Back to Live Room
+              </a>
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-white/40">Loading sales...</div>
+            ) : sales.length === 0 ? (
+              <div className="p-8">
+                <div className="bg-white/5 border border-white/10 rounded-[28px] p-8">
+                  <h3 className="text-3xl font-black mb-3">
+                    No sales recorded yet.
+                  </h3>
+
+                  <p className="text-white/55 text-lg leading-relaxed">
+                    Sold artworks will appear here after the first auction item
+                    is sold and the winning parent submits their email.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/10">
+                {sales.map((item) => (
+                  <SaleCard key={item.id} item={item} />
+                ))}
+              </div>
+            )}
+          </section>
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function SaleCard({ item }: { item: SoldArtwork }) {
+  const invoiceRequested = Boolean(item.invoice_email_requested_at);
+  const certificateRequested = Boolean(item.certificate_email_requested_at);
+  const emailCaptured = Boolean(item.winner_email);
+
+  return (
+    <div className="p-5 lg:p-6">
+      <div className="grid lg:grid-cols-[140px_1fr] gap-5">
+        <div className="bg-gradient-to-br from-[#70420f] to-[#2a1707] p-3 rounded-[26px]">
+          <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-2 rounded-[20px]">
+            <div className="bg-[#f8f5ef] rounded-[14px] p-2">
+              <img
+                src={item.artwork_url}
+                alt=""
+                className="w-full h-32 object-contain rounded-xl bg-white"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="min-w-0">
+          <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 mb-5">
+            <div>
+              <p className="uppercase tracking-[0.25em] text-[10px] text-white/40 font-black mb-2">
+                Artwork #{item.sort_order}
+              </p>
+
+              <h3 className="text-3xl font-black leading-tight">
+                {item.child_name} {item.child_surname}
+              </h3>
+
+              <p className="text-white/45 font-bold mt-1">{item.grade}</p>
+            </div>
+
+            <div className="xl:text-right">
+              <p className="uppercase tracking-[0.25em] text-[10px] text-white/40 font-black mb-2">
+                Sold Amount
+              </p>
+
+              <p className="text-4xl font-black text-[#16d66d]">
+                R{(item.sold_amount || 0).toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <InfoBox
+              label="Winning Bidder"
+              value={item.winning_bidder || "Not captured"}
+            />
+
+            <InfoBox
+              label="Winner Email"
+              value={item.winner_email || "Waiting for email"}
+              highlight={emailCaptured ? "green" : "yellow"}
+            />
+
+            <InfoBox
+              label="Invoice"
+              value={invoiceRequested ? "Requested" : "Not requested"}
+              highlight={invoiceRequested ? "green" : "yellow"}
+            />
+
+            <InfoBox
+              label="Certificate"
+              value={certificateRequested ? "Requested" : "Not requested"}
+              highlight={certificateRequested ? "green" : "yellow"}
+            />
+          </div>
+
+          <div className="mt-5 bg-white/5 border border-white/10 rounded-[22px] p-4">
+            <p className="uppercase tracking-[0.25em] text-[10px] text-white/40 font-black mb-2">
+              Next Actions
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <ActionBadge
+                label={
+                  emailCaptured
+                    ? "Ready to email invoice"
+                    : "Waiting for winner email"
+                }
+                good={emailCaptured}
+              />
+
+              <ActionBadge
+                label={
+                  invoiceRequested
+                    ? "Invoice email requested"
+                    : "Invoice not requested"
+                }
+                good={invoiceRequested}
+              />
+
+              <ActionBadge
+                label={
+                  certificateRequested
+                    ? "Certificate email requested"
+                    : "Certificate not requested"
+                }
+                good={certificateRequested}
+              />
+
+              <ActionBadge label="Payment status coming next" good={false} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminSidebar() {
+  return (
+    <aside className="hidden lg:flex bg-[#061124] border-r border-white/10 p-6 flex-col">
+      <div className="bg-white rounded-2xl p-4 mb-8">
+        <BrandHeader center />
+      </div>
+
+      <nav className="space-y-2 text-sm font-bold">
+        <SidebarItem href="/admin" label="Dashboard" />
+        <SidebarItem href="/admin/events/new" label="Create Event" />
+        <SidebarItem href="/admin/live" label="Live Auction" />
+        <SidebarItem href="/admin/artworks" label="Artworks" />
+        <SidebarItem href="/admin/school" label="School Profile" />
+        <SidebarItem href="/admin/sales" label="Sales / Invoices" active />
+        <SidebarItem href="/auction/demo" label="Parent View" />
+      </nav>
+
+      <div className="mt-auto bg-white/5 border border-white/10 rounded-3xl p-5">
+        <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-3">
+          Records
+        </p>
+
+        <p className="text-white/70 font-bold leading-relaxed">
+          Track winner details, invoice requests, and certificates.
+        </p>
+      </div>
+    </aside>
+  );
+}
+
+function SidebarItem({
+  href,
+  label,
+  active = false,
+}: {
+  href: string;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      className={`block rounded-2xl px-4 py-3 transition ${
+        active
+          ? "bg-white text-[#07152b]"
+          : "text-white/75 hover:bg-white/10 hover:text-white"
+      }`}
+    >
+      {label}
+    </a>
+  );
+}
+
+function MobileNavItem({
+  href,
+  label,
+  active = false,
+}: {
+  href: string;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      className={`rounded-2xl px-4 py-3 text-sm font-black whitespace-nowrap ${
+        active
+          ? "bg-white text-[#07152b]"
+          : "bg-white/10 text-white border border-white/10"
+      }`}
+    >
+      {label}
+    </a>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  subtext,
+  color,
+}: {
+  label: string;
+  value: string;
+  subtext: string;
+  color: string;
+}) {
+  return (
+    <div className="bg-white rounded-[28px] p-6 text-[#07152b] shadow-xl">
+      <p className="uppercase tracking-[0.25em] text-xs text-slate-400 font-black mb-3">
+        {label}
+      </p>
+
+      <h2
+        className="text-4xl font-black leading-tight mb-3"
+        style={{ color }}
+      >
+        {value}
+      </h2>
+
+      <p className="text-slate-500 font-bold">{subtext}</p>
+    </div>
+  );
+}
+
+function InfoBox({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  highlight?: "green" | "yellow";
+}) {
+  const colorClass =
+    highlight === "green"
+      ? "text-[#16d66d]"
+      : highlight === "yellow"
+      ? "text-[#ffc107]"
+      : "text-white";
+
+  return (
+    <div className="bg-white/5 border border-white/10 rounded-[20px] p-4">
+      <p className="uppercase tracking-[0.25em] text-[10px] text-white/40 font-black mb-2">
+        {label}
+      </p>
+
+      <p className={`font-black break-words ${colorClass}`}>{value}</p>
+    </div>
+  );
+}
+
+function ActionBadge({ label, good }: { label: string; good: boolean }) {
+  return (
+    <span
+      className={`rounded-full px-4 py-2 text-sm font-black ${
+        good
+          ? "bg-[#16d66d]/15 text-[#16d66d]"
+          : "bg-[#ffc107]/15 text-[#ffc107]"
+      }`}
+    >
+      {label}
+    </span>
+  );
+}
