@@ -288,7 +288,10 @@ export default function LiveAuctionPage() {
 
     return (
       artworks.find((item) => item.status === "live") ||
+      artworks.find((item) => item.status === "queued") ||
+      artworks.find((item) => item.status === "pending") ||
       artworks.find((item) => item.sort_order === 1) ||
+      artworks[0] ||
       null
     );
   }
@@ -308,11 +311,35 @@ export default function LiveAuctionPage() {
   async function startAuction() {
     const current = getCurrentArtwork();
 
+    if (!current) {
+      alert("No artwork found. Please upload artwork before starting.");
+      return;
+    }
+
     await clearCurrentArtworkState();
+
+    await supabase
+      .from("demo_artworks")
+      .update({
+        status: "pending",
+      })
+      .eq("auction_code", "demo")
+      .neq("status", "sold");
+
+    await supabase
+      .from("demo_artworks")
+      .update({
+        status: "live",
+      })
+      .eq("id", current.id);
 
     await supabase
       .from("live_auction_state")
       .update({
+        child_name: current.child_name,
+        child_surname: current.child_surname,
+        grade: current.grade,
+        artwork_url: current.artwork_url,
         status: "open",
         current_bid: 0,
         leading_bidder: "No bids yet",
@@ -323,13 +350,13 @@ export default function LiveAuctionPage() {
         winner_email: null,
         winner_email_submitted_at: null,
         mc_commentary:
-          current?.ai_intro ||
+          current.ai_intro ||
           "The first masterpiece is live. Parents, prepare yourselves.",
       })
       .eq("auction_code", "demo");
 
     setMcText(
-      current?.ai_intro ||
+      current.ai_intro ||
         "The first masterpiece is live. Parents, prepare yourselves."
     );
 
@@ -576,6 +603,8 @@ export default function LiveAuctionPage() {
 
   const sold = auction.status === "sold";
   const winnerEmailSubmitted = Boolean(auction.winner_email_submitted_at);
+  const displayArtworkUrl =
+    currentArtwork?.artwork_url || auction.artwork_url || "";
 
   return (
     <main className="min-h-screen bg-[#07152b] text-white">
@@ -635,12 +664,16 @@ export default function LiveAuctionPage() {
               </p>
 
               <h1 className="text-5xl lg:text-7xl font-black leading-none">
-                {auction.child_name} {auction.child_surname}
+                {currentArtwork
+                  ? `${currentArtwork.child_name} ${currentArtwork.child_surname}`
+                  : `${auction.child_name || "No artwork"} ${
+                      auction.child_surname || "live"
+                    }`}
               </h1>
 
               <p className="text-white/50 text-lg mt-3">
-                {auction.grade} • Artwork {currentIndex || 1} of{" "}
-                {artworks.length || 1}
+                {currentArtwork?.grade || auction.grade || "Start the auction"}{" "}
+                • Artwork {currentIndex || 1} of {artworks.length || 1}
               </p>
             </div>
 
@@ -699,19 +732,36 @@ export default function LiveAuctionPage() {
           <div className="grid xl:grid-cols-[1fr_0.9fr] gap-6">
             <div className="space-y-6">
               <div className="bg-white/5 border border-white/10 rounded-[36px] p-5 shadow-2xl">
-                <div className="bg-gradient-to-br from-[#70420f] to-[#2a1707] p-5 rounded-[32px]">
-                  <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-3 rounded-[24px]">
-                    <div className="bg-[#f8f5ef] rounded-[18px] p-5">
-                      <div className="rounded-[14px] overflow-hidden bg-white shadow-2xl">
-                        <img
-                          src={auction.artwork_url}
-                          alt="Artwork"
-                          className="w-full max-h-[580px] object-contain"
-                        />
+                {displayArtworkUrl ? (
+                  <div className="bg-gradient-to-br from-[#70420f] to-[#2a1707] p-5 rounded-[32px]">
+                    <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-3 rounded-[24px]">
+                      <div className="bg-[#f8f5ef] rounded-[18px] p-5">
+                        <div className="rounded-[14px] overflow-hidden bg-white shadow-2xl">
+                          <img
+                            src={displayArtworkUrl}
+                            alt="Artwork"
+                            className="w-full max-h-[580px] object-contain"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="rounded-[32px] bg-white/5 border border-white/10 p-12 text-center">
+                    <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
+                      No Artwork Loaded
+                    </p>
+
+                    <h2 className="text-4xl font-black mb-4">
+                      Start or reset the auction.
+                    </h2>
+
+                    <p className="text-white/50 text-lg font-bold">
+                      Once an artwork is live, it will appear here in the
+                      presentation frame.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="bg-white/5 border border-white/10 rounded-[32px] p-6">
@@ -892,6 +942,12 @@ export default function LiveAuctionPage() {
                 </div>
 
                 <div className="divide-y divide-white/10 max-h-[260px] overflow-auto">
+                  {artworks.length === 0 && (
+                    <div className="p-5 text-white/40">
+                      No artworks uploaded yet.
+                    </div>
+                  )}
+
                   {artworks.map((artwork) => (
                     <div
                       key={artwork.id}
