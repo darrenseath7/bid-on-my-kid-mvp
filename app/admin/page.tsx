@@ -150,8 +150,9 @@ export default function AdminDashboardPage() {
 
   const soldCount = artworks.filter((item) => item.status === "sold").length;
   const liveArtwork = artworks.find((item) => item.status === "live");
-  const pendingCount = artworks.filter((item) => item.status === "pending").length;
-  const topBid = bids[0];
+  const pendingCount = artworks.filter(
+    (item) => item.status === "pending"
+  ).length;
 
   return (
     <main className="min-h-screen bg-[#07152b] text-white">
@@ -162,6 +163,13 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex flex-wrap gap-3">
+            <a
+              href="/admin/events/new"
+              className="rounded-2xl bg-[#ef2b20] text-white px-6 py-4 font-black shadow-xl"
+            >
+              Create New School Event
+            </a>
+
             <a
               href="/admin/live"
               className="rounded-2xl bg-[#16d66d] text-[#07152b] px-6 py-4 font-black shadow-xl"
@@ -225,7 +233,9 @@ export default function AdminDashboardPage() {
           <StatCard
             label="Auction Status"
             value={(auction?.status || "waiting").toUpperCase()}
-            subtext={liveArtwork ? `${liveArtwork.child_name} is live` : "No live artwork"}
+            subtext={
+              liveArtwork ? `${liveArtwork.child_name} is live` : "No live artwork"
+            }
             color="#2878cf"
           />
         </div>
@@ -279,6 +289,12 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="divide-y divide-white/10">
+                {artworks.length === 0 && (
+                  <div className="p-5 text-white/40">
+                    No artworks uploaded yet.
+                  </div>
+                )}
+
                 {artworks.map((artwork) => (
                   <div
                     key={artwork.id}
@@ -394,7 +410,14 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <a
+                href="/admin/events/new"
+                className="rounded-2xl bg-[#ef2b20] text-white py-5 text-center font-black"
+              >
+                New Event
+              </a>
+
               <a
                 href="/admin/live"
                 className="rounded-2xl bg-white text-[#07152b] py-5 text-center font-black"
