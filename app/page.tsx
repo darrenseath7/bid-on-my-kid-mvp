@@ -9,7 +9,7 @@ export default function HomePage() {
 
           <div className="flex gap-4">
             <a
-              href="/admin/live"
+              href="/admin"
               className="hidden sm:block rounded-2xl bg-white border border-black/10 px-7 py-4 font-black shadow-lg hover:shadow-xl transition"
             >
               Admin / Control Room
@@ -19,7 +19,7 @@ export default function HomePage() {
               href="/auction/demo"
               className="rounded-2xl bg-[#07152b] text-white px-7 py-4 font-black shadow-xl hover:scale-[1.02] transition"
             >
-              Join Demo Auction
+              Join Auction
             </a>
           </div>
         </div>

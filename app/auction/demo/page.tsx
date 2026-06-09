@@ -42,6 +42,9 @@ const SILENCE_BEFORE_GOING_ONCE_SECONDS = 8;
 const GOING_ONCE_SECONDS = 3;
 const GOING_TWICE_SECONDS = 3;
 
+const WELCOME_VOICE_TEXT =
+  "Welcome to BragWall. Tonight we are turning school artwork into a live fundraising event with proud parents, dangerous grandparents, competitive uncles, and masterpieces that deserve prime fridge-door real estate.";
+
 export default function DemoAuctionPage() {
   const [auction, setAuction] = useState<AuctionState | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
@@ -54,10 +57,13 @@ export default function DemoAuctionPage() {
   const [winnerEmail, setWinnerEmail] = useState("");
   const [submittingEmail, setSubmittingEmail] = useState(false);
   const [emailSubmittedLocally, setEmailSubmittedLocally] = useState(false);
+  const [welcomeVoiceLoading, setWelcomeVoiceLoading] = useState(false);
+  const [welcomeVoicePlaying, setWelcomeVoicePlaying] = useState(false);
 
   const previousStatusRef = useRef<string | null>(null);
   const audioUnlockedRef = useRef(false);
   const autoActionKeyRef = useRef<string>("");
+  const welcomeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const nextBidAmount = useMemo(() => {
     return Math.max((auction?.current_bid || 0) + BID_STEP, BID_STEP);
@@ -97,6 +103,70 @@ export default function DemoAuctionPage() {
     const audio = new Audio(src);
     audio.volume = 0.65;
     audio.play().catch(() => {});
+  }
+
+  async function playWelcomeVoice() {
+    if (welcomeVoiceLoading) return;
+
+    audioUnlockedRef.current = true;
+    setWelcomeVoiceLoading(true);
+
+    try {
+      if (welcomeAudioRef.current) {
+        welcomeAudioRef.current.pause();
+        welcomeAudioRef.current.currentTime = 0;
+        welcomeAudioRef.current = null;
+      }
+
+      const response = await fetch("/api/welcome-voice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: WELCOME_VOICE_TEXT,
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        alert(result?.error || "Could not generate welcome voice.");
+        setWelcomeVoiceLoading(false);
+        return;
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+
+      welcomeAudioRef.current = audio;
+      audio.volume = 0.9;
+
+      audio.onplay = () => {
+        setWelcomeVoicePlaying(true);
+      };
+
+      audio.onended = () => {
+        setWelcomeVoicePlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        setWelcomeVoicePlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      setWelcomeVoiceLoading(false);
+      await audio.play();
+    } catch (error) {
+      setWelcomeVoiceLoading(false);
+      setWelcomeVoicePlaying(false);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Could not play welcome voice."
+      );
+    }
   }
 
   useEffect(() => {
@@ -520,13 +590,43 @@ export default function DemoAuctionPage() {
             </p>
 
             <h1 className="text-4xl font-black leading-none mb-4">
-              Join the BragWall auction.
+              Welcome to BragWall.
             </h1>
 
             <p className="text-slate-600 text-base leading-relaxed mb-5">
-              Enter your bidder name. If you win, you will enter your email
-              after the artwork is sold.
+              Tonight we are turning school artwork into a live fundraising
+              event — with proud parents, dangerous grandparents, competitive
+              uncles, and masterpieces that deserve prime fridge-door real
+              estate.
             </p>
+
+            <button
+              onClick={playWelcomeVoice}
+              disabled={welcomeVoiceLoading}
+              className="w-full bg-[#16d66d] text-[#07152b] rounded-[22px] py-4 font-black text-lg shadow-xl mb-5 disabled:opacity-50"
+            >
+              {welcomeVoiceLoading
+                ? "Creating Welcome Voice..."
+                : welcomeVoicePlaying
+                ? "Playing Welcome..."
+                : "▶ Play Welcome Voice"}
+            </button>
+
+            <div className="bg-[#f7f5f0] rounded-[24px] p-5 mb-5">
+              <p className="uppercase tracking-[0.3em] text-[10px] text-slate-400 font-black mb-3">
+                How Tonight Works
+              </p>
+
+              <div className="space-y-2 text-slate-600 font-bold leading-relaxed">
+                <p>1. Enter your bidder name.</p>
+                <p>2. Watch each artwork go live.</p>
+                <p>3. Bid when the MC calls the next amount.</p>
+                <p>
+                  4. If you win, enter your email for your invoice and
+                  certificate.
+                </p>
+              </div>
+            </div>
 
             <div className="bg-[#07152b] text-white rounded-[24px] p-5 mb-5">
               <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
@@ -541,7 +641,7 @@ export default function DemoAuctionPage() {
             <input
               value={bidderName}
               onChange={(e) => setBidderName(e.target.value)}
-              placeholder="Example: Rob"
+              placeholder="Your bidder name"
               className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg mb-4 outline-none"
             />
 
@@ -554,7 +654,7 @@ export default function DemoAuctionPage() {
               }}
               className="w-full bg-[#07152b] text-white rounded-2xl py-5 font-black text-xl shadow-xl"
             >
-              ENTER AUCTION
+              JOIN AUCTION
             </button>
           </div>
         </div>
