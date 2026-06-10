@@ -1,469 +1,216 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
 import BrandHeader from "@/components/BrandHeader";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
-import { supabase } from "@/lib/supabase";
-
-type Artwork = {
-  id: string;
-  sort_order: number;
-  child_name: string;
-  child_surname: string;
-  grade: string;
-  artwork_url: string;
-  status: string;
-  sold_amount: number | null;
-  winning_bidder: string | null;
-  winner_email?: string | null;
-  invoice_email_requested_at?: string | null;
-  certificate_email_requested_at?: string | null;
-};
-
-type Bid = {
-  id: string;
-  bidder_name: string;
-  amount: number;
-};
-
-type AuctionState = {
-  status: string;
-  current_bid: number;
-  leading_bidder: string;
-};
 
 export default function AdminDashboardPage() {
-  const [artworks, setArtworks] = useState<Artwork[]>([]);
-  const [bids, setBids] = useState<Bid[]>([]);
-  const [auction, setAuction] = useState<AuctionState | null>(null);
-
-  useEffect(() => {
-    fetchDashboard();
-
-    const auctionChannel = supabase
-      .channel("dashboard-clean-auction")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "live_auction_state",
-          filter: "auction_code=eq.demo",
-        },
-        () => fetchDashboard()
-      )
-      .subscribe();
-
-    const artworkChannel = supabase
-      .channel("dashboard-clean-artworks")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "demo_artworks",
-          filter: "auction_code=eq.demo",
-        },
-        () => fetchDashboard()
-      )
-      .subscribe();
-
-    const bidsChannel = supabase
-      .channel("dashboard-clean-bids")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "live_bids",
-          filter: "auction_code=eq.demo",
-        },
-        () => fetchDashboard()
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(auctionChannel);
-      supabase.removeChannel(artworkChannel);
-      supabase.removeChannel(bidsChannel);
-    };
-  }, []);
-
-  async function fetchDashboard() {
-    const [artworksResult, bidsResult, auctionResult] = await Promise.all([
-      supabase
-        .from("demo_artworks")
-        .select("*")
-        .eq("auction_code", "demo")
-        .order("sort_order", { ascending: true }),
-
-      supabase
-        .from("live_bids")
-        .select("*")
-        .eq("auction_code", "demo")
-        .order("amount", { ascending: false })
-        .limit(5),
-
-      supabase
-        .from("live_auction_state")
-        .select("status,current_bid,leading_bidder")
-        .eq("auction_code", "demo")
-        .single(),
-    ]);
-
-    setArtworks(artworksResult.data || []);
-    setBids(bidsResult.data || []);
-    setAuction(auctionResult.data || null);
-  }
-
-  const totalRaised = useMemo(() => {
-    return artworks.reduce((total, artwork) => {
-      return total + (artwork.sold_amount || 0);
-    }, 0);
-  }, [artworks]);
-
-  const soldArtworks = artworks.filter((item) => item.status === "sold");
-  const soldCount = soldArtworks.length;
-  const pendingCount = artworks.filter((item) => item.status === "pending")
-    .length;
-  const liveArtwork = artworks.find((item) => item.status === "live");
-  const topBid = bids[0];
-
-  const invoicesReady = soldArtworks.filter(
-    (item) => item.winner_email || item.invoice_email_requested_at
-  ).length;
-
-  const missingWinnerEmails = soldArtworks.filter(
-    (item) => !item.winner_email
-  ).length;
-
-  const recentSales = soldArtworks
-    .slice()
-    .sort((a, b) => b.sort_order - a.sort_order)
-    .slice(0, 5);
-
   return (
-    <main className="min-h-screen bg-[#07152b] text-white">
-      <div className="lg:grid lg:grid-cols-[280px_1fr] min-h-screen">
-        <AdminSidebar />
+    <main className="min-h-screen bg-[#020b18] text-white">
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.15),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.13),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
+      <div className="fixed inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
-        <div className="lg:hidden bg-[#061124] border-b border-white/10 px-4 py-4 sticky top-0 z-40">
-          <div className="bg-white rounded-2xl p-3 mb-4 w-fit">
+      <div className="relative grid xl:grid-cols-[280px_1fr] min-h-screen">
+        <aside className="border-r border-white/10 bg-[#061124]/85 backdrop-blur-xl p-5 xl:sticky xl:top-0 xl:h-screen">
+          <div className="bg-white rounded-[28px] p-4 shadow-2xl mb-6">
             <BrandHeader />
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            <MobileNavItem href="/admin" label="Dashboard" active />
-            <MobileNavItem href="/admin/events/new" label="New Event" />
-            <MobileNavItem href="/admin/live" label="Live" />
-            <MobileNavItem href="/admin/artworks" label="Artworks" />
-            <MobileNavItem href="/admin/school" label="School" />
-            <MobileNavItem href="/admin/sales" label="Sales" />
+          <nav className="space-y-3 mb-6">
+            <AdminNavLink href="/admin" label="Dashboard" icon="🏠" active />
+            <AdminNavLink href="/admin/live" label="Live Room" icon="🔨" />
+            <AdminNavLink href="/admin/artworks" label="Artwork Upload" icon="🎨" />
+            <AdminNavLink href="/admin/school" label="School Profile" icon="🏫" />
+            <AdminNavLink href="/admin/events/new" label="New Event" icon="📅" />
+            <AdminNavLink href="/admin/sales" label="Sales Records" icon="💳" />
+            <AdminNavLink href="/auction/demo" label="Parent View" icon="📱" />
+          </nav>
+
+          <div className="rounded-[28px] bg-white/5 border border-white/10 p-4 mb-5">
+            <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-3">
+              Admin Mode
+            </p>
+            <p className="text-3xl font-black text-[#16d66d]">LIVE</p>
+            <p className="text-white/50 text-sm font-bold mt-2">
+              BragWall event control centre
+            </p>
           </div>
 
-          <div className="mt-3">
-            <AdminLogoutButton />
-          </div>
-        </div>
+          <AdminLogoutButton />
+        </aside>
 
-        <section className="px-5 py-7 lg:px-8 lg:py-10">
-          <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6 mb-8">
-            <div>
-              <p className="uppercase tracking-[0.35em] text-xs text-white/40 font-black mb-4">
-                Admin Dashboard
-              </p>
+        <section className="min-h-screen">
+          <header className="border-b border-white/10 bg-[#020b18]/70 backdrop-blur-xl p-5 lg:p-8">
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+              <div>
+                <div className="inline-flex items-center gap-3 rounded-full bg-white/10 border border-white/10 px-4 py-3 mb-4">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#16d66d] shadow-[0_0_16px_rgba(22,214,109,0.9)]" />
+                  <span className="uppercase tracking-[0.32em] text-[10px] font-black text-white/60">
+                    BragWall Admin
+                  </span>
+                </div>
 
-              <h1 className="text-5xl lg:text-7xl font-black leading-none mb-4">
-                Event overview.
-              </h1>
+                <h1 className="text-5xl lg:text-7xl font-black leading-[0.9]">
+                  Your auction command centre.
+                </h1>
 
-              <p className="text-white/55 text-xl max-w-3xl leading-relaxed">
-                A cleaner control hub for fundraising, live auction progress,
-                winner emails, invoices, and certificates.
-              </p>
+                <p className="text-white/55 text-lg font-bold mt-3 max-w-3xl">
+                  Prepare school artwork, run the live auction, track bids,
+                  capture winners, and manage the event from one premium control
+                  room.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 min-w-full lg:min-w-[520px]">
+                <MetricCard label="Auction" value="Demo" />
+                <MetricCard label="Status" value="Ready" green />
+                <MetricCard label="Mode" value="Live" gold />
+              </div>
             </div>
+          </header>
 
-            <StatusPill status={auction?.status || "waiting"} />
-          </div>
+          <div className="p-5 lg:p-8 space-y-5">
+            <section className="rounded-[42px] bg-white/5 border border-white/10 p-4 lg:p-6 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
+              <div className="grid lg:grid-cols-[1fr_360px] gap-5">
+                <div className="rounded-[36px] bg-[#061124] border border-white/10 p-6 lg:p-8 shadow-2xl">
+                  <p className="uppercase tracking-[0.35em] text-[10px] text-[#16d66d] font-black mb-4">
+                    Event Workflow
+                  </p>
 
-          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-            <StatCard
-              label="Total Raised"
-              value={`R${totalRaised.toLocaleString()}`}
-              subtext="From sold artworks"
-              color="#16d66d"
-            />
+                  <h2 className="text-5xl lg:text-6xl font-black leading-[0.9] mb-5">
+                    From upload to SOLD.
+                  </h2>
 
-            <StatCard
-              label="Current Bid"
-              value={`R${(auction?.current_bid || 0).toLocaleString()}`}
-              subtext={`Leading: ${auction?.leading_bidder || "No bids yet"}`}
-              color="#ffc107"
-            />
+                  <p className="text-white/60 text-lg font-bold leading-relaxed max-w-3xl mb-8">
+                    Start by loading artwork into the studio, then open the live
+                    room to control bidding, SOLD moments, and parent follow-up.
+                  </p>
 
-            <StatCard
-              label="Sold Artworks"
-              value={`${soldCount}`}
-              subtext={`${pendingCount} still pending`}
-              color="#ffffff"
-            />
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <WorkflowCard
+                      number="01"
+                      title="Upload"
+                      text="Add each child’s artwork, grade, story, and optional AI enhancement."
+                    />
+                    <WorkflowCard
+                      number="02"
+                      title="Go Live"
+                      text="Start the auction room and move artworks onto the stage."
+                    />
+                    <WorkflowCard
+                      number="03"
+                      title="Collect"
+                      text="Capture winner details for invoices, certificates, and collection."
+                    />
+                  </div>
+                </div>
 
-            <StatCard
-              label="Invoices"
-              value={`${invoicesReady}`}
-              subtext={
-                missingWinnerEmails > 0
-                  ? `${missingWinnerEmails} waiting for email`
-                  : "Winner emails captured"
-              }
-              color="#2878cf"
-            />
-          </div>
-
-          <div className="grid xl:grid-cols-[1.15fr_0.85fr] gap-6">
-            <div className="space-y-6">
-              <section className="bg-white/5 border border-white/10 rounded-[36px] p-6 shadow-2xl">
-                <div className="flex items-start justify-between gap-4 mb-6">
-                  <div>
-                    <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
-                      Live Artwork
+                <div className="rounded-[36px] bg-[#061124] border border-white/10 p-6 shadow-2xl flex flex-col">
+                  <div className="text-center rounded-[30px] bg-[radial-gradient(circle_at_top,rgba(255,200,87,0.22),transparent_45%),#020b18] border border-[#ffc857]/30 p-6 mb-5">
+                    <div className="text-7xl mb-2">🔨</div>
+                    <p className="text-[#ffc857] text-6xl font-black leading-none">
+                      READY
                     </p>
-
-                    <h2 className="text-4xl font-black leading-tight">
-                      {liveArtwork
-                        ? `${liveArtwork.child_name} ${liveArtwork.child_surname}`
-                        : "No artwork live"}
-                    </h2>
-
-                    <p className="text-white/50 text-lg mt-2">
-                      {liveArtwork?.grade || "Start the auction to begin"}
+                    <p className="text-white/60 font-bold mt-3">
+                      Auction cockpit standing by
                     </p>
                   </div>
 
                   <a
                     href="/admin/live"
-                    className="hidden sm:inline-block rounded-2xl bg-[#16d66d] text-[#07152b] px-5 py-4 font-black shadow-xl"
+                    className="rounded-[26px] bg-[#16d66d] text-[#07152b] px-6 py-5 text-center text-xl font-black shadow-[0_18px_45px_rgba(22,214,109,0.28)] hover:scale-[1.02] transition mb-4"
                   >
                     Open Live Room
                   </a>
-                </div>
-
-                {liveArtwork ? (
-                  <div className="grid md:grid-cols-[0.9fr_1.1fr] gap-5 items-center">
-                    <div className="bg-gradient-to-br from-[#70420f] to-[#2a1707] p-4 rounded-[30px]">
-                      <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-3 rounded-[24px]">
-                        <div className="bg-[#f8f5ef] rounded-[18px] p-4">
-                          <img
-                            src={liveArtwork.artwork_url}
-                            alt="Current artwork"
-                            className="w-full max-h-[360px] object-contain rounded-[14px] bg-white"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <MiniInfo
-                        label="Current Highest Bid"
-                        value={`R${(
-                          auction?.current_bid || 0
-                        ).toLocaleString()}`}
-                      />
-
-                      <MiniInfo
-                        label="Leading Bidder"
-                        value={auction?.leading_bidder || "No bids yet"}
-                      />
-
-                      <MiniInfo
-                        label="Top Bid"
-                        value={
-                          topBid
-                            ? `R${topBid.amount.toLocaleString()} from ${
-                                topBid.bidder_name
-                              }`
-                            : "No bids yet"
-                        }
-                      />
-
-                      <a
-                        href="/admin/live"
-                        className="sm:hidden block rounded-2xl bg-[#16d66d] text-[#07152b] px-5 py-4 font-black text-center shadow-xl"
-                      >
-                        Open Live Room
-                      </a>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-[28px] bg-white/5 border border-white/10 p-10 text-white/40">
-                    No current artwork.
-                  </div>
-                )}
-              </section>
-
-              <section className="bg-white/5 border border-white/10 rounded-[32px] overflow-hidden">
-                <div className="p-5 border-b border-white/10 flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-2xl font-black">Artwork Queue</h3>
-                    <p className="text-white/40 text-sm mt-1">
-                      {artworks.length} artworks loaded
-                    </p>
-                  </div>
 
                   <a
-                    href="/admin/artworks"
-                    className="rounded-2xl bg-white text-[#07152b] px-5 py-3 font-black"
+                    href="/auction/demo"
+                    className="rounded-[26px] bg-white text-[#07152b] px-6 py-5 text-center text-xl font-black shadow-xl hover:scale-[1.02] transition"
                   >
-                    Manage
+                    View Parent Screen
                   </a>
                 </div>
+              </div>
+            </section>
 
-                <div className="divide-y divide-white/10">
-                  {artworks.length === 0 && (
-                    <div className="p-5 text-white/40">
-                      No artworks uploaded yet.
-                    </div>
-                  )}
+            <section className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
+              <DashboardTile
+                href="/admin/artworks"
+                icon="🎨"
+                title="Artwork Studio"
+                text="Upload child artwork, preview the gold frame, and prepare AI auction stories."
+                action="Upload Artwork"
+                green
+              />
 
-                  {artworks.slice(0, 6).map((artwork) => (
-                    <div
-                      key={artwork.id}
-                      className="p-5 flex items-center justify-between gap-4"
-                    >
-                      <div className="flex items-center gap-4 min-w-0">
-                        <img
-                          src={artwork.artwork_url}
-                          alt=""
-                          className="w-16 h-16 rounded-2xl object-cover bg-white/10 shrink-0"
-                        />
+              <DashboardTile
+                href="/admin/live"
+                icon="🔨"
+                title="Live Auction Room"
+                text="Control the auction rhythm, bids, queue, going once, going twice, and SOLD."
+                action="Run Auction"
+                gold
+              />
 
-                        <div className="min-w-0">
-                          <p className="font-black text-lg truncate">
-                            {artwork.sort_order}. {artwork.child_name}{" "}
-                            {artwork.child_surname}
-                          </p>
+              <DashboardTile
+                href="/admin/sales"
+                icon="💳"
+                title="Sales Records"
+                text="Review sold artworks, winners, invoice emails, and certificate follow-up."
+                action="View Sales"
+              />
 
-                          <p className="text-white/40 text-sm">
-                            {artwork.grade} • {artwork.status}
-                          </p>
-                        </div>
-                      </div>
+              <DashboardTile
+                href="/admin/school"
+                icon="🏫"
+                title="School Profile"
+                text="Manage school information used across the BragWall event setup."
+                action="Edit Profile"
+              />
+            </section>
 
-                      <div className="text-right shrink-0">
-                        <p className="font-black text-[#16d66d]">
-                          {artwork.sold_amount
-                            ? `R${artwork.sold_amount.toLocaleString()}`
-                            : "-"}
-                        </p>
-
-                        {artwork.winning_bidder && (
-                          <p className="text-white/40 text-sm max-w-[130px] truncate">
-                            {artwork.winning_bidder}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            </div>
-
-            <div className="space-y-6">
-              <section className="bg-[#16d66d] text-[#07152b] rounded-[32px] p-7 shadow-2xl">
-                <p className="uppercase tracking-[0.3em] text-xs font-black mb-4">
-                  Fundraising Momentum
+            <section className="grid lg:grid-cols-[0.8fr_1.2fr] gap-5">
+              <div className="rounded-[34px] bg-white text-[#07152b] p-6 shadow-2xl">
+                <p className="uppercase tracking-[0.3em] text-xs text-slate-400 font-black mb-4">
+                  Quick Launch
                 </p>
 
-                <h2 className="text-6xl font-black mb-4">
-                  R{totalRaised.toLocaleString()}
-                </h2>
+                <h3 className="text-4xl font-black leading-none mb-5">
+                  Recommended order
+                </h3>
 
-                <div className="w-full h-5 bg-[#07152b]/15 rounded-full overflow-hidden mb-4">
-                  <div
-                    className="h-full bg-[#07152b]"
-                    style={{
-                      width: `${Math.min((totalRaised / 50000) * 100, 100)}%`,
-                    }}
+                <div className="space-y-3">
+                  <QuickStep number="1" text="Set up your school profile." />
+                  <QuickStep number="2" text="Create or confirm the event." />
+                  <QuickStep number="3" text="Upload artwork into the studio." />
+                  <QuickStep number="4" text="Open the live room and start bidding." />
+                  <QuickStep number="5" text="Check sales records after SOLD." />
+                </div>
+              </div>
+
+              <div className="rounded-[34px] bg-[#061124]/90 border border-white/10 p-6 shadow-2xl">
+                <p className="uppercase tracking-[0.3em] text-[10px] text-[#16d66d] font-black mb-4">
+                  BragWall Event Night
+                </p>
+
+                <div className="grid md:grid-cols-3 gap-4">
+                  <EventNightCard
+                    icon="📱"
+                    title="Parent mobile view"
+                    text="Parents join from their phones and bid from the live auction screen."
+                  />
+
+                  <EventNightCard
+                    icon="🖼️"
+                    title="Premium artwork stage"
+                    text="Each piece appears inside the gold BragWall frame."
+                  />
+
+                  <EventNightCard
+                    icon="🏆"
+                    title="Winner capture"
+                    text="Winning parents submit email details for invoice and certificate."
                   />
                 </div>
-
-                <p className="font-bold">
-                  Demo target: R50,000. Event targets will become dynamic per
-                  school event.
-                </p>
-              </section>
-
-              <section className="bg-white/5 border border-white/10 rounded-[32px] overflow-hidden">
-                <div className="p-5 border-b border-white/10 flex items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-2xl font-black">Sales / Invoices</h3>
-                    <p className="text-white/40 text-sm mt-1">
-                      Recent sold artworks and winner emails
-                    </p>
-                  </div>
-
-                  <a
-                    href="/admin/sales"
-                    className="rounded-2xl bg-[#ef2b20] text-white px-5 py-3 font-black"
-                  >
-                    Open
-                  </a>
-                </div>
-
-                <div className="divide-y divide-white/10">
-                  {recentSales.length === 0 && (
-                    <div className="p-5 text-white/40">
-                      Sold artworks will appear here after the first sale.
-                    </div>
-                  )}
-
-                  {recentSales.map((artwork) => (
-                    <div key={artwork.id} className="p-5">
-                      <div className="flex items-start justify-between gap-4 mb-3">
-                        <div>
-                          <p className="font-black text-lg">
-                            {artwork.child_name} {artwork.child_surname}
-                          </p>
-
-                          <p className="text-white/40 text-sm">
-                            Winner: {artwork.winning_bidder || "Not captured"}
-                          </p>
-                        </div>
-
-                        <p className="font-black text-[#16d66d] text-xl">
-                          R{(artwork.sold_amount || 0).toLocaleString()}
-                        </p>
-                      </div>
-
-                      <div
-                        className={`rounded-2xl px-4 py-3 font-black text-sm ${
-                          artwork.winner_email
-                            ? "bg-[#16d66d]/15 text-[#16d66d]"
-                            : "bg-[#ffc107]/15 text-[#ffc107]"
-                        }`}
-                      >
-                        {artwork.winner_email
-                          ? `Email captured: ${artwork.winner_email}`
-                          : "Waiting for winner email"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="bg-white/5 border border-white/10 rounded-[32px] p-6">
-                <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
-                  Admin Shortcuts
-                </p>
-
-                <div className="grid gap-3">
-                  <Shortcut href="/admin/events/new" label="Create New Event" />
-                  <Shortcut href="/admin/artworks" label="Upload Artwork" />
-                  <Shortcut href="/admin/school" label="School Profile" />
-                  <Shortcut href="/auction/demo" label="Open Parent View" />
-                </div>
-              </section>
-            </div>
+              </div>
+            </section>
           </div>
         </section>
       </div>
@@ -471,157 +218,156 @@ export default function AdminDashboardPage() {
   );
 }
 
-function AdminSidebar() {
-  return (
-    <aside className="hidden lg:flex bg-[#061124] border-r border-white/10 p-6 flex-col">
-      <div className="bg-white rounded-2xl p-4 mb-8">
-        <BrandHeader center />
-      </div>
-
-      <nav className="space-y-2 text-sm font-bold">
-        <SidebarItem href="/admin" label="Dashboard" active />
-        <SidebarItem href="/admin/events/new" label="Create Event" />
-        <SidebarItem href="/admin/live" label="Live Auction" />
-        <SidebarItem href="/admin/artworks" label="Artworks" />
-        <SidebarItem href="/admin/school" label="School Profile" />
-        <SidebarItem href="/admin/sales" label="Sales / Invoices" />
-        <SidebarItem href="/auction/demo" label="Parent View" />
-      </nav>
-
-      <div className="mt-auto space-y-4">
-        <div className="bg-white/5 border border-white/10 rounded-3xl p-5">
-          <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-3">
-            BragWall
-          </p>
-
-          <p className="text-white/70 font-bold leading-relaxed">
-            Young art, big pride, live fundraising.
-          </p>
-        </div>
-
-        <AdminLogoutButton />
-      </div>
-    </aside>
-  );
-}
-
-function SidebarItem({
+function AdminNavLink({
   href,
   label,
+  icon,
   active = false,
 }: {
   href: string;
   label: string;
+  icon: string;
   active?: boolean;
 }) {
   return (
     <a
       href={href}
-      className={`block rounded-2xl px-4 py-3 transition ${
+      className={`flex items-center gap-3 rounded-[22px] px-4 py-4 font-black transition ${
         active
-          ? "bg-white text-[#07152b]"
-          : "text-white/75 hover:bg-white/10 hover:text-white"
+          ? "bg-[#16d66d] text-[#07152b]"
+          : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
       }`}
     >
-      {label}
+      <span className="text-2xl">{icon}</span>
+      <span>{label}</span>
     </a>
   );
 }
 
-function MobileNavItem({
-  href,
-  label,
-  active = false,
-}: {
-  href: string;
-  label: string;
-  active?: boolean;
-}) {
-  return (
-    <a
-      href={href}
-      className={`rounded-2xl px-4 py-3 text-sm font-black whitespace-nowrap ${
-        active
-          ? "bg-white text-[#07152b]"
-          : "bg-white/10 text-white border border-white/10"
-      }`}
-    >
-      {label}
-    </a>
-  );
-}
-
-function StatCard({
+function MetricCard({
   label,
   value,
-  subtext,
-  color,
+  green = false,
+  gold = false,
 }: {
   label: string;
   value: string;
-  subtext: string;
-  color: string;
+  green?: boolean;
+  gold?: boolean;
 }) {
   return (
-    <div className="bg-white rounded-[28px] p-6 text-[#07152b] shadow-xl">
-      <p className="uppercase tracking-[0.25em] text-xs text-slate-400 font-black mb-3">
+    <div className="rounded-[26px] bg-white/5 border border-white/10 p-4 shadow-xl">
+      <p className="uppercase tracking-[0.25em] text-[9px] text-white/40 font-black mb-2">
         {label}
       </p>
-
-      <h2
-        className="text-4xl font-black leading-tight mb-3"
-        style={{ color }}
+      <p
+        className={`text-2xl lg:text-3xl font-black leading-none ${
+          green ? "text-[#16d66d]" : gold ? "text-[#ffc857]" : "text-white"
+        }`}
       >
         {value}
-      </h2>
-
-      <p className="text-slate-500 font-bold">{subtext}</p>
-    </div>
-  );
-}
-
-function StatusPill({ status }: { status: string }) {
-  const styles =
-    status === "open"
-      ? "bg-[#16d66d]/20 text-[#16d66d] border-[#16d66d]/40"
-      : status === "waiting"
-      ? "bg-white/10 text-white border-white/20"
-      : status === "going once"
-      ? "bg-[#16b85d]/20 text-[#16d66d] border-[#16d66d]/40"
-      : status === "going twice"
-      ? "bg-[#ffc107]/20 text-[#ffc107] border-[#ffc107]/40"
-      : status === "sold"
-      ? "bg-[#ef2b20]/20 text-[#ff6b61] border-[#ef2b20]/40"
-      : status === "finished"
-      ? "bg-[#2878cf]/20 text-[#6fb0ff] border-[#2878cf]/40"
-      : "bg-white/10 text-white border-white/20";
-
-  return (
-    <div className={`rounded-2xl border px-6 py-4 font-black text-lg ${styles}`}>
-      {status.toUpperCase()}
-    </div>
-  );
-}
-
-function MiniInfo({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-[24px] p-5">
-      <p className="uppercase tracking-[0.25em] text-[10px] text-white/40 font-black mb-2">
-        {label}
       </p>
-
-      <p className="text-2xl font-black leading-tight">{value}</p>
     </div>
   );
 }
 
-function Shortcut({ href, label }: { href: string; label: string }) {
+function WorkflowCard({
+  number,
+  title,
+  text,
+}: {
+  number: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="rounded-[28px] bg-white/5 border border-white/10 p-5">
+      <p className="text-[#16d66d] text-4xl font-black mb-4">{number}</p>
+      <h3 className="text-3xl font-black mb-3">{title}</h3>
+      <p className="text-white/55 font-bold leading-relaxed">{text}</p>
+    </div>
+  );
+}
+
+function DashboardTile({
+  href,
+  icon,
+  title,
+  text,
+  action,
+  green = false,
+  gold = false,
+}: {
+  href: string;
+  icon: string;
+  title: string;
+  text: string;
+  action: string;
+  green?: boolean;
+  gold?: boolean;
+}) {
   return (
     <a
       href={href}
-      className="block rounded-2xl bg-white/10 border border-white/10 px-5 py-4 font-black hover:bg-white hover:text-[#07152b] transition"
+      className="group rounded-[34px] bg-[#061124]/90 border border-white/10 p-6 shadow-2xl hover:-translate-y-1 hover:bg-[#071b38] transition"
     >
-      {label}
+      <div
+        className={`w-18 h-18 rounded-[28px] flex items-center justify-center text-5xl mb-6 shadow-xl ${
+          green
+            ? "bg-[#16d66d] text-[#07152b]"
+            : gold
+            ? "bg-[#ffc857] text-[#07152b]"
+            : "bg-white text-[#07152b]"
+        }`}
+      >
+        {icon}
+      </div>
+
+      <h3 className="text-3xl font-black leading-none mb-4">{title}</h3>
+
+      <p className="text-white/55 font-bold leading-relaxed mb-6">{text}</p>
+
+      <div
+        className={`rounded-[22px] px-5 py-4 text-center font-black transition ${
+          green
+            ? "bg-[#16d66d] text-[#07152b]"
+            : gold
+            ? "bg-[#ffc857] text-[#07152b]"
+            : "bg-white/10 text-white border border-white/10 group-hover:bg-white"
+        } ${!green && !gold ? "group-hover:text-[#07152b]" : ""}`}
+      >
+        {action}
+      </div>
     </a>
+  );
+}
+
+function QuickStep({ number, text }: { number: string; text: string }) {
+  return (
+    <div className="flex items-center gap-4 rounded-[22px] bg-[#fbf8f1] border border-black/5 p-4">
+      <div className="w-11 h-11 rounded-2xl bg-[#16d66d] text-[#07152b] flex items-center justify-center font-black shrink-0">
+        {number}
+      </div>
+
+      <p className="font-black text-slate-700">{text}</p>
+    </div>
+  );
+}
+
+function EventNightCard({
+  icon,
+  title,
+  text,
+}: {
+  icon: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="rounded-[28px] bg-white/5 border border-white/10 p-5">
+      <div className="text-5xl mb-5">{icon}</div>
+      <h3 className="text-2xl font-black mb-3">{title}</h3>
+      <p className="text-white/55 font-bold leading-relaxed">{text}</p>
+    </div>
   );
 }

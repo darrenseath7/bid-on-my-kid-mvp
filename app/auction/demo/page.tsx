@@ -193,7 +193,7 @@ export default function DemoAuctionPage() {
     fetchBids();
 
     const auctionChannel = supabase
-      .channel("bw-parent-mobile-hud-state")
+      .channel("bw-parent-premium-state")
       .on(
         "postgres_changes",
         {
@@ -220,7 +220,7 @@ export default function DemoAuctionPage() {
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("bw-parent-mobile-hud-bids")
+      .channel("bw-parent-premium-bids")
       .on(
         "postgres_changes",
         {
@@ -237,7 +237,7 @@ export default function DemoAuctionPage() {
       .subscribe();
 
     const bidsDeleteChannel = supabase
-      .channel("bw-parent-mobile-hud-bids-delete")
+      .channel("bw-parent-premium-bids-delete")
       .on(
         "postgres_changes",
         {
@@ -597,9 +597,11 @@ export default function DemoAuctionPage() {
 
   if (!joined) {
     return (
-      <main className="min-h-screen bg-[#fbf8f1] text-[#07152b] px-5 py-6">
-        <div className="max-w-md mx-auto">
-          <div className="mb-5 flex justify-center">
+      <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_80%_15%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_62%,#010712)]" />
+
+        <div className="relative max-w-md mx-auto min-h-screen px-5 py-6 flex flex-col">
+          <div className="bg-white rounded-[28px] p-4 mb-5 flex justify-center shadow-2xl">
             <img
               src="/bragwall-logo.png"
               alt="BragWall"
@@ -607,16 +609,16 @@ export default function DemoAuctionPage() {
             />
           </div>
 
-          <div className="bg-white rounded-[34px] p-6 shadow-2xl border border-black/5">
+          <div className="flex-1 bg-white text-[#07152b] rounded-[36px] p-6 shadow-2xl border border-black/5 flex flex-col">
             <p className="uppercase tracking-[0.35em] text-xs text-[#0b63ce] font-black mb-4">
               Welcome Parents
             </p>
 
-            <h1 className="text-4xl font-black leading-none mb-4">
+            <h1 className="text-5xl font-black leading-[0.9] mb-4">
               Welcome to BragWall.
             </h1>
 
-            <p className="text-slate-600 text-base leading-relaxed mb-5">
+            <p className="text-slate-600 text-base leading-relaxed mb-5 font-bold">
               Tonight we are turning school artwork into a live fundraising
               event — with proud parents, dangerous grandparents, competitive
               uncles, and masterpieces that deserve prime fridge-door real
@@ -626,7 +628,7 @@ export default function DemoAuctionPage() {
             <button
               onClick={playWelcomeVoice}
               disabled={welcomeVoiceLoading}
-              className="w-full bg-[#16d66d] text-[#07152b] rounded-[22px] py-4 font-black text-lg shadow-xl mb-5 disabled:opacity-50"
+              className="w-full bg-[#16d66d] text-[#07152b] rounded-[24px] py-4 font-black text-lg shadow-xl mb-5 disabled:opacity-50"
             >
               {welcomeVoiceLoading
                 ? "Creating Welcome Voice..."
@@ -635,7 +637,7 @@ export default function DemoAuctionPage() {
                 : "▶ Play Welcome Voice"}
             </button>
 
-            <div className="bg-[#f7f5f0] rounded-[24px] p-5 mb-5">
+            <div className="bg-[#f7f5f0] rounded-[26px] p-5 mb-5">
               <p className="uppercase tracking-[0.3em] text-[10px] text-slate-400 font-black mb-3">
                 How Tonight Works
               </p>
@@ -643,43 +645,41 @@ export default function DemoAuctionPage() {
               <div className="space-y-2 text-slate-600 font-bold leading-relaxed">
                 <p>1. Enter your bidder name.</p>
                 <p>2. Watch each artwork go live.</p>
-                <p>3. Bid when the auction calls the next amount.</p>
-                <p>
-                  4. If you win, enter your email for your invoice and
-                  certificate.
-                </p>
+                <p>3. Bid when the next amount appears.</p>
+                <p>4. Winners enter email for invoice and certificate.</p>
               </div>
             </div>
 
-            <div className="bg-[#07152b] text-white rounded-[24px] p-5 mb-5">
+            <div className="bg-[#07152b] text-white rounded-[26px] p-5 mb-5">
               <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
                 Auction Sound
               </p>
 
               <p className="text-lg font-black leading-relaxed">
-                You’ll hear a welcome voice, a bid ding when bids come in, and
-                a gavel when an artwork is sold.
+                Welcome voice, bid ding, and gavel on SOLD.
               </p>
             </div>
 
-            <input
-              value={bidderName}
-              onChange={(event) => setBidderName(event.target.value)}
-              placeholder="Your bidder name"
-              className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg mb-4 outline-none"
-            />
+            <div className="mt-auto">
+              <input
+                value={bidderName}
+                onChange={(event) => setBidderName(event.target.value)}
+                placeholder="Your bidder name"
+                className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg mb-4 outline-none"
+              />
 
-            <button
-              onClick={() => {
-                if (bidderName.trim()) {
-                  audioUnlockedRef.current = true;
-                  setJoined(true);
-                }
-              }}
-              className="w-full bg-[#07152b] text-white rounded-2xl py-5 font-black text-xl shadow-xl"
-            >
-              JOIN AUCTION
-            </button>
+              <button
+                onClick={() => {
+                  if (bidderName.trim()) {
+                    audioUnlockedRef.current = true;
+                    setJoined(true);
+                  }
+                }}
+                className="w-full bg-[#07152b] text-white rounded-2xl py-5 font-black text-xl shadow-xl"
+              >
+                JOIN AUCTION
+              </button>
+            </div>
           </div>
         </div>
       </main>
@@ -688,7 +688,7 @@ export default function DemoAuctionPage() {
 
   if (!auction) {
     return (
-      <main className="min-h-screen bg-[#07152b] text-white flex items-center justify-center">
+      <main className="min-h-screen bg-[#020b18] text-white flex items-center justify-center">
         Loading auction...
       </main>
     );
@@ -696,9 +696,11 @@ export default function DemoAuctionPage() {
 
   if (isWaiting) {
     return (
-      <main className="min-h-screen bg-[#07152b] text-white px-5 py-6">
-        <div className="max-w-md mx-auto">
-          <div className="bg-white rounded-[28px] p-5 mb-6 flex justify-center">
+      <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_80%_15%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_62%,#010712)]" />
+
+        <div className="relative max-w-md mx-auto min-h-screen px-5 py-6 flex flex-col">
+          <div className="bg-white rounded-[28px] p-5 mb-6 flex justify-center shadow-2xl">
             <img
               src="/bragwall-logo.png"
               alt="BragWall"
@@ -706,21 +708,25 @@ export default function DemoAuctionPage() {
             />
           </div>
 
-          <div className="bg-white/10 border border-white/10 rounded-[32px] p-7 shadow-2xl">
-            <p className="uppercase tracking-[0.35em] text-xs text-white/40 font-black mb-4">
+          <div className="flex-1 bg-white/10 border border-white/10 rounded-[36px] p-7 shadow-2xl flex flex-col justify-center">
+            <div className="w-20 h-20 rounded-[28px] bg-[#16d66d] text-[#07152b] flex items-center justify-center text-5xl mb-6 shadow-2xl">
+              🎨
+            </div>
+
+            <p className="uppercase tracking-[0.35em] text-xs text-[#16d66d] font-black mb-4">
               Parent Waiting Room
             </p>
 
-            <h1 className="text-5xl font-black leading-none mb-5">
+            <h1 className="text-6xl font-black leading-none mb-5">
               You’re in.
             </h1>
 
-            <p className="text-white/70 text-lg leading-relaxed mb-6">
+            <p className="text-white/70 text-lg leading-relaxed mb-6 font-bold">
               Keep this page open. The first artwork will appear automatically
               when the auction starts.
             </p>
 
-            <div className="bg-[#16d66d] text-[#07152b] rounded-[24px] p-5">
+            <div className="bg-[#16d66d] text-[#07152b] rounded-[26px] p-5">
               <p className="uppercase tracking-[0.3em] text-xs font-black mb-3">
                 Auction Ready
               </p>
@@ -738,25 +744,29 @@ export default function DemoAuctionPage() {
 
   return (
     <main className="h-[100dvh] bg-[#020b18] text-white overflow-hidden flex flex-col">
-      <div className="shrink-0 bg-[#061124]/95 backdrop-blur border-b border-white/10">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_5%,rgba(22,214,109,0.14),transparent_28%),radial-gradient(circle_at_80%_5%,rgba(255,200,87,0.13),transparent_30%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
+
+      <div className="relative shrink-0 bg-[#061124]/95 backdrop-blur border-b border-white/10">
         <div className="max-w-md mx-auto px-4 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <div className="w-10 h-10 rounded-2xl border border-white/10 flex items-center justify-center text-2xl shrink-0">
               ☰
             </div>
 
-            <img
-              src="/bragwall-logo.png"
-              alt="BragWall"
-              className="h-11 w-auto object-contain bg-white rounded-xl px-2"
-            />
+            <div className="bg-white rounded-xl px-2 py-1">
+              <img
+                src="/bragwall-logo.png"
+                alt="BragWall"
+                className="h-9 w-auto object-contain"
+              />
+            </div>
 
             <div className="text-right shrink-0 max-w-[95px]">
               <p className="text-[9px] text-white/50">Bidding as</p>
 
               <p className="font-black text-xs leading-tight truncate">
                 {bidderName}
-                <span className="inline-block w-2 h-2 bg-[#16d66d] rounded-full ml-1" />
+                <span className="inline-block w-2 h-2 bg-[#16d66d] rounded-full ml-1 shadow-[0_0_12px_rgba(22,214,109,0.9)]" />
               </p>
             </div>
           </div>
@@ -770,7 +780,9 @@ export default function DemoAuctionPage() {
             animate={{ opacity: 1 }}
             className="fixed inset-0 bg-[#020b18] z-50 overflow-auto px-5 py-7"
           >
-            <div className="max-w-md mx-auto min-h-screen flex flex-col">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,200,87,0.18),transparent_42%),linear-gradient(180deg,#061124,#020b18)]" />
+
+            <div className="relative max-w-md mx-auto min-h-screen flex flex-col">
               <div className="text-center pt-4">
                 <motion.div
                   initial={{ rotate: -40, y: -40, scale: 0.8 }}
@@ -893,7 +905,7 @@ export default function DemoAuctionPage() {
         )}
       </AnimatePresence>
 
-      <div className="flex-1 min-h-0 max-w-md mx-auto w-full px-4 py-3 flex flex-col gap-2.5 overflow-hidden">
+      <div className="relative flex-1 min-h-0 max-w-md mx-auto w-full px-4 py-3 flex flex-col gap-2.5 overflow-hidden">
         {isSold && isWinningBidder && winnerEmailAlreadySubmitted && (
           <div className="shrink-0 bg-[#16d66d] text-[#07152b] rounded-[20px] p-3 shadow-xl">
             <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-1">
@@ -928,11 +940,11 @@ export default function DemoAuctionPage() {
           </div>
         </div>
 
-        <div className="shrink-0 rounded-[28px] overflow-hidden border border-white/10 shadow-[0_18px_55px_rgba(0,0,0,0.45)] bg-[#16110b]">
+        <div className="shrink-0 rounded-[30px] overflow-hidden border border-white/10 shadow-[0_18px_55px_rgba(0,0,0,0.45)] bg-[#16110b]">
           <div className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,#241b13,#090909)] p-3">
-            <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2 rounded-[18px] shadow-[0_0_35px_rgba(255,200,87,0.18)]">
-              <div className="bg-[#f8f5ef] rounded-[12px] p-2.5">
-                <div className="rounded-[9px] overflow-hidden bg-white h-[27dvh] min-h-[180px] max-h-[255px] flex items-center justify-center">
+            <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2 rounded-[20px] shadow-[0_0_35px_rgba(255,200,87,0.18)]">
+              <div className="bg-[#f8f5ef] rounded-[14px] p-2.5">
+                <div className="rounded-[10px] overflow-hidden bg-white h-[27dvh] min-h-[180px] max-h-[255px] flex items-center justify-center">
                   {auction.artwork_url ? (
                     <img
                       src={auction.artwork_url}
@@ -960,7 +972,7 @@ export default function DemoAuctionPage() {
           transition={{
             duration: 0.35,
           }}
-          className="shrink-0 bg-white text-[#07152b] rounded-[22px] p-4 shadow-xl border border-black/5"
+          className="shrink-0 bg-white text-[#07152b] rounded-[24px] p-4 shadow-xl border border-black/5"
         >
           <div className="grid grid-cols-2 gap-3 items-end">
             <div>
@@ -1038,7 +1050,7 @@ export default function DemoAuctionPage() {
           key={dynamicArtworkStory}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex-1 min-h-0 bg-[#07152b] border border-white/10 text-white rounded-[22px] p-4 shadow-xl overflow-hidden"
+          className="flex-1 min-h-0 bg-[#07152b] border border-white/10 text-white rounded-[24px] p-4 shadow-xl overflow-hidden"
         >
           <div className="flex items-center justify-between mb-2">
             <p className="uppercase tracking-[0.25em] text-[9px] text-[#16d66d] font-black">
@@ -1075,7 +1087,7 @@ export default function DemoAuctionPage() {
       </div>
 
       {!isSold && (
-        <div className="shrink-0 bg-[#020b18]/95 backdrop-blur border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
+        <div className="relative shrink-0 bg-[#020b18]/95 backdrop-blur border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
           <div className="max-w-md mx-auto p-3">
             <motion.button
               whileTap={{ scale: canBid ? 0.97 : 1 }}

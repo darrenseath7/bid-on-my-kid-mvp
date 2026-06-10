@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import BrandHeader from "@/components/BrandHeader";
+import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { supabase } from "@/lib/supabase";
 
 type Artwork = {
@@ -120,11 +121,23 @@ export default function ArtworkUploadPage() {
     nextSortOrder,
   });
 
+  const enhancedCount = artworks.filter((artwork) => {
+    return Boolean(artwork.enhanced_artwork_url);
+  }).length;
+
+  const processingCount = artworks.filter((artwork) => {
+    return artwork.enhancement_status === "processing";
+  }).length;
+
+  const pendingCount = artworks.filter((artwork) => {
+    return artwork.status !== "sold";
+  }).length;
+
   useEffect(() => {
     fetchArtworks();
 
     const channel = supabase
-      .channel("admin-artwork-onboarding-enhanced")
+      .channel("admin-artwork-studio-premium")
       .on(
         "postgres_changes",
         {
@@ -321,336 +334,474 @@ export default function ArtworkUploadPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#07152b] text-white">
-      <section className="max-w-7xl mx-auto px-5 py-8">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-10">
-          <div className="bg-white rounded-2xl p-4 w-fit">
+    <main className="min-h-screen bg-[#020b18] text-white">
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.15),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.13),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
+      <div className="fixed inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
+
+      <div className="relative grid xl:grid-cols-[280px_1fr] min-h-screen">
+        <aside className="border-r border-white/10 bg-[#061124]/85 backdrop-blur-xl p-5 xl:sticky xl:top-0 xl:h-screen">
+          <div className="bg-white rounded-[28px] p-4 shadow-2xl mb-6">
             <BrandHeader />
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <a
-              href="/admin"
-              className="rounded-2xl bg-white/10 border border-white/10 px-6 py-4 font-black"
-            >
-              Dashboard
-            </a>
+          <nav className="space-y-3 mb-6">
+            <AdminNavLink href="/admin" label="Dashboard" icon="🏠" />
+            <AdminNavLink href="/admin/live" label="Live Room" icon="🔨" />
+            <AdminNavLink
+              href="/admin/artworks"
+              label="Artwork Upload"
+              icon="🎨"
+              active
+            />
+            <AdminNavLink href="/admin/sales" label="Sales Records" icon="💳" />
+            <AdminNavLink href="/auction/demo" label="Parent View" icon="📱" />
+          </nav>
 
-            <a
-              href="/admin/live"
-              className="rounded-2xl bg-[#16d66d] text-[#07152b] px-6 py-4 font-black shadow-xl"
-            >
-              Live Control Room
-            </a>
-
-            <a
-              href="/auction/demo"
-              className="rounded-2xl bg-white text-[#07152b] px-6 py-4 font-black shadow-xl"
-            >
-              Parent View
-            </a>
-          </div>
-        </div>
-
-        <div className="mb-10">
-          <p className="uppercase tracking-[0.35em] text-xs text-white/40 font-black mb-4">
-            Artwork Onboarding
-          </p>
-
-          <h1 className="text-6xl lg:text-8xl font-black leading-[0.9] mb-5">
-            Add masterpieces to the live event.
-          </h1>
-
-          <p className="text-white/55 text-2xl max-w-4xl leading-relaxed">
-            Upload student artwork, generate a playful auction story, and create
-            an optional AI-enhanced framed version for a premium BragWall
-            presentation.
-          </p>
-        </div>
-
-        <div className="grid xl:grid-cols-[0.9fr_1.1fr] gap-6">
-          <div className="space-y-6">
-            <div className="bg-white rounded-[36px] p-7 text-[#07152b] shadow-2xl">
-              <div className="flex items-center justify-between gap-4 mb-8">
-                <div>
-                  <p className="uppercase tracking-[0.3em] text-xs text-slate-400 font-black mb-3">
-                    New Artwork
-                  </p>
-
-                  <h2 className="text-4xl font-black">Upload & enhance</h2>
-                </div>
-
-                <div className="w-16 h-16 rounded-full bg-[#fff2d2] flex items-center justify-center text-4xl">
-                  🎨
-                </div>
-              </div>
-
-              <div className="space-y-5">
-                <Field
-                  label="Child Name"
-                  value={childName}
-                  onChange={setChildName}
-                  placeholder="Ethan"
-                />
-
-                <Field
-                  label="Child Surname"
-                  value={childSurname}
-                  onChange={setChildSurname}
-                  placeholder="Smith"
-                />
-
-                <Field
-                  label="Grade"
-                  value={grade}
-                  onChange={setGrade}
-                  placeholder="Grade 3"
-                />
-
-                <div>
-                  <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
-                    Artwork Image
-                  </label>
-
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) =>
-                      handleFileChange(event.target.files?.[0] || null)
-                    }
-                    className="w-full rounded-2xl border border-slate-200 px-5 py-5 bg-white text-[#07152b]"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setEnhanceArtwork(!enhanceArtwork)}
-                  className={`w-full rounded-[28px] border-2 p-5 text-left transition ${
-                    enhanceArtwork
-                      ? "border-[#16b85d] bg-[#eafff2]"
-                      : "border-slate-200 bg-white"
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center font-black shrink-0 ${
-                        enhanceArtwork
-                          ? "bg-[#16b85d] text-white"
-                          : "bg-slate-100 text-slate-400"
-                      }`}
-                    >
-                      {enhanceArtwork ? "✓" : ""}
-                    </div>
-
-                    <div>
-                      <p className="text-xl font-black mb-2">
-                        Enhance artwork for auction display
-                      </p>
-
-                      <p className="text-slate-600 font-bold leading-relaxed">
-                        Keeps the original artwork safely stored, then creates a
-                        brighter, cleaner, framed auction-ready version for the
-                        live event.
-                      </p>
-                    </div>
-                  </div>
-                </button>
-
-                <button
-                  onClick={uploadArtwork}
-                  disabled={uploading}
-                  className="w-full bg-[#07152b] text-white rounded-2xl py-6 font-black text-xl shadow-xl disabled:opacity-50"
-                >
-                  {uploading
-                    ? enhanceArtwork
-                      ? "Creating Enhanced Artwork..."
-                      : "Creating BragWall Story..."
-                    : "Add Artwork to Queue"}
-                </button>
-
-                {message && (
-                  <div className="rounded-2xl bg-[#07152b] text-white p-5 font-bold leading-relaxed">
-                    {message}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 rounded-[32px] p-6">
-              <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
-                Enhancement Rules
-              </p>
-
-              <div className="space-y-4 text-white/70 text-lg leading-relaxed">
-                <p>• The original artwork image remains stored safely.</p>
-                <p>• Enhancement improves presentation, clarity, and framing.</p>
-                <p>• The child’s actual artwork should stay authentic.</p>
-                <p>
-                  • If enhancement fails, the original artwork still remains in
-                  the queue.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 rounded-[32px] p-6">
-              <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
-                Upload Tips
-              </p>
-
-              <div className="space-y-4 text-white/70 text-lg leading-relaxed">
-                <p>• Use bright, clear photos of the child’s artwork.</p>
-                <p>• Crop out tables, hands, shadows, and background clutter.</p>
-                <p>
-                  • Keep the child’s name correct — it appears on the auction
-                  and certificate.
-                </p>
-                <p>• The AI MC story will be shown to parents during bidding.</p>
-              </div>
-            </div>
+          <div className="rounded-[28px] bg-white/5 border border-white/10 p-4 mb-5">
+            <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-3">
+              Artwork Studio
+            </p>
+            <p className="text-3xl font-black text-[#16d66d]">
+              {artworks.length}
+            </p>
+            <p className="text-white/50 text-sm font-bold mt-2">
+              artworks in the BragWall queue
+            </p>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-white/5 border border-white/10 rounded-[36px] p-6 shadow-2xl">
-              <div className="mb-6">
-                <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
-                  BragWall Preview
+          <AdminLogoutButton />
+        </aside>
+
+        <section className="min-h-screen">
+          <header className="border-b border-white/10 bg-[#020b18]/70 backdrop-blur-xl p-5 lg:p-8">
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+              <div>
+                <div className="inline-flex items-center gap-3 rounded-full bg-white/10 border border-white/10 px-4 py-3 mb-4">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#16d66d] shadow-[0_0_16px_rgba(22,214,109,0.9)]" />
+                  <span className="uppercase tracking-[0.32em] text-[10px] font-black text-white/60">
+                    Artwork Studio
+                  </span>
+                </div>
+
+                <h1 className="text-5xl lg:text-7xl font-black leading-[0.9]">
+                  Prepare the masterpieces.
+                </h1>
+
+                <p className="text-white/55 text-lg font-bold mt-3 max-w-3xl">
+                  Upload each child’s artwork, preview the framed auction
+                  presentation, generate a playful MC story, and optionally
+                  create an AI-enhanced display version.
                 </p>
-
-                <h2 className="text-5xl font-black leading-tight">
-                  {childName || "Child"} {childSurname || ""}
-                </h2>
-
-                <p className="text-white/50 text-xl mt-2">{grade}</p>
               </div>
 
-              {previewUrl ? (
-                <>
-                  <PremiumFrame src={previewUrl} alt="Artwork preview" />
+              <div className="grid grid-cols-3 gap-3 min-w-full lg:min-w-[520px]">
+                <MetricCard label="Total" value={`${artworks.length}`} />
+                <MetricCard
+                  label="Enhanced"
+                  value={`${enhancedCount}`}
+                  green
+                />
+                <MetricCard
+                  label="Pending"
+                  value={`${pendingCount}`}
+                  gold
+                />
+              </div>
+            </div>
+          </header>
 
-                  <div className="mt-6 grid md:grid-cols-2 gap-4">
-                    <div className="bg-white/5 border border-white/10 rounded-[28px] p-6">
-                      <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
-                        AI Story Preview
-                      </p>
-
-                      <p className="text-xl font-bold leading-relaxed">
-                        “{storyPreview}”
-                      </p>
-                    </div>
-
-                    <div className="bg-[#16d66d] text-[#07152b] rounded-[28px] p-6">
-                      <p className="uppercase tracking-[0.3em] text-xs font-black mb-3">
-                        Enhancement
-                      </p>
-
-                      <p className="text-xl font-black leading-relaxed">
-                        {enhanceArtwork
-                          ? "AI will create a polished framed auction version after upload."
-                          : "Only the original image will be stored."}
-                      </p>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="min-h-[520px] rounded-[32px] border border-dashed border-white/20 flex items-center justify-center text-center px-8">
+          <div className="grid 2xl:grid-cols-[0.82fr_1.18fr] gap-5 p-5 lg:p-8">
+            <div className="space-y-5">
+              <section className="rounded-[36px] bg-white text-[#07152b] p-6 lg:p-7 shadow-2xl">
+                <div className="flex items-center justify-between gap-4 mb-7">
                   <div>
-                    <div className="text-8xl mb-6">🖼️</div>
-                    <h3 className="text-4xl font-black mb-4">
-                      Preview appears here
-                    </h3>
-                    <p className="text-white/50 text-xl">
-                      Select an artwork image to see the framed BragWall
-                      presentation.
+                    <p className="uppercase tracking-[0.3em] text-xs text-slate-400 font-black mb-3">
+                      New Artwork
                     </p>
 
-                    <div className="mt-8 bg-white/5 border border-white/10 rounded-[24px] p-5 text-left max-w-xl">
-                      <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
-                        Story will update here
-                      </p>
+                    <h2 className="text-4xl font-black">Upload & enhance</h2>
+                  </div>
 
-                      <p className="text-white/70 text-lg font-bold leading-relaxed">
-                        Add the child’s name, grade, and artwork image to see a
-                        unique auction story preview.
-                      </p>
-                    </div>
+                  <div className="w-16 h-16 rounded-[24px] bg-[#fff2d2] flex items-center justify-center text-4xl">
+                    🎨
                   </div>
                 </div>
-              )}
-            </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-[32px] overflow-hidden">
-              <div className="p-5 border-b border-white/10 flex items-center justify-between">
-                <h3 className="text-2xl font-black">Artwork Queue</h3>
-                <p className="text-white/40">
-                  {artworks.length}{" "}
-                  {artworks.length === 1 ? "artwork" : "artworks"}
-                </p>
-              </div>
+                <div className="space-y-5">
+                  <Field
+                    label="Child Name"
+                    value={childName}
+                    onChange={setChildName}
+                    placeholder="Ethan"
+                  />
 
-              <div className="divide-y divide-white/10 max-h-[520px] overflow-auto">
-                {artworks.length === 0 && (
-                  <div className="p-6 text-white/40">
-                    No artworks uploaded yet.
-                  </div>
-                )}
+                  <Field
+                    label="Child Surname"
+                    value={childSurname}
+                    onChange={setChildSurname}
+                    placeholder="Smith"
+                  />
 
-                {artworks.map((artwork) => {
-                  const displayUrl =
-                    artwork.enhanced_artwork_url || artwork.artwork_url;
+                  <Field
+                    label="Grade"
+                    value={grade}
+                    onChange={setGrade}
+                    placeholder="Grade 3"
+                  />
 
-                  return (
-                    <div
-                      key={artwork.id}
-                      className="p-5 flex items-center justify-between gap-4"
-                    >
-                      <div className="flex items-center gap-4 min-w-0">
-                        <img
-                          src={displayUrl}
-                          alt=""
-                          className="w-16 h-16 rounded-2xl object-cover bg-white/10 shrink-0"
-                        />
+                  <div>
+                    <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+                      Artwork Image
+                    </label>
 
-                        <div className="min-w-0">
-                          <p className="font-black text-lg truncate">
-                            {artwork.sort_order}. {artwork.child_name}{" "}
-                            {artwork.child_surname}
+                    <label className="block rounded-[28px] border-2 border-dashed border-slate-200 bg-[#fbf8f1] p-6 cursor-pointer hover:border-[#16b85d] transition">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(event) =>
+                          handleFileChange(event.target.files?.[0] || null)
+                        }
+                        className="hidden"
+                      />
+
+                      <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-[24px] bg-white shadow flex items-center justify-center text-4xl shrink-0">
+                          🖼️
+                        </div>
+
+                        <div>
+                          <p className="text-xl font-black">
+                            {file ? file.name : "Choose artwork image"}
                           </p>
-
-                          <p className="text-white/40 text-sm">
-                            {artwork.grade} • {artwork.status}
+                          <p className="text-slate-500 font-bold mt-1">
+                            Use a clear, bright photo of the child’s artwork.
                           </p>
-
-                          <EnhancementBadge
-                            status={artwork.enhancement_status}
-                            hasEnhancedImage={Boolean(
-                              artwork.enhanced_artwork_url
-                            )}
-                          />
                         </div>
                       </div>
+                    </label>
+                  </div>
 
-                      <div className="text-right shrink-0">
-                        <p className="font-black text-[#16d66d]">
-                          {artwork.sold_amount
-                            ? `R${artwork.sold_amount.toLocaleString()}`
-                            : "-"}
+                  <button
+                    type="button"
+                    onClick={() => setEnhanceArtwork(!enhanceArtwork)}
+                    className={`w-full rounded-[28px] border-2 p-5 text-left transition ${
+                      enhanceArtwork
+                        ? "border-[#16b85d] bg-[#eafff2]"
+                        : "border-slate-200 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0 ${
+                          enhanceArtwork
+                            ? "bg-[#16b85d] text-white"
+                            : "bg-slate-100 text-slate-400"
+                        }`}
+                      >
+                        {enhanceArtwork ? "✓" : ""}
+                      </div>
+
+                      <div>
+                        <p className="text-xl font-black mb-2">
+                          Enhance artwork for auction display
                         </p>
 
-                        {artwork.winning_bidder && (
-                          <p className="text-white/40 text-sm">
-                            {artwork.winning_bidder}
-                          </p>
-                        )}
+                        <p className="text-slate-600 font-bold leading-relaxed">
+                          Keep the original image safely stored, then create a
+                          cleaner, brighter, framed auction-ready version for
+                          the live event.
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </button>
+
+                  <button
+                    onClick={uploadArtwork}
+                    disabled={uploading}
+                    className="w-full bg-[#07152b] text-white rounded-[24px] py-6 font-black text-xl shadow-xl disabled:opacity-50 hover:scale-[1.01] transition"
+                  >
+                    {uploading
+                      ? enhanceArtwork
+                        ? "Creating Enhanced Artwork..."
+                        : "Creating BragWall Story..."
+                      : "Add Artwork to Queue"}
+                  </button>
+
+                  {message && (
+                    <div className="rounded-[24px] bg-[#07152b] text-white p-5 font-bold leading-relaxed">
+                      {message}
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-[34px] bg-[#061124]/90 border border-white/10 p-5 shadow-2xl">
+                <p className="uppercase tracking-[0.3em] text-[10px] text-[#16d66d] font-black mb-4">
+                  Studio Guidance
+                </p>
+
+                <div className="space-y-3 text-white/70 font-bold leading-relaxed">
+                  <p>• Original artwork stays safely stored.</p>
+                  <p>• AI enhancement improves presentation and framing.</p>
+                  <p>• Use artwork-only images where possible.</p>
+                  <p>• If enhancement fails, the original remains in queue.</p>
+                </div>
+              </section>
+
+              <section className="rounded-[34px] bg-[#061124]/90 border border-white/10 p-5 shadow-2xl">
+                <p className="uppercase tracking-[0.3em] text-[10px] text-[#ffc857] font-black mb-4">
+                  Upload Tips
+                </p>
+
+                <div className="space-y-3 text-white/70 font-bold leading-relaxed">
+                  <p>• Use bright, clear photos.</p>
+                  <p>• Crop out tables, shadows, and background clutter.</p>
+                  <p>• Check the child’s name and grade before upload.</p>
+                  <p>• The story preview appears on the parent auction screen.</p>
+                </div>
+              </section>
+            </div>
+
+            <div className="space-y-5">
+              <section className="rounded-[42px] bg-white/5 border border-white/10 p-4 lg:p-6 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
+                <div className="rounded-[36px] bg-[#061124] border border-white/10 p-5 shadow-2xl">
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
+                    <div>
+                      <p className="uppercase tracking-[0.35em] text-[10px] text-[#16d66d] font-black mb-2">
+                        BragWall Preview
+                      </p>
+
+                      <h2 className="text-4xl lg:text-5xl font-black leading-none">
+                        {childName || "Child"} {childSurname || ""}
+                      </h2>
+
+                      <p className="text-white/50 font-bold mt-2">{grade}</p>
+                    </div>
+
+                    <div className="rounded-[24px] bg-[#ffc857] text-[#07152b] px-5 py-4 text-center shrink-0">
+                      <p className="uppercase tracking-[0.25em] text-[9px] font-black opacity-70">
+                        Artwork
+                      </p>
+                      <p className="text-xl font-black">
+                        #{nextSortOrder}
+                      </p>
+                    </div>
+                  </div>
+
+                  {previewUrl ? (
+                    <>
+                      <PremiumFrame src={previewUrl} alt="Artwork preview" />
+
+                      <div className="mt-5 grid md:grid-cols-2 gap-4">
+                        <div className="bg-white text-[#07152b] rounded-[28px] p-5 shadow-xl">
+                          <p className="uppercase tracking-[0.25em] text-[10px] text-slate-400 font-black mb-3">
+                            AI Story Preview
+                          </p>
+
+                          <p className="text-lg font-black leading-snug">
+                            “{storyPreview}”
+                          </p>
+                        </div>
+
+                        <div
+                          className={`rounded-[28px] p-5 shadow-xl ${
+                            enhanceArtwork
+                              ? "bg-[#16d66d] text-[#07152b]"
+                              : "bg-white/5 border border-white/10 text-white"
+                          }`}
+                        >
+                          <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-3 opacity-70">
+                            Enhancement
+                          </p>
+
+                          <p className="text-lg font-black leading-snug">
+                            {enhanceArtwork
+                              ? "AI will create a polished framed auction version after upload."
+                              : "Only the original image will be stored."}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="min-h-[520px] rounded-[32px] border border-dashed border-white/20 flex items-center justify-center text-center px-8">
+                      <div>
+                        <div className="text-8xl mb-6">🖼️</div>
+                        <h3 className="text-4xl font-black mb-4">
+                          Preview appears here
+                        </h3>
+                        <p className="text-white/50 text-xl max-w-xl mx-auto">
+                          Select an artwork image to see the framed BragWall
+                          presentation.
+                        </p>
+
+                        <div className="mt-8 bg-white/5 border border-white/10 rounded-[24px] p-5 text-left max-w-xl">
+                          <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
+                            Story will update here
+                          </p>
+
+                          <p className="text-white/70 text-lg font-bold leading-relaxed">
+                            Add the child’s name, grade, and artwork image to
+                            see a unique auction story preview.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-[34px] bg-[#061124]/90 border border-white/10 p-5 shadow-2xl">
+                <div className="flex items-center justify-between gap-4 mb-5">
+                  <div>
+                    <p className="uppercase tracking-[0.3em] text-[10px] text-[#16d66d] font-black mb-2">
+                      Artwork Queue
+                    </p>
+                    <p className="text-white/50 font-bold">
+                      {artworks.length}{" "}
+                      {artworks.length === 1 ? "artwork" : "artworks"} ready
+                      for the event
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={fetchArtworks}
+                    className="rounded-2xl bg-white/10 border border-white/10 px-5 py-4 font-black hover:bg-white/15 transition"
+                  >
+                    Refresh
+                  </button>
+                </div>
+
+                <div className="space-y-3 max-h-[520px] overflow-auto pr-1">
+                  {artworks.length === 0 && (
+                    <div className="rounded-[26px] bg-white/5 border border-white/10 p-6 text-white/50 font-bold">
+                      No artworks uploaded yet.
+                    </div>
+                  )}
+
+                  {artworks.map((artwork) => {
+                    const displayUrl =
+                      artwork.enhanced_artwork_url || artwork.artwork_url;
+
+                    return (
+                      <div
+                        key={artwork.id}
+                        className="rounded-[26px] bg-white/5 border border-white/10 p-4"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="w-20 h-20 rounded-[22px] overflow-hidden bg-white shrink-0">
+                              {displayUrl ? (
+                                <img
+                                  src={displayUrl}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                  🎨
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="font-black text-lg truncate">
+                                {artwork.sort_order}. {artwork.child_name}{" "}
+                                {artwork.child_surname}
+                              </p>
+
+                              <p className="text-white/40 text-sm font-bold">
+                                {artwork.grade} • {artwork.status}
+                              </p>
+
+                              <div className="mt-2 flex flex-wrap gap-2">
+                                <StatusBadge status={artwork.status} />
+                                <EnhancementBadge
+                                  status={artwork.enhancement_status}
+                                  hasEnhancedImage={Boolean(
+                                    artwork.enhanced_artwork_url
+                                  )}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <p className="font-black text-[#16d66d] text-lg">
+                              {artwork.sold_amount
+                                ? `R${artwork.sold_amount.toLocaleString()}`
+                                : "-"}
+                            </p>
+
+                            {artwork.winning_bidder && (
+                              <p className="text-white/40 text-sm font-bold">
+                                {artwork.winning_bidder}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
+  );
+}
+
+function AdminNavLink({
+  href,
+  label,
+  icon,
+  active = false,
+}: {
+  href: string;
+  label: string;
+  icon: string;
+  active?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      className={`flex items-center gap-3 rounded-[22px] px-4 py-4 font-black transition ${
+        active
+          ? "bg-[#16d66d] text-[#07152b]"
+          : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+      }`}
+    >
+      <span className="text-2xl">{icon}</span>
+      <span>{label}</span>
+    </a>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  green = false,
+  gold = false,
+}: {
+  label: string;
+  value: string;
+  green?: boolean;
+  gold?: boolean;
+}) {
+  return (
+    <div className="rounded-[26px] bg-white/5 border border-white/10 p-4 shadow-xl">
+      <p className="uppercase tracking-[0.25em] text-[9px] text-white/40 font-black mb-2">
+        {label}
+      </p>
+      <p
+        className={`text-2xl lg:text-3xl font-black leading-none ${
+          green ? "text-[#16d66d]" : gold ? "text-[#ffc857]" : "text-white"
+        }`}
+      >
+        {value}
+      </p>
+    </div>
   );
 }
 
@@ -683,19 +834,40 @@ function Field({
 
 function PremiumFrame({ src, alt }: { src: string; alt: string }) {
   return (
-    <div className="bg-gradient-to-br from-[#70420f] to-[#2a1707] p-5 rounded-[40px] shadow-[0_40px_100px_rgba(0,0,0,0.3)]">
-      <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-3 rounded-[30px]">
-        <div className="bg-[#f8f5ef] rounded-[24px] p-5">
-          <div className="rounded-[18px] overflow-hidden bg-white shadow-2xl">
-            <img
-              src={src}
-              alt={alt}
-              className="w-full max-h-[700px] object-contain"
-            />
+    <div className="rounded-[34px] overflow-hidden border border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.45)] bg-[#16110b]">
+      <div className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,#241b13,#090909)] p-4 lg:p-6">
+        <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2.5 rounded-[28px] shadow-[0_0_45px_rgba(255,200,87,0.18)]">
+          <div className="bg-[#f8f5ef] rounded-[22px] p-4">
+            <div className="rounded-[16px] overflow-hidden bg-white min-h-[280px] flex items-center justify-center">
+              <img
+                src={src}
+                alt={alt}
+                className="w-full max-h-[62vh] object-contain"
+              />
+            </div>
           </div>
         </div>
       </div>
+
+      <div className="h-10 bg-gradient-to-b from-[#5b3312] to-[#1b1008]" />
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status?: string | null }) {
+  const cleanStatus = status || "pending";
+
+  const styles =
+    cleanStatus === "live"
+      ? "bg-[#16d66d] text-[#07152b]"
+      : cleanStatus === "sold"
+      ? "bg-[#ef2b20] text-white"
+      : "bg-white/10 text-white/70";
+
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-black ${styles}`}>
+      {cleanStatus.toUpperCase()}
+    </span>
   );
 }
 
@@ -710,31 +882,31 @@ function EnhancementBadge({
 
   if (hasEnhancedImage || cleanStatus === "complete") {
     return (
-      <span className="inline-block mt-2 rounded-full bg-[#16d66d] text-[#07152b] px-3 py-1 text-xs font-black">
-        Enhanced
+      <span className="inline-block rounded-full bg-[#16d66d] text-[#07152b] px-3 py-1 text-xs font-black">
+        ENHANCED
       </span>
     );
   }
 
   if (cleanStatus === "processing") {
     return (
-      <span className="inline-block mt-2 rounded-full bg-[#ffc857] text-[#07152b] px-3 py-1 text-xs font-black">
-        Enhancing...
+      <span className="inline-block rounded-full bg-[#ffc857] text-[#07152b] px-3 py-1 text-xs font-black">
+        ENHANCING
       </span>
     );
   }
 
   if (cleanStatus === "failed") {
     return (
-      <span className="inline-block mt-2 rounded-full bg-[#ef2b20] text-white px-3 py-1 text-xs font-black">
-        Enhancement Failed
+      <span className="inline-block rounded-full bg-[#ef2b20] text-white px-3 py-1 text-xs font-black">
+        FAILED
       </span>
     );
   }
 
   return (
-    <span className="inline-block mt-2 rounded-full bg-white/10 text-white/60 px-3 py-1 text-xs font-black">
-      Original Only
+    <span className="inline-block rounded-full bg-white/10 text-white/60 px-3 py-1 text-xs font-black">
+      ORIGINAL
     </span>
   );
 }
