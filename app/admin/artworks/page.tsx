@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import BrandHeader from "@/components/BrandHeader";
 import { supabase } from "@/lib/supabase";
 
@@ -12,31 +12,119 @@ type Artwork = {
   child_surname: string;
   grade: string;
   artwork_url: string;
+  enhanced_artwork_url?: string | null;
+  enhancement_status?: string | null;
+  enhancement_notes?: string | null;
   ai_intro: string;
   sold_amount: number | null;
   winning_bidder: string | null;
   status: string;
 };
 
+function createHash(value: string) {
+  let hash = 0;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+
+  return Math.abs(hash);
+}
+
+function createStoryPreview({
+  childName,
+  childSurname,
+  grade,
+  nextSortOrder,
+}: {
+  childName: string;
+  childSurname: string;
+  grade: string;
+  nextSortOrder: number;
+}) {
+  const cleanChildName = childName.trim() || "This young artist";
+  const cleanChildSurname = childSurname.trim();
+  const cleanGrade = grade.trim() || "this grade";
+  const fullName = cleanChildSurname
+    ? `${cleanChildName} ${cleanChildSurname}`
+    : cleanChildName;
+
+  const energyWords = [
+    "colour",
+    "confidence",
+    "imagination",
+    "charm",
+    "joy",
+    "spark",
+    "heart",
+    "personality",
+    "creativity",
+    "style",
+    "magic",
+    "bravery",
+  ];
+
+  const auctionMoments = [
+    "serious fridge-door energy",
+    "premium bragging rights",
+    "grandparent-level bidding danger",
+    "a big moment on the BragWall stage",
+    "the kind of drama an auction room deserves",
+    "a masterpiece moment waiting to happen",
+    "the power to make parents bid emotionally",
+    "a wall-worthy celebration of young talent",
+    "the sort of artwork that deserves applause",
+    "a proud family moment in the making",
+  ];
+
+  const templates = [
+    `${fullName}’s ${cleanGrade} masterpiece steps into the spotlight with ${energyWords[0]}, ${energyWords[1]}, and ${auctionMoments[0]}.`,
+    `${fullName} has created something full of ${energyWords[2]} and ${energyWords[3]} — exactly the kind of artwork that turns quiet parents into competitive bidders.`,
+    `This ${cleanGrade} artwork by ${fullName} brings ${energyWords[4]}, ${energyWords[5]}, and ${auctionMoments[1]} to tonight’s auction.`,
+    `${fullName}’s artwork has entered the room with ${energyWords[6]}, ${energyWords[7]}, and just enough auction sparkle to make the grandparents dangerous.`,
+    `Fresh from ${cleanGrade}, ${fullName}’s creation is ready for ${auctionMoments[3]} — bold, proud, and impossible to ignore.`,
+    `There is ${energyWords[8]} in every corner of ${fullName}’s artwork, and tonight it is officially ready for ${auctionMoments[5]}.`,
+    `${fullName} brings us a ${cleanGrade} artwork packed with ${energyWords[9]}, ${energyWords[10]}, and ${auctionMoments[7]}.`,
+    `This piece from ${fullName} is not just artwork — it is ${auctionMoments[9]}, wrapped in ${energyWords[0]} and confidence.`,
+    `${fullName}’s ${cleanGrade} masterpiece is bringing ${energyWords[11]}, ${energyWords[4]}, and ${auctionMoments[8]} to BragWall tonight.`,
+    `The spotlight is ready for ${fullName}. This ${cleanGrade} creation has ${energyWords[2]}, ${energyWords[6]}, and a very real chance of starting a family bidding war.`,
+  ];
+
+  const seed = `${fullName}-${cleanGrade}-${nextSortOrder}`;
+  const index = createHash(seed) % templates.length;
+
+  return templates[index];
+}
+
 export default function ArtworkUploadPage() {
   const [childName, setChildName] = useState("");
   const [childSurname, setChildSurname] = useState("");
   const [grade, setGrade] = useState("Grade 3");
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [enhanceArtwork, setEnhanceArtwork] = useState(true);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
 
-  const previewUrl = useMemo(() => {
-    if (!file) return "";
-    return URL.createObjectURL(file);
-  }, [file]);
+  const nextSortOrder =
+    artworks.length > 0
+      ? Math.max(...artworks.map((artwork) => artwork.sort_order || 0)) + 1
+      : 1;
+
+  const storyPreview = createStoryPreview({
+    childName,
+    childSurname,
+    grade,
+    nextSortOrder,
+  });
 
   useEffect(() => {
     fetchArtworks();
 
     const channel = supabase
-      .channel("admin-artwork-onboarding")
+      .channel("admin-artwork-onboarding-enhanced")
       .on(
         "postgres_changes",
         {
@@ -54,6 +142,14 @@ export default function ArtworkUploadPage() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   async function fetchArtworks() {
     const { data } = await supabase
       .from("demo_artworks")
@@ -64,6 +160,20 @@ export default function ArtworkUploadPage() {
     setArtworks(data || []);
   }
 
+  function handleFileChange(selectedFile: File | null) {
+    setFile(selectedFile);
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    if (selectedFile) {
+      setPreviewUrl(URL.createObjectURL(selectedFile));
+    } else {
+      setPreviewUrl("");
+    }
+  }
+
   async function uploadArtwork() {
     if (!file || !childName || !childSurname || !grade) {
       setMessage("Please complete all fields and select an artwork image.");
@@ -71,7 +181,11 @@ export default function ArtworkUploadPage() {
     }
 
     setUploading(true);
-    setMessage("");
+    setMessage(
+      enhanceArtwork
+        ? "Uploading original artwork and preparing AI enhancement..."
+        : "Uploading original artwork..."
+    );
 
     const fileExt = file.name.split(".").pop();
     const safeName = `${childName}-${childSurname}`
@@ -95,20 +209,7 @@ export default function ArtworkUploadPage() {
       .from("artworks")
       .getPublicUrl(filePath);
 
-    const { data: existingArtworks } = await supabase
-      .from("demo_artworks")
-      .select("sort_order")
-      .eq("auction_code", "demo")
-      .order("sort_order", { ascending: false })
-      .limit(1);
-
-    const nextSortOrder =
-      existingArtworks && existingArtworks.length > 0
-        ? existingArtworks[0].sort_order + 1
-        : 1;
-
-    let aiIntro =
-      `${childName}'s artwork is ready for the spotlight — bold, joyful, and guaranteed to make at least one grandparent bid emotionally.`;
+    let aiIntro = storyPreview;
 
     try {
       const introResponse = await fetch("/api/auction-mc", {
@@ -119,44 +220,103 @@ export default function ArtworkUploadPage() {
         body: JSON.stringify({
           mode: "intro",
           childName,
+          childSurname,
           grade,
+          sortOrder: nextSortOrder,
+          fallbackPreview: storyPreview,
         }),
       });
 
       const introData = await introResponse.json();
 
-      if (introData.text) {
-        aiIntro = introData.text;
+      if (introData.text && introData.text.trim()) {
+        aiIntro = introData.text.trim();
       }
     } catch {
-      // Keep fallback intro if AI call fails.
+      aiIntro = storyPreview;
     }
 
-    const { error: insertError } = await supabase.from("demo_artworks").insert({
-      auction_code: "demo",
-      sort_order: nextSortOrder,
-      child_name: childName,
-      child_surname: childSurname,
-      grade,
-      artwork_url: publicUrlData.publicUrl,
-      ai_intro: aiIntro,
-      status: "pending",
-      sold_amount: 0,
-      winning_bidder: null,
-    });
+    const { data: insertedArtwork, error: insertError } = await supabase
+      .from("demo_artworks")
+      .insert({
+        auction_code: "demo",
+        sort_order: nextSortOrder,
+        child_name: childName,
+        child_surname: childSurname,
+        grade,
+        artwork_url: publicUrlData.publicUrl,
+        enhanced_artwork_url: null,
+        enhancement_status: enhanceArtwork ? "processing" : "not_enhanced",
+        enhancement_notes: enhanceArtwork
+          ? "Waiting for AI enhancement."
+          : "Original image only.",
+        ai_intro: aiIntro,
+        status: "pending",
+        sold_amount: 0,
+        winning_bidder: null,
+      })
+      .select("*")
+      .single();
 
-    if (insertError) {
+    if (insertError || !insertedArtwork) {
       setUploading(false);
-      setMessage(insertError.message);
+      setMessage(insertError?.message || "Could not save artwork.");
       return;
+    }
+
+    if (enhanceArtwork) {
+      setMessage(
+        "Original artwork saved. Creating enhanced framed auction version..."
+      );
+
+      try {
+        const enhanceResponse = await fetch("/api/enhance-artwork", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            artworkId: insertedArtwork.id,
+            imageUrl: publicUrlData.publicUrl,
+            childName,
+            childSurname,
+            grade,
+          }),
+        });
+
+        const enhanceResult = await enhanceResponse.json().catch(() => null);
+
+        if (!enhanceResponse.ok) {
+          setUploading(false);
+          setMessage(
+            enhanceResult?.details ||
+              enhanceResult?.error ||
+              "Artwork was uploaded, but AI enhancement failed."
+          );
+          fetchArtworks();
+          return;
+        }
+
+        setMessage(
+          "Artwork added. Enhanced framed auction version created successfully."
+        );
+      } catch (error) {
+        setMessage(
+          error instanceof Error
+            ? `Artwork uploaded, but enhancement failed: ${error.message}`
+            : "Artwork uploaded, but enhancement failed."
+        );
+      }
+    } else {
+      setMessage("Artwork added to the BragWall auction queue.");
     }
 
     setChildName("");
     setChildSurname("");
     setGrade("Grade 3");
     setFile(null);
+    setPreviewUrl("");
     setUploading(false);
-    setMessage("Artwork added to the BragWall auction queue.");
     fetchArtworks();
   }
 
@@ -202,8 +362,8 @@ export default function ArtworkUploadPage() {
           </h1>
 
           <p className="text-white/55 text-2xl max-w-4xl leading-relaxed">
-            Upload student artwork, generate a playful auction story, and place
-            each piece into the BragWall queue with a premium gallery
+            Upload student artwork, generate a playful auction story, and create
+            an optional AI-enhanced framed version for a premium BragWall
             presentation.
           </p>
         </div>
@@ -217,9 +377,7 @@ export default function ArtworkUploadPage() {
                     New Artwork
                   </p>
 
-                  <h2 className="text-4xl font-black">
-                    Upload & frame
-                  </h2>
+                  <h2 className="text-4xl font-black">Upload & enhance</h2>
                 </div>
 
                 <div className="w-16 h-16 rounded-full bg-[#fff2d2] flex items-center justify-center text-4xl">
@@ -258,25 +416,79 @@ export default function ArtworkUploadPage() {
                     type="file"
                     accept="image/*"
                     onChange={(event) =>
-                      setFile(event.target.files?.[0] || null)
+                      handleFileChange(event.target.files?.[0] || null)
                     }
                     className="w-full rounded-2xl border border-slate-200 px-5 py-5 bg-white text-[#07152b]"
                   />
                 </div>
 
                 <button
+                  type="button"
+                  onClick={() => setEnhanceArtwork(!enhanceArtwork)}
+                  className={`w-full rounded-[28px] border-2 p-5 text-left transition ${
+                    enhanceArtwork
+                      ? "border-[#16b85d] bg-[#eafff2]"
+                      : "border-slate-200 bg-white"
+                  }`}
+                >
+                  <div className="flex items-start gap-4">
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center font-black shrink-0 ${
+                        enhanceArtwork
+                          ? "bg-[#16b85d] text-white"
+                          : "bg-slate-100 text-slate-400"
+                      }`}
+                    >
+                      {enhanceArtwork ? "✓" : ""}
+                    </div>
+
+                    <div>
+                      <p className="text-xl font-black mb-2">
+                        Enhance artwork for auction display
+                      </p>
+
+                      <p className="text-slate-600 font-bold leading-relaxed">
+                        Keeps the original artwork safely stored, then creates a
+                        brighter, cleaner, framed auction-ready version for the
+                        live event.
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
                   onClick={uploadArtwork}
                   disabled={uploading}
                   className="w-full bg-[#07152b] text-white rounded-2xl py-6 font-black text-xl shadow-xl disabled:opacity-50"
                 >
-                  {uploading ? "Creating BragWall story..." : "Add Artwork to Queue"}
+                  {uploading
+                    ? enhanceArtwork
+                      ? "Creating Enhanced Artwork..."
+                      : "Creating BragWall Story..."
+                    : "Add Artwork to Queue"}
                 </button>
 
                 {message && (
-                  <div className="rounded-2xl bg-[#07152b] text-white p-5 font-bold">
+                  <div className="rounded-2xl bg-[#07152b] text-white p-5 font-bold leading-relaxed">
                     {message}
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-[32px] p-6">
+              <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
+                Enhancement Rules
+              </p>
+
+              <div className="space-y-4 text-white/70 text-lg leading-relaxed">
+                <p>• The original artwork image remains stored safely.</p>
+                <p>• Enhancement improves presentation, clarity, and framing.</p>
+                <p>• The child’s actual artwork should stay authentic.</p>
+                <p>
+                  • If enhancement fails, the original artwork still remains in
+                  the queue.
+                </p>
               </div>
             </div>
 
@@ -288,7 +500,10 @@ export default function ArtworkUploadPage() {
               <div className="space-y-4 text-white/70 text-lg leading-relaxed">
                 <p>• Use bright, clear photos of the child’s artwork.</p>
                 <p>• Crop out tables, hands, shadows, and background clutter.</p>
-                <p>• Keep the child’s name correct — it appears on the auction and certificate.</p>
+                <p>
+                  • Keep the child’s name correct — it appears on the auction
+                  and certificate.
+                </p>
                 <p>• The AI MC story will be shown to parents during bidding.</p>
               </div>
             </div>
@@ -312,16 +527,28 @@ export default function ArtworkUploadPage() {
                 <>
                   <PremiumFrame src={previewUrl} alt="Artwork preview" />
 
-                  <div className="mt-6 bg-white/5 border border-white/10 rounded-[28px] p-6">
-                    <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
-                      AI Story Preview
-                    </p>
+                  <div className="mt-6 grid md:grid-cols-2 gap-4">
+                    <div className="bg-white/5 border border-white/10 rounded-[28px] p-6">
+                      <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
+                        AI Story Preview
+                      </p>
 
-                    <p className="text-2xl font-bold leading-relaxed">
-                      “This artwork is ready for the spotlight — bold, joyful,
-                      and guaranteed to make at least one grandparent bid
-                      emotionally.”
-                    </p>
+                      <p className="text-xl font-bold leading-relaxed">
+                        “{storyPreview}”
+                      </p>
+                    </div>
+
+                    <div className="bg-[#16d66d] text-[#07152b] rounded-[28px] p-6">
+                      <p className="uppercase tracking-[0.3em] text-xs font-black mb-3">
+                        Enhancement
+                      </p>
+
+                      <p className="text-xl font-black leading-relaxed">
+                        {enhanceArtwork
+                          ? "AI will create a polished framed auction version after upload."
+                          : "Only the original image will be stored."}
+                      </p>
+                    </div>
                   </div>
                 </>
               ) : (
@@ -335,6 +562,17 @@ export default function ArtworkUploadPage() {
                       Select an artwork image to see the framed BragWall
                       presentation.
                     </p>
+
+                    <div className="mt-8 bg-white/5 border border-white/10 rounded-[24px] p-5 text-left max-w-xl">
+                      <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
+                        Story will update here
+                      </p>
+
+                      <p className="text-white/70 text-lg font-bold leading-relaxed">
+                        Add the child’s name, grade, and artwork image to see a
+                        unique auction story preview.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -343,7 +581,10 @@ export default function ArtworkUploadPage() {
             <div className="bg-white/5 border border-white/10 rounded-[32px] overflow-hidden">
               <div className="p-5 border-b border-white/10 flex items-center justify-between">
                 <h3 className="text-2xl font-black">Artwork Queue</h3>
-                <p className="text-white/40">{artworks.length} artworks</p>
+                <p className="text-white/40">
+                  {artworks.length}{" "}
+                  {artworks.length === 1 ? "artwork" : "artworks"}
+                </p>
               </div>
 
               <div className="divide-y divide-white/10 max-h-[520px] overflow-auto">
@@ -353,45 +594,57 @@ export default function ArtworkUploadPage() {
                   </div>
                 )}
 
-                {artworks.map((artwork) => (
-                  <div
-                    key={artwork.id}
-                    className="p-5 flex items-center justify-between gap-4"
-                  >
-                    <div className="flex items-center gap-4 min-w-0">
-                      <img
-                        src={artwork.artwork_url}
-                        alt=""
-                        className="w-16 h-16 rounded-2xl object-cover bg-white/10 shrink-0"
-                      />
+                {artworks.map((artwork) => {
+                  const displayUrl =
+                    artwork.enhanced_artwork_url || artwork.artwork_url;
 
-                      <div className="min-w-0">
-                        <p className="font-black text-lg truncate">
-                          {artwork.sort_order}. {artwork.child_name}{" "}
-                          {artwork.child_surname}
+                  return (
+                    <div
+                      key={artwork.id}
+                      className="p-5 flex items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-4 min-w-0">
+                        <img
+                          src={displayUrl}
+                          alt=""
+                          className="w-16 h-16 rounded-2xl object-cover bg-white/10 shrink-0"
+                        />
+
+                        <div className="min-w-0">
+                          <p className="font-black text-lg truncate">
+                            {artwork.sort_order}. {artwork.child_name}{" "}
+                            {artwork.child_surname}
+                          </p>
+
+                          <p className="text-white/40 text-sm">
+                            {artwork.grade} • {artwork.status}
+                          </p>
+
+                          <EnhancementBadge
+                            status={artwork.enhancement_status}
+                            hasEnhancedImage={Boolean(
+                              artwork.enhanced_artwork_url
+                            )}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <p className="font-black text-[#16d66d]">
+                          {artwork.sold_amount
+                            ? `R${artwork.sold_amount.toLocaleString()}`
+                            : "-"}
                         </p>
 
-                        <p className="text-white/40 text-sm">
-                          {artwork.grade} • {artwork.status}
-                        </p>
+                        {artwork.winning_bidder && (
+                          <p className="text-white/40 text-sm">
+                            {artwork.winning_bidder}
+                          </p>
+                        )}
                       </div>
                     </div>
-
-                    <div className="text-right shrink-0">
-                      <p className="font-black text-[#16d66d]">
-                        {artwork.sold_amount
-                          ? `R${artwork.sold_amount.toLocaleString()}`
-                          : "-"}
-                      </p>
-
-                      {artwork.winning_bidder && (
-                        <p className="text-white/40 text-sm">
-                          {artwork.winning_bidder}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -443,5 +696,45 @@ function PremiumFrame({ src, alt }: { src: string; alt: string }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function EnhancementBadge({
+  status,
+  hasEnhancedImage,
+}: {
+  status?: string | null;
+  hasEnhancedImage: boolean;
+}) {
+  const cleanStatus = status || "not_enhanced";
+
+  if (hasEnhancedImage || cleanStatus === "complete") {
+    return (
+      <span className="inline-block mt-2 rounded-full bg-[#16d66d] text-[#07152b] px-3 py-1 text-xs font-black">
+        Enhanced
+      </span>
+    );
+  }
+
+  if (cleanStatus === "processing") {
+    return (
+      <span className="inline-block mt-2 rounded-full bg-[#ffc857] text-[#07152b] px-3 py-1 text-xs font-black">
+        Enhancing...
+      </span>
+    );
+  }
+
+  if (cleanStatus === "failed") {
+    return (
+      <span className="inline-block mt-2 rounded-full bg-[#ef2b20] text-white px-3 py-1 text-xs font-black">
+        Enhancement Failed
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-block mt-2 rounded-full bg-white/10 text-white/60 px-3 py-1 text-xs font-black">
+      Original Only
+    </span>
   );
 }

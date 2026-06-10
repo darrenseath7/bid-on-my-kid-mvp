@@ -31,6 +31,7 @@ type Artwork = {
   child_surname: string;
   grade: string;
   artwork_url: string;
+  enhanced_artwork_url?: string | null;
   ai_intro: string;
   status: string;
   sold_amount: number;
@@ -51,6 +52,11 @@ type Activity = {
   message: string;
   created_at: string;
 };
+
+function getArtworkDisplayUrl(artwork: Artwork | null) {
+  if (!artwork) return "";
+  return artwork.enhanced_artwork_url || artwork.artwork_url || "";
+}
 
 export default function LiveAuctionPage() {
   const [auction, setAuction] = useState<AuctionState | null>(null);
@@ -277,12 +283,16 @@ export default function LiveAuctionPage() {
 
   function getCurrentArtwork() {
     if (auction) {
-      const matchedArtwork = artworks.find(
-        (item) =>
+      const matchedArtwork = artworks.find((item) => {
+        const displayUrl = getArtworkDisplayUrl(item);
+
+        return (
           item.child_name === auction.child_name &&
           item.child_surname === auction.child_surname &&
-          item.artwork_url === auction.artwork_url
-      );
+          (item.artwork_url === auction.artwork_url ||
+            displayUrl === auction.artwork_url)
+        );
+      });
 
       if (matchedArtwork) return matchedArtwork;
     }
@@ -317,6 +327,8 @@ export default function LiveAuctionPage() {
       return;
     }
 
+    const displayUrl = getArtworkDisplayUrl(current);
+
     await clearCurrentArtworkState();
 
     await supabase
@@ -340,7 +352,7 @@ export default function LiveAuctionPage() {
         child_name: current.child_name,
         child_surname: current.child_surname,
         grade: current.grade,
-        artwork_url: current.artwork_url,
+        artwork_url: displayUrl,
         status: "open",
         current_bid: 0,
         leading_bidder: "No bids yet",
@@ -433,6 +445,7 @@ export default function LiveAuctionPage() {
 
   async function moveToArtwork(target: Artwork) {
     const current = getCurrentArtwork();
+    const displayUrl = getArtworkDisplayUrl(target);
 
     await clearCurrentArtworkState();
 
@@ -458,7 +471,7 @@ export default function LiveAuctionPage() {
         child_name: target.child_name,
         child_surname: target.child_surname,
         grade: target.grade,
-        artwork_url: target.artwork_url,
+        artwork_url: displayUrl,
         current_bid: 0,
         leading_bidder: "No bids yet",
         status: "open",
@@ -547,6 +560,8 @@ export default function LiveAuctionPage() {
       return;
     }
 
+    const displayUrl = getArtworkDisplayUrl(firstArtwork);
+
     await supabase
       .from("demo_artworks")
       .update({
@@ -560,7 +575,7 @@ export default function LiveAuctionPage() {
         child_name: firstArtwork.child_name,
         child_surname: firstArtwork.child_surname,
         grade: firstArtwork.grade,
-        artwork_url: firstArtwork.artwork_url,
+        artwork_url: displayUrl,
         current_bid: 0,
         leading_bidder: "No bids yet",
         status: "waiting",
@@ -609,11 +624,12 @@ export default function LiveAuctionPage() {
   const waiting = auction.status === "waiting";
   const finished = auction.status === "finished";
   const winnerEmailSubmitted = Boolean(auction.winner_email_submitted_at);
-  const displayArtworkUrl =
-    currentArtwork?.artwork_url || auction.artwork_url || "";
+  const displayArtworkUrl = currentArtwork
+    ? getArtworkDisplayUrl(currentArtwork)
+    : auction.artwork_url || "";
 
   return (
-    <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
+    <main className="min-h-screen bg-[#020b18] text-white">
       <div className="grid xl:grid-cols-[280px_1fr] min-h-screen">
         <aside className="hidden xl:flex bg-[#061124] border-r border-white/10 p-6 flex-col">
           <div className="bg-white rounded-[26px] p-4 mb-8 shadow-2xl">
@@ -644,7 +660,7 @@ export default function LiveAuctionPage() {
           </div>
         </aside>
 
-        <section className="h-screen overflow-hidden flex flex-col">
+        <section className="min-h-screen flex flex-col">
           <header className="shrink-0 px-5 lg:px-8 py-5 border-b border-white/10 bg-[#061124]/80 backdrop-blur">
             <div className="xl:hidden bg-white rounded-[22px] p-3 mb-4 flex justify-center">
               <BrandHeader center />
@@ -697,13 +713,13 @@ export default function LiveAuctionPage() {
             </div>
           </header>
 
-          <div className="flex-1 min-h-0 grid 2xl:grid-cols-[1fr_380px] gap-5 p-5 lg:p-8">
-            <div className="min-h-0 flex flex-col gap-5">
-              <div className="relative flex-1 min-h-0 rounded-[42px] border border-white/10 bg-[#050d1d] shadow-2xl overflow-hidden">
+          <div className="grid 2xl:grid-cols-[1fr_380px] gap-5 p-5 lg:p-8">
+            <div className="flex flex-col gap-5">
+              <div className="relative rounded-[42px] border border-white/10 bg-[#050d1d] shadow-2xl overflow-hidden">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(22,214,109,0.12),transparent_35%),radial-gradient(circle_at_top_right,rgba(255,200,87,0.12),transparent_35%)]" />
 
-                <div className="relative h-full grid lg:grid-cols-[1fr_260px]">
-                  <div className="min-h-0 p-5 lg:p-7 flex flex-col">
+                <div className="relative grid lg:grid-cols-[1fr_260px]">
+                  <div className="p-5 lg:p-7 flex flex-col">
                     <div className="flex items-center justify-between gap-4 mb-4 shrink-0">
                       <div>
                         <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-2">
@@ -711,7 +727,9 @@ export default function LiveAuctionPage() {
                         </p>
                         <h2 className="text-3xl font-black">
                           {displayArtworkUrl
-                            ? "Artwork is live"
+                            ? currentArtwork?.enhanced_artwork_url
+                              ? "Enhanced artwork is live"
+                              : "Artwork is live"
                             : "No artwork loaded"}
                         </h2>
                       </div>
@@ -740,7 +758,7 @@ export default function LiveAuctionPage() {
                       </div>
                     </div>
 
-                    <div className="flex-1 min-h-0 flex items-center justify-center">
+                    <div className="flex items-center justify-center">
                       {displayArtworkUrl ? (
                         <div className="w-full max-w-[900px] max-h-full rounded-[38px] overflow-hidden border border-white/10 shadow-[0_28px_90px_rgba(0,0,0,0.55)] bg-[#16110b]">
                           <div className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,#241b13,#090909)] p-5 lg:p-8">
@@ -750,7 +768,7 @@ export default function LiveAuctionPage() {
                                   <img
                                     src={displayArtworkUrl}
                                     alt="Artwork"
-                                    className="w-full max-h-[56vh] object-contain"
+                                    className="w-full max-h-[62vh] object-contain"
                                   />
                                 </div>
                               </div>
@@ -792,6 +810,17 @@ export default function LiveAuctionPage() {
                       value={auction.leading_bidder}
                       accent="#ffffff"
                     />
+
+                    {currentArtwork?.enhanced_artwork_url && (
+                      <div className="rounded-[24px] bg-[#ffc857] text-[#07152b] p-4">
+                        <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-2">
+                          Image Mode
+                        </p>
+                        <p className="font-black">
+                          Enhanced auction-ready artwork is being shown.
+                        </p>
+                      </div>
+                    )}
 
                     {sold && (
                       <div className="rounded-[28px] bg-[#16d66d] text-[#07152b] p-5">
@@ -941,8 +970,13 @@ export default function LiveAuctionPage() {
                         {artwork.child_surname}
                       </p>
 
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
                         <QueueStatus status={artwork.status} />
+                        {artwork.enhanced_artwork_url && (
+                          <span className="rounded-full bg-[#ffc857] text-[#07152b] px-3 py-1 text-xs font-black">
+                            enhanced
+                          </span>
+                        )}
                         <p className="text-sm text-white/40 truncate">
                           {artwork.grade}
                         </p>

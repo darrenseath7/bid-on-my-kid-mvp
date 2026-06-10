@@ -62,14 +62,12 @@ export default function DemoAuctionPage() {
 
   const previousStatusRef = useRef<string | null>(null);
   const audioUnlockedRef = useRef(false);
-  const autoActionKeyRef = useRef<string>("");
+  const autoActionKeyRef = useRef("");
   const welcomeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const nextBidAmount = useMemo(() => {
     return Math.max((auction?.current_bid || 0) + BID_STEP, BID_STEP);
   }, [auction?.current_bid]);
-
-  const lastBid = bids[0];
 
   const isSold = auction?.status === "sold";
   const isWaiting = auction?.status === "waiting";
@@ -752,9 +750,7 @@ export default function DemoAuctionPage() {
             />
 
             <div className="text-right shrink-0">
-              <p className="text-[10px] text-white/50">
-                Bidding as
-              </p>
+              <p className="text-[10px] text-white/50">Bidding as</p>
 
               <p className="font-black text-sm leading-tight">
                 {bidderName}
