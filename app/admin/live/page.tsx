@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import BrandHeader from "@/components/BrandHeader";
+import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { supabase } from "@/lib/supabase";
 
 type AuctionState = {
@@ -67,7 +68,7 @@ export default function LiveAuctionPage() {
     fetchAll();
 
     const auctionChannel = supabase
-      .channel("bw-admin-auto-next-auction")
+      .channel("bw-admin-cockpit-auction")
       .on(
         "postgres_changes",
         {
@@ -88,7 +89,7 @@ export default function LiveAuctionPage() {
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("bw-admin-auto-next-bids")
+      .channel("bw-admin-cockpit-bids")
       .on(
         "postgres_changes",
         {
@@ -104,7 +105,7 @@ export default function LiveAuctionPage() {
       .subscribe();
 
     const activityChannel = supabase
-      .channel("bw-admin-auto-next-activity")
+      .channel("bw-admin-cockpit-activity")
       .on(
         "postgres_changes",
         {
@@ -120,7 +121,7 @@ export default function LiveAuctionPage() {
       .subscribe();
 
     const artworksChannel = supabase
-      .channel("bw-admin-auto-next-artworks")
+      .channel("bw-admin-cockpit-artworks")
       .on(
         "postgres_changes",
         {
@@ -587,8 +588,11 @@ export default function LiveAuctionPage() {
 
   if (!auction) {
     return (
-      <main className="min-h-screen bg-[#07152b] text-white flex items-center justify-center">
-        Loading BragWall...
+      <main className="min-h-screen bg-[#020b18] text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-white/20 border-t-[#16d66d] rounded-full animate-spin mx-auto mb-6" />
+          <p className="font-black text-xl">Loading BragWall...</p>
+        </div>
       </main>
     );
   }
@@ -602,377 +606,418 @@ export default function LiveAuctionPage() {
     auction.status === "going once" || auction.status === "going twice";
 
   const sold = auction.status === "sold";
+  const waiting = auction.status === "waiting";
+  const finished = auction.status === "finished";
   const winnerEmailSubmitted = Boolean(auction.winner_email_submitted_at);
   const displayArtworkUrl =
     currentArtwork?.artwork_url || auction.artwork_url || "";
 
   return (
-    <main className="min-h-screen bg-[#07152b] text-white">
-      <div className="grid xl:grid-cols-[260px_1fr] min-h-screen">
+    <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
+      <div className="grid xl:grid-cols-[280px_1fr] min-h-screen">
         <aside className="hidden xl:flex bg-[#061124] border-r border-white/10 p-6 flex-col">
-          <div className="bg-white rounded-2xl p-4 mb-8">
+          <div className="bg-white rounded-[26px] p-4 mb-8 shadow-2xl">
             <BrandHeader center />
           </div>
 
           <nav className="space-y-2 text-sm font-bold">
-            <a
-              href="/admin"
-              className="block rounded-2xl px-4 py-3 hover:bg-white/10"
-            >
-              Dashboard
-            </a>
-
-            <a
-              href="/admin/live"
-              className="block rounded-2xl bg-white/10 px-4 py-3"
-            >
-              Live Auction
-            </a>
-
-            <a
-              href="/admin/artworks"
-              className="block rounded-2xl px-4 py-3 hover:bg-white/10"
-            >
-              Artworks
-            </a>
-
-            <a
-              href="/admin/school"
-              className="block rounded-2xl px-4 py-3 hover:bg-white/10"
-            >
-              School Profile
-            </a>
-
-            <a
-              href="/auction/demo"
-              className="block rounded-2xl px-4 py-3 hover:bg-white/10"
-            >
-              Parent View
-            </a>
+            <AdminNavLink href="/admin" label="Dashboard" />
+            <AdminNavLink href="/admin/events/new" label="Create Event" />
+            <AdminNavLink href="/admin/live" label="Live Auction" active />
+            <AdminNavLink href="/admin/artworks" label="Artworks" />
+            <AdminNavLink href="/admin/school" label="School Profile" />
+            <AdminNavLink href="/admin/sales" label="Sales / Invoices" />
+            <AdminNavLink href="/auction/demo" label="Parent View" />
           </nav>
 
-          <div className="mt-auto text-xs text-white/40">
-            Young Art • Big Pride
+          <div className="mt-auto space-y-4">
+            <AdminLogoutButton />
+
+            <div className="rounded-3xl bg-white/5 border border-white/10 p-4">
+              <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-2">
+                BragWall
+              </p>
+              <p className="text-white/70 text-sm font-bold">
+                Young Art • Big Pride
+              </p>
+            </div>
           </div>
         </aside>
 
-        <section className="p-5 lg:p-8">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
-            <div>
-              <p className="uppercase tracking-[0.35em] text-xs text-white/40 font-black mb-3">
-                Event Command Centre
-              </p>
-
-              <h1 className="text-5xl lg:text-7xl font-black leading-none">
-                {currentArtwork
-                  ? `${currentArtwork.child_name} ${currentArtwork.child_surname}`
-                  : `${auction.child_name || "No artwork"} ${
-                      auction.child_surname || "live"
-                    }`}
-              </h1>
-
-              <p className="text-white/50 text-lg mt-3">
-                {currentArtwork?.grade || auction.grade || "Start the auction"}{" "}
-                • Artwork {currentIndex || 1} of {artworks.length || 1}
-              </p>
+        <section className="h-screen overflow-hidden flex flex-col">
+          <header className="shrink-0 px-5 lg:px-8 py-5 border-b border-white/10 bg-[#061124]/80 backdrop-blur">
+            <div className="xl:hidden bg-white rounded-[22px] p-3 mb-4 flex justify-center">
+              <BrandHeader center />
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              {timerActive && (
-                <motion.div
-                  animate={{
-                    scale: [1, 1.05, 1],
-                  }}
-                  transition={{
-                    repeat: Infinity,
-                    duration: 1,
-                  }}
-                  className="bg-[#ef2b20] rounded-[28px] px-8 py-5 shadow-2xl"
-                >
-                  <p className="uppercase tracking-[0.25em] text-xs text-white/50 font-black mb-1">
-                    Countdown
-                  </p>
+            <div className="flex flex-col 2xl:flex-row 2xl:items-center 2xl:justify-between gap-5">
+              <div>
+                <p className="uppercase tracking-[0.35em] text-xs text-[#16d66d] font-black mb-2">
+                  Auction Cockpit
+                </p>
 
-                  <div className="text-5xl font-black">
-                    {secondsRemaining}s
-                  </div>
-                </motion.div>
-              )}
+                <h1 className="text-4xl lg:text-6xl font-black leading-none tracking-tight">
+                  {currentArtwork
+                    ? `${currentArtwork.child_name} ${currentArtwork.child_surname}`
+                    : `${auction.child_name || "No artwork"} ${
+                        auction.child_surname || "live"
+                      }`}
+                </h1>
 
-              <StatusPill status={auction.status} />
+                <p className="text-white/50 text-base mt-2 font-bold">
+                  {currentArtwork?.grade ||
+                    auction.grade ||
+                    "Start the auction"}{" "}
+                  • Artwork {currentIndex || 1} of {artworks.length || 1}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 min-w-[420px]">
+                <CockpitMetric
+                  label="Bid"
+                  value={`R${auction.current_bid.toLocaleString()}`}
+                  accent="#16d66d"
+                />
+                <CockpitMetric
+                  label="Leader"
+                  value={auction.leading_bidder}
+                  accent="#ffffff"
+                />
+                <CockpitMetric
+                  label="Bids"
+                  value={`${bids.length}`}
+                  accent="#ffc857"
+                />
+                <CockpitMetric
+                  label="Queue"
+                  value={`${currentIndex || 1}/${artworks.length || 1}`}
+                  accent="#6fb0ff"
+                />
+              </div>
             </div>
-          </div>
+          </header>
 
-          <div className="grid md:grid-cols-4 gap-4 mb-8">
-            <LiveStat
-              label="Current Bid"
-              value={`R${auction.current_bid.toLocaleString()}`}
-              color="#16d66d"
-            />
+          <div className="flex-1 min-h-0 grid 2xl:grid-cols-[1fr_380px] gap-5 p-5 lg:p-8">
+            <div className="min-h-0 flex flex-col gap-5">
+              <div className="relative flex-1 min-h-0 rounded-[42px] border border-white/10 bg-[#050d1d] shadow-2xl overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(22,214,109,0.12),transparent_35%),radial-gradient(circle_at_top_right,rgba(255,200,87,0.12),transparent_35%)]" />
 
-            <LiveStat
-              label="Leading Bidder"
-              value={auction.leading_bidder}
-              color="#ffffff"
-            />
+                <div className="relative h-full grid lg:grid-cols-[1fr_260px]">
+                  <div className="min-h-0 p-5 lg:p-7 flex flex-col">
+                    <div className="flex items-center justify-between gap-4 mb-4 shrink-0">
+                      <div>
+                        <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-2">
+                          Main Stage
+                        </p>
+                        <h2 className="text-3xl font-black">
+                          {displayArtworkUrl
+                            ? "Artwork is live"
+                            : "No artwork loaded"}
+                        </h2>
+                      </div>
 
-            <LiveStat
-              label="Activity"
-              value={`${activities.length}`}
-              color="#ffc107"
-            />
+                      <div className="flex items-center gap-3">
+                        {timerActive && (
+                          <motion.div
+                            animate={{ scale: [1, 1.04, 1] }}
+                            transition={{ repeat: Infinity, duration: 1 }}
+                            className={`rounded-[26px] px-6 py-4 text-center ${
+                              auction.status === "going twice"
+                                ? "bg-[#ef2b20]"
+                                : "bg-[#16d66d] text-[#07152b]"
+                            }`}
+                          >
+                            <p className="uppercase tracking-[0.2em] text-[10px] opacity-60 font-black">
+                              Countdown
+                            </p>
+                            <div className="text-5xl font-black leading-none">
+                              {secondsRemaining}s
+                            </div>
+                          </motion.div>
+                        )}
 
-            <LiveStat
-              label="Queue"
-              value={`${currentIndex || 1}/${artworks.length || 1}`}
-              color="#2878cf"
-            />
-          </div>
-
-          <div className="grid xl:grid-cols-[1fr_0.9fr] gap-6">
-            <div className="space-y-6">
-              <div className="bg-white/5 border border-white/10 rounded-[36px] p-5 shadow-2xl">
-                {displayArtworkUrl ? (
-                  <div className="bg-gradient-to-br from-[#70420f] to-[#2a1707] p-5 rounded-[32px]">
-                    <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-3 rounded-[24px]">
-                      <div className="bg-[#f8f5ef] rounded-[18px] p-5">
-                        <div className="rounded-[14px] overflow-hidden bg-white shadow-2xl">
-                          <img
-                            src={displayArtworkUrl}
-                            alt="Artwork"
-                            className="w-full max-h-[580px] object-contain"
-                          />
-                        </div>
+                        <StatusPill status={auction.status} />
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="rounded-[32px] bg-white/5 border border-white/10 p-12 text-center">
-                    <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
-                      No Artwork Loaded
-                    </p>
 
-                    <h2 className="text-4xl font-black mb-4">
-                      Start or reset the auction.
-                    </h2>
+                    <div className="flex-1 min-h-0 flex items-center justify-center">
+                      {displayArtworkUrl ? (
+                        <div className="w-full max-w-[900px] max-h-full rounded-[38px] overflow-hidden border border-white/10 shadow-[0_28px_90px_rgba(0,0,0,0.55)] bg-[#16110b]">
+                          <div className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,#241b13,#090909)] p-5 lg:p-8">
+                            <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-3 rounded-[28px] shadow-[0_0_45px_rgba(255,200,87,0.18)]">
+                              <div className="bg-[#f8f5ef] rounded-[20px] p-5">
+                                <div className="rounded-[14px] overflow-hidden bg-white shadow-2xl">
+                                  <img
+                                    src={displayArtworkUrl}
+                                    alt="Artwork"
+                                    className="w-full max-h-[56vh] object-contain"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
 
-                    <p className="text-white/50 text-lg font-bold">
-                      Once an artwork is live, it will appear here in the
-                      presentation frame.
-                    </p>
+                          <div className="h-10 bg-gradient-to-b from-[#5b3312] to-[#1b1008]" />
+                        </div>
+                      ) : (
+                        <div className="rounded-[36px] bg-white/5 border border-white/10 p-12 text-center max-w-xl">
+                          <div className="text-7xl mb-6">🖼️</div>
+
+                          <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
+                            No Artwork Loaded
+                          </p>
+
+                          <h2 className="text-4xl font-black mb-4">
+                            Start or reset the auction.
+                          </h2>
+
+                          <p className="text-white/50 text-lg font-bold">
+                            Once an artwork is live, it will appear here in the
+                            premium presentation frame.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+
+                  <div className="hidden lg:flex border-l border-white/10 bg-black/15 p-5 flex-col gap-4">
+                    <FloatingCard
+                      label="Current Bid"
+                      value={`R${auction.current_bid.toLocaleString()}`}
+                      accent="#16d66d"
+                    />
+
+                    <FloatingCard
+                      label="Leading Bidder"
+                      value={auction.leading_bidder}
+                      accent="#ffffff"
+                    />
+
+                    {sold && (
+                      <div className="rounded-[28px] bg-[#16d66d] text-[#07152b] p-5">
+                        <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-3">
+                          Sold Status
+                        </p>
+
+                        <h3 className="text-4xl font-black mb-3">SOLD</h3>
+
+                        {winnerEmailSubmitted ? (
+                          <p className="font-black">
+                            Email received. Auto-moving next.
+                          </p>
+                        ) : (
+                          <p className="font-black">
+                            Waiting for winner email.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {finished && (
+                      <div className="rounded-[28px] bg-[#2878cf] p-5">
+                        <p className="uppercase tracking-[0.25em] text-[10px] text-white/60 font-black mb-3">
+                          Event Complete
+                        </p>
+
+                        <h3 className="text-3xl font-black">
+                          Auction Finished
+                        </h3>
+                      </div>
+                    )}
+
+                    <div className="mt-auto rounded-[28px] bg-[#07152b] border border-white/10 p-5">
+                      <p className="uppercase tracking-[0.25em] text-[10px] text-[#16d66d] font-black mb-3">
+                        AI Auction MC
+                      </p>
+
+                      <p className="text-lg font-black leading-relaxed line-clamp-[9]">
+                        “{mcText}”
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-[32px] p-6">
-                <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
-                  AI Auction MC Story
-                </p>
+              <div className="shrink-0 rounded-[34px] border border-white/10 bg-[#061124] p-4 shadow-2xl">
+                <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
+                  {waiting && (
+                    <button
+                      onClick={startAuction}
+                      className="md:col-span-2 bg-[#16d66d] text-[#07152b] rounded-[22px] py-5 font-black text-xl shadow-xl"
+                    >
+                      Start
+                    </button>
+                  )}
 
-                <p className="text-2xl lg:text-3xl font-bold leading-relaxed">
-                  “{mcText}”
-                </p>
+                  <button
+                    onClick={previousArtwork}
+                    className="bg-white/10 border border-white/10 rounded-[20px] py-5 font-black hover:bg-white/15 transition"
+                  >
+                    Previous
+                  </button>
+
+                  <button
+                    onClick={() => updateStatus("going once")}
+                    className="bg-[#16b85d] rounded-[20px] py-5 font-black shadow-xl"
+                  >
+                    Once
+                  </button>
+
+                  <button
+                    onClick={() => updateStatus("going twice")}
+                    className="bg-[#ffc857] text-[#07152b] rounded-[20px] py-5 font-black shadow-xl"
+                  >
+                    Twice
+                  </button>
+
+                  <button
+                    onClick={() => updateStatus("sold")}
+                    className="bg-[#ef2b20] rounded-[20px] py-5 font-black shadow-xl"
+                  >
+                    SOLD
+                  </button>
+
+                  <button
+                    onClick={nextArtwork}
+                    className="bg-white text-[#07152b] rounded-[20px] py-5 font-black shadow-xl"
+                  >
+                    Next
+                  </button>
+
+                  <button
+                    onClick={resetAuction}
+                    className="bg-white/10 rounded-[20px] py-5 font-black hover:bg-white/15 transition"
+                  >
+                    Reset
+                  </button>
+
+                  <button
+                    onClick={fetchAll}
+                    className="bg-white/10 rounded-[20px] py-5 font-black hover:bg-white/15 transition"
+                  >
+                    Refresh
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-              {sold && (
-                <div className="bg-[#16d66d] text-[#07152b] rounded-[32px] p-7 shadow-2xl">
-                  <p className="uppercase tracking-[0.3em] text-xs font-black mb-4">
-                    Sold Artwork
-                  </p>
+            <aside className="min-h-0 grid grid-rows-[auto_1fr_1fr] gap-5">
+              <div className="rounded-[34px] border border-white/10 bg-[#061124] p-5 shadow-2xl">
+                <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-4">
+                  Quick Status
+                </p>
 
-                  <h2 className="text-5xl font-black mb-4">SOLD</h2>
-
-                  <p className="text-xl font-bold mb-2">
-                    Winner: {auction.leading_bidder}
-                  </p>
-
-                  <p className="text-xl font-bold mb-6">
-                    Amount: R{auction.current_bid.toLocaleString()}
-                  </p>
-
-                  {winnerEmailSubmitted ? (
-                    <div className="bg-[#07152b] text-white rounded-2xl p-5">
-                      <p className="font-black text-lg mb-2">
-                        Winner email received.
-                      </p>
-
-                      <p className="text-white/70 font-bold">
-                        Moving to the next artwork automatically...
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="bg-[#07152b] text-white rounded-2xl p-5">
-                      <p className="font-black text-lg mb-2">
-                        Waiting for winner email.
-                      </p>
-
-                      <p className="text-white/70 font-bold">
-                        The winning parent must enter their email before the
-                        auction moves to the next artwork.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="bg-white/5 border border-white/10 rounded-[32px] overflow-hidden">
-                <div className="p-5 border-b border-white/10 flex items-center justify-between">
-                  <h3 className="text-2xl font-black">Live Activity</h3>
-                  <p className="text-sm text-white/40">clears per artwork</p>
-                </div>
-
-                <div className="divide-y divide-white/10 max-h-[240px] overflow-auto">
-                  {activities.length === 0 && (
-                    <div className="p-5 text-white/40">
-                      Activity will appear once parents join or bid.
-                    </div>
-                  )}
-
-                  {activities.map((activity) => (
-                    <motion.div
-                      key={activity.id}
-                      initial={{ opacity: 0, x: 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="p-5 font-bold text-lg"
-                    >
-                      • {activity.message}
-                    </motion.div>
-                  ))}
+                <div className="grid grid-cols-2 gap-3">
+                  <MiniStatus
+                    label="Status"
+                    value={auction.status.toUpperCase()}
+                    tone={auction.status}
+                  />
+                  <MiniStatus
+                    label="Raised"
+                    value={`R${auction.total_raised.toLocaleString()}`}
+                    tone="raised"
+                  />
                 </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-[32px] overflow-hidden">
-                <div className="p-5 border-b border-white/10 flex items-center justify-between">
-                  <h3 className="text-2xl font-black">Live Bid Feed</h3>
-                  <p className="text-sm text-white/40">{bids.length} bids</p>
-                </div>
+              <Panel title="Artwork Queue" subtitle="Live, pending, sold">
+                {artworks.length === 0 && (
+                  <EmptyPanelText>No artworks uploaded yet.</EmptyPanelText>
+                )}
 
-                <div className="divide-y divide-white/10 max-h-[260px] overflow-auto">
-                  {bids.length === 0 && (
-                    <div className="p-5 text-white/40">No bids yet.</div>
-                  )}
-
-                  {bids.map((bid, index) => (
-                    <motion.div
-                      key={bid.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="p-5 flex items-center justify-between"
-                    >
-                      <p className="font-black text-lg">
-                        {index === 0 ? "👑 " : ""}
-                        {bid.bidder_name}
+                {artworks.map((artwork) => (
+                  <div
+                    key={artwork.id}
+                    className={`p-4 flex items-center justify-between gap-4 border-b border-white/10 last:border-b-0 ${
+                      currentArtwork?.id === artwork.id
+                        ? "bg-[#16d66d]/10"
+                        : ""
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="font-black truncate">
+                        {artwork.sort_order}. {artwork.child_name}{" "}
+                        {artwork.child_surname}
                       </p>
 
-                      <p className="text-2xl font-black text-[#16d66d]">
+                      <div className="flex items-center gap-2 mt-1">
+                        <QueueStatus status={artwork.status} />
+                        <p className="text-sm text-white/40 truncate">
+                          {artwork.grade}
+                        </p>
+                      </div>
+                    </div>
+
+                    <p className="font-black text-[#16d66d] shrink-0">
+                      {artwork.sold_amount
+                        ? `R${artwork.sold_amount.toLocaleString()}`
+                        : ""}
+                    </p>
+                  </div>
+                ))}
+              </Panel>
+
+              <div className="grid grid-rows-2 gap-5 min-h-0">
+                <Panel title="Live Bids" subtitle={`${bids.length} bids`}>
+                  {bids.length === 0 && (
+                    <EmptyPanelText>No bids yet.</EmptyPanelText>
+                  )}
+
+                  {bids.slice(0, 6).map((bid, index) => (
+                    <motion.div
+                      key={bid.id}
+                      initial={{ opacity: 0, x: 18 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="p-4 flex items-center justify-between gap-4 border-b border-white/10 last:border-b-0"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center font-black shrink-0 ${
+                            index === 0
+                              ? "bg-[#16d66d] text-[#07152b]"
+                              : "bg-white/10 text-white"
+                          }`}
+                        >
+                          {bid.bidder_name.charAt(0).toUpperCase()}
+                        </div>
+
+                        <p className="font-black truncate">
+                          {index === 0 ? "👑 " : ""}
+                          {bid.bidder_name}
+                        </p>
+                      </div>
+
+                      <p className="text-xl font-black text-[#16d66d] shrink-0">
                         R{bid.amount.toLocaleString()}
                       </p>
                     </motion.div>
                   ))}
-                </div>
-              </div>
+                </Panel>
 
-              <div className="grid grid-cols-2 gap-4">
-                {auction.status === "waiting" && (
-                  <button
-                    onClick={startAuction}
-                    className="col-span-2 bg-[#16d66d] text-[#07152b] rounded-2xl py-6 font-black text-xl shadow-xl"
-                  >
-                    Start Auction
-                  </button>
-                )}
-
-                <button
-                  onClick={previousArtwork}
-                  className="bg-white/10 border border-white/10 rounded-2xl py-6 font-black text-xl shadow-xl"
+                <Panel
+                  title="Activity"
+                  subtitle={`${activities.length} recent`}
                 >
-                  Previous Artwork
-                </button>
-
-                <button
-                  onClick={nextArtwork}
-                  className="bg-white text-[#07152b] rounded-2xl py-6 font-black text-xl shadow-xl"
-                >
-                  Next Artwork
-                </button>
-
-                <button
-                  onClick={() => updateStatus("going once")}
-                  className="bg-[#16b85d] rounded-2xl py-6 font-black text-xl shadow-xl"
-                >
-                  Going Once
-                </button>
-
-                <button
-                  onClick={() => updateStatus("going twice")}
-                  className="bg-[#ffc107] text-[#07152b] rounded-2xl py-6 font-black text-xl shadow-xl"
-                >
-                  Going Twice
-                </button>
-
-                <button
-                  onClick={() => updateStatus("sold")}
-                  className="col-span-2 bg-[#ef2b20] rounded-2xl py-6 font-black text-xl shadow-xl"
-                >
-                  SOLD
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={resetAuction}
-                  className="bg-white/10 rounded-2xl py-5 font-black"
-                >
-                  Reset Auction
-                </button>
-
-                <button
-                  onClick={fetchAll}
-                  className="bg-white/10 rounded-2xl py-5 font-black"
-                >
-                  Refresh
-                </button>
-              </div>
-
-              <div className="bg-white/5 border border-white/10 rounded-[32px] overflow-hidden">
-                <div className="p-5 border-b border-white/10">
-                  <h3 className="text-2xl font-black">Artwork Queue</h3>
-                </div>
-
-                <div className="divide-y divide-white/10 max-h-[260px] overflow-auto">
-                  {artworks.length === 0 && (
-                    <div className="p-5 text-white/40">
-                      No artworks uploaded yet.
-                    </div>
+                  {activities.length === 0 && (
+                    <EmptyPanelText>
+                      Activity will appear once parents join or bid.
+                    </EmptyPanelText>
                   )}
 
-                  {artworks.map((artwork) => (
-                    <div
-                      key={artwork.id}
-                      className="p-4 flex items-center justify-between"
+                  {activities.slice(0, 8).map((activity) => (
+                    <motion.div
+                      key={activity.id}
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="p-4 font-bold border-b border-white/10 last:border-b-0"
                     >
-                      <div>
-                        <p className="font-black">
-                          {artwork.sort_order}. {artwork.child_name}{" "}
-                          {artwork.child_surname}
-                        </p>
-                        <p className="text-sm text-white/40">
-                          {artwork.status}
-                        </p>
-                      </div>
-
-                      <p className="font-black text-[#16d66d]">
-                        {artwork.sold_amount
-                          ? `R${artwork.sold_amount.toLocaleString()}`
-                          : ""}
-                      </p>
-                    </div>
+                      • {activity.message}
+                    </motion.div>
                   ))}
-                </div>
+                </Panel>
               </div>
-            </div>
+            </aside>
           </div>
         </section>
       </div>
@@ -980,29 +1025,148 @@ export default function LiveAuctionPage() {
   );
 }
 
-function LiveStat({
+function AdminNavLink({
+  href,
+  label,
+  active = false,
+}: {
+  href: string;
+  label: string;
+  active?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      className={`block rounded-2xl px-4 py-3 transition ${
+        active ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10"
+      }`}
+    >
+      {label}
+    </a>
+  );
+}
+
+function CockpitMetric({
   label,
   value,
-  color,
+  accent,
 }: {
   label: string;
   value: string;
-  color: string;
+  accent: string;
 }) {
   return (
-    <div className="bg-white rounded-[28px] p-6 text-[#07152b] shadow-xl">
-      <p className="uppercase tracking-[0.25em] text-xs text-slate-400 font-black mb-3">
+    <div className="rounded-[24px] bg-white/5 border border-white/10 p-4 min-w-0">
+      <p className="uppercase tracking-[0.22em] text-[10px] text-white/40 font-black mb-2">
         {label}
       </p>
 
-      <h2 className="text-4xl font-black leading-tight" style={{ color }}>
+      <p
+        className="text-2xl font-black leading-tight truncate"
+        style={{ color: accent }}
+      >
         {value}
-      </h2>
+      </p>
     </div>
   );
 }
 
-function StatusPill({ status }: { status: string }) {
+function FloatingCard({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: string;
+  accent: string;
+}) {
+  return (
+    <div className="rounded-[30px] bg-white/5 border border-white/10 p-5 shadow-2xl">
+      <p className="uppercase tracking-[0.25em] text-[10px] text-white/40 font-black mb-3">
+        {label}
+      </p>
+
+      <p
+        className="text-4xl font-black leading-tight break-words"
+        style={{ color: accent }}
+      >
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function MiniStatus({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: string;
+}) {
+  const color =
+    tone === "open"
+      ? "#16d66d"
+      : tone === "sold"
+      ? "#ef2b20"
+      : tone === "going once"
+      ? "#16d66d"
+      : tone === "going twice"
+      ? "#ffc857"
+      : tone === "finished"
+      ? "#6fb0ff"
+      : tone === "raised"
+      ? "#ffc857"
+      : "#ffffff";
+
+  return (
+    <div className="rounded-[24px] bg-white/5 border border-white/10 p-4">
+      <p className="uppercase tracking-[0.22em] text-[10px] text-white/40 font-black mb-2">
+        {label}
+      </p>
+
+      <p className="text-xl font-black truncate" style={{ color }}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function Panel({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-0 rounded-[34px] border border-white/10 bg-[#061124] shadow-2xl overflow-hidden flex flex-col">
+      <div className="p-5 border-b border-white/10 shrink-0 flex items-center justify-between gap-4">
+        <div>
+          <h3 className="text-2xl font-black">{title}</h3>
+          <p className="text-sm text-white/40 font-bold">{subtitle}</p>
+        </div>
+      </div>
+
+      <div className="overflow-auto min-h-0">{children}</div>
+    </div>
+  );
+}
+
+function EmptyPanelText({ children }: { children: React.ReactNode }) {
+  return <div className="p-5 text-white/40 font-bold">{children}</div>;
+}
+
+function StatusPill({
+  status,
+  compact = false,
+}: {
+  status: string;
+  compact?: boolean;
+}) {
   const styles =
     status === "open"
       ? "bg-[#16d66d]/20 text-[#16d66d] border-[#16d66d]/40"
@@ -1011,7 +1175,7 @@ function StatusPill({ status }: { status: string }) {
       : status === "going once"
       ? "bg-[#16b85d]/20 text-[#16d66d] border-[#16d66d]/40"
       : status === "going twice"
-      ? "bg-[#ffc107]/20 text-[#ffc107] border-[#ffc107]/40"
+      ? "bg-[#ffc857]/20 text-[#ffc857] border-[#ffc857]/40"
       : status === "sold"
       ? "bg-[#ef2b20]/20 text-[#ff6b61] border-[#ef2b20]/40"
       : status === "finished"
@@ -1019,8 +1183,27 @@ function StatusPill({ status }: { status: string }) {
       : "bg-white/10 text-white border-white/20";
 
   return (
-    <div className={`rounded-2xl border px-6 py-4 font-black text-lg ${styles}`}>
+    <div
+      className={`rounded-2xl border font-black ${
+        compact ? "px-4 py-3 text-sm" : "px-6 py-4 text-lg"
+      } ${styles}`}
+    >
       {status.toUpperCase()}
     </div>
+  );
+}
+
+function QueueStatus({ status }: { status: string }) {
+  const styles =
+    status === "live"
+      ? "bg-[#16d66d] text-[#07152b]"
+      : status === "sold"
+      ? "bg-[#ef2b20] text-white"
+      : "bg-white/10 text-white/70";
+
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-black ${styles}`}>
+      {status}
+    </span>
   );
 }
