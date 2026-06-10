@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import BrandHeader from "@/components/BrandHeader";
+import type { ReactNode } from "react";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import { supabase } from "@/lib/supabase";
 
@@ -33,6 +33,7 @@ type Artwork = {
   enhanced_artwork_url?: string | null;
   enhancement_status?: string | null;
   ai_story?: string | null;
+  ai_intro?: string | null;
   status?: string | null;
   sort_order?: number | null;
   sold_amount?: number | null;
@@ -83,8 +84,6 @@ export default function AdminLivePage() {
     return sum + Number(artwork.sold_amount || 0);
   }, 0);
 
-  const highestBid = bids[0];
-
   const nextBidAmount = Math.max(
     Number(auction?.next_bid_amount || 0),
     Number(auction?.current_bid || 0) + BID_STEP,
@@ -98,7 +97,7 @@ export default function AdminLivePage() {
     loadEverything();
 
     const auctionChannel = supabase
-      .channel("admin-live-auction-state-premium")
+      .channel("admin-live-auction-state-final")
       .on(
         "postgres_changes",
         {
@@ -114,7 +113,7 @@ export default function AdminLivePage() {
       .subscribe();
 
     const artworksChannel = supabase
-      .channel("admin-live-artworks-premium")
+      .channel("admin-live-artworks-final")
       .on(
         "postgres_changes",
         {
@@ -130,7 +129,7 @@ export default function AdminLivePage() {
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("admin-live-bids-premium")
+      .channel("admin-live-bids-final")
       .on(
         "postgres_changes",
         {
@@ -146,7 +145,7 @@ export default function AdminLivePage() {
       .subscribe();
 
     const activityChannel = supabase
-      .channel("admin-live-activity-premium")
+      .channel("admin-live-activity-final")
       .on(
         "postgres_changes",
         {
@@ -171,12 +170,14 @@ export default function AdminLivePage() {
 
   async function loadEverything() {
     setLoading(true);
+
     await Promise.all([
       fetchAuction(),
       fetchArtworks(),
       fetchBids(),
       fetchActivity(),
     ]);
+
     setLoading(false);
   }
 
@@ -262,6 +263,7 @@ export default function AdminLivePage() {
 
     const commentary =
       artwork.ai_story ||
+      artwork.ai_intro ||
       `${artwork.child_name}'s artwork is live. Parents, prepare yourselves. Bragging rights are now officially on the table.`;
 
     const { error } = await supabase
@@ -508,6 +510,7 @@ export default function AdminLivePage() {
 
   async function clearBids() {
     const confirmed = window.confirm("Clear all bids for this auction?");
+
     if (!confirmed) return;
 
     setBusyAction("clear-bids");
@@ -547,14 +550,15 @@ export default function AdminLivePage() {
     return (
       <main className="min-h-screen bg-[#020b18] text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="bg-white rounded-[28px] p-5 mb-5 shadow-2xl">
+          <div className="bg-white rounded-[26px] p-4 mb-5 shadow-2xl">
             <img
               src="/bragwall-logo.png"
               alt="BragWall"
-              className="h-24 w-auto object-contain"
+              className="h-20 w-auto object-contain"
             />
           </div>
-          <p className="text-white/60 font-black">Loading auction cockpit...</p>
+
+          <p className="text-white/70 font-black">Loading auction cockpit...</p>
         </div>
       </main>
     );
@@ -565,13 +569,17 @@ export default function AdminLivePage() {
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.15),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.13),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
       <div className="fixed inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
-      <div className="relative grid xl:grid-cols-[280px_1fr] min-h-screen">
-        <aside className="border-r border-white/10 bg-[#061124]/85 backdrop-blur-xl p-5 xl:sticky xl:top-0 xl:h-screen">
-          <div className="bg-white rounded-[28px] p-4 shadow-2xl mb-6">
-            <BrandHeader />
+      <div className="relative grid xl:grid-cols-[245px_1fr] min-h-screen">
+        <aside className="border-r border-white/10 bg-[#061124]/85 backdrop-blur-xl p-4 xl:sticky xl:top-0 xl:h-screen">
+          <div className="bg-white rounded-[24px] p-3 shadow-2xl mb-5">
+            <img
+              src="/bragwall-logo.png"
+              alt="BragWall"
+              className="h-20 w-auto object-contain mx-auto"
+            />
           </div>
 
-          <nav className="space-y-3 mb-6">
+          <nav className="space-y-2.5 mb-5">
             <AdminNavLink href="/admin" label="Dashboard" icon="🏠" />
             <AdminNavLink href="/admin/live" label="Live Room" icon="🔨" active />
             <AdminNavLink href="/admin/artworks" label="Artwork Upload" icon="🎨" />
@@ -579,12 +587,14 @@ export default function AdminLivePage() {
             <AdminNavLink href="/auction/demo" label="Parent View" icon="📱" />
           </nav>
 
-          <div className="rounded-[28px] bg-white/5 border border-white/10 p-4 mb-5">
-            <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-3">
+          <div className="rounded-[24px] bg-white/5 border border-white/10 p-4 mb-4">
+            <p className="uppercase tracking-[0.3em] text-[9px] text-white/50 font-black mb-2">
               Auction Code
             </p>
+
             <p className="text-3xl font-black text-[#16d66d]">DEMO</p>
-            <p className="text-white/50 text-sm font-bold mt-2">
+
+            <p className="text-white/60 text-xs font-bold mt-2">
               Parent screen: /auction/demo
             </p>
           </div>
@@ -593,10 +603,10 @@ export default function AdminLivePage() {
         </aside>
 
         <section className="min-h-screen flex flex-col">
-          <header className="border-b border-white/10 bg-[#020b18]/70 backdrop-blur-xl p-5 lg:p-8">
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+          <header className="border-b border-white/10 bg-[#020b18]/70 backdrop-blur-xl p-4 lg:p-6">
+            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
               <div>
-                <div className="inline-flex items-center gap-3 rounded-full bg-white/10 border border-white/10 px-4 py-3 mb-4">
+                <div className="inline-flex items-center gap-3 rounded-full bg-white/10 border border-white/10 px-4 py-2.5 mb-4">
                   <span
                     className={`w-2.5 h-2.5 rounded-full ${
                       isLive
@@ -604,22 +614,23 @@ export default function AdminLivePage() {
                         : "bg-[#ffc857]"
                     }`}
                   />
-                  <span className="uppercase tracking-[0.32em] text-[10px] font-black text-white/60">
+
+                  <span className="uppercase tracking-[0.32em] text-[10px] font-black text-white/65">
                     Auction Cockpit
                   </span>
                 </div>
 
-                <h1 className="text-5xl lg:text-7xl font-black leading-[0.9]">
+                <h1 className="text-4xl lg:text-6xl font-black leading-[0.9]">
                   Live control room.
                 </h1>
 
-                <p className="text-white/55 text-lg font-bold mt-3 max-w-2xl">
+                <p className="text-white/70 text-base font-bold mt-3 max-w-2xl">
                   Run the artwork stage, bidding rhythm, SOLD moments, and
                   parent screen from one premium BragWall cockpit.
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 min-w-full lg:min-w-[520px]">
+              <div className="grid grid-cols-3 gap-3 min-w-full lg:min-w-[500px]">
                 <MetricCard label="Status" value={formatStatus(statusLabel)} />
                 <MetricCard
                   label="Current Bid"
@@ -637,24 +648,24 @@ export default function AdminLivePage() {
             </div>
           </header>
 
-          <div className="grid 2xl:grid-cols-[1fr_390px] gap-5 p-5 lg:p-8">
-            <div className="space-y-5">
-              <section className="rounded-[42px] bg-white/5 border border-white/10 p-4 lg:p-6 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
-                <div className="grid lg:grid-cols-[1fr_310px] gap-5 items-stretch">
-                  <div className="rounded-[36px] bg-[#061124] border border-white/10 p-5 shadow-2xl">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
+          <div className="grid 2xl:grid-cols-[1fr_360px] gap-4 p-4 lg:p-6">
+            <div className="space-y-4">
+              <section className="rounded-[34px] bg-white/5 border border-white/10 p-4 shadow-[0_30px_90px_rgba(0,0,0,0.34)]">
+                <div className="grid lg:grid-cols-[1fr_280px] gap-4 items-stretch">
+                  <div className="rounded-[30px] bg-[#061124] border border-white/10 p-4 lg:p-5 shadow-2xl">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
                       <div>
-                        <p className="uppercase tracking-[0.35em] text-[10px] text-[#16d66d] font-black mb-2">
+                        <p className="uppercase tracking-[0.35em] text-[9px] text-[#16d66d] font-black mb-2">
                           On Stage
                         </p>
 
-                        <h2 className="text-4xl lg:text-6xl font-black leading-none">
+                        <h2 className="text-4xl lg:text-5xl font-black leading-none">
                           {currentArtwork
                             ? `${currentArtwork.child_name} ${currentArtwork.child_surname}`
                             : "No artwork selected"}
                         </h2>
 
-                        <p className="text-white/50 font-bold mt-2">
+                        <p className="text-white/65 font-bold mt-2">
                           {currentArtwork?.grade || "Upload artwork to begin"}
                         </p>
                       </div>
@@ -664,21 +675,23 @@ export default function AdminLivePage() {
 
                     <ArtworkStage artwork={currentArtwork} />
 
-                    <div className="mt-5 grid md:grid-cols-2 gap-4">
-                      <div className="bg-white text-[#07152b] rounded-[28px] p-5 shadow-xl">
-                        <p className="uppercase tracking-[0.25em] text-[10px] text-slate-400 font-black mb-2">
+                    <div className="mt-4 grid md:grid-cols-2 gap-3">
+                      <div className="bg-white text-[#07152b] rounded-[24px] p-4 shadow-xl">
+                        <p className="uppercase tracking-[0.25em] text-[9px] text-slate-400 font-black mb-2">
                           Highest Bid
                         </p>
-                        <p className="text-5xl font-black text-[#16d66d] leading-none">
+
+                        <p className="text-4xl font-black text-[#16d66d] leading-none">
                           R{Number(auction?.current_bid || 0).toLocaleString()}
                         </p>
                       </div>
 
-                      <div className="bg-white text-[#07152b] rounded-[28px] p-5 shadow-xl text-right">
-                        <p className="uppercase tracking-[0.25em] text-[10px] text-slate-400 font-black mb-2">
+                      <div className="bg-white text-[#07152b] rounded-[24px] p-4 shadow-xl text-right">
+                        <p className="uppercase tracking-[0.25em] text-[9px] text-slate-400 font-black mb-2">
                           Leading Bidder
                         </p>
-                        <p className="text-3xl font-black leading-tight truncate">
+
+                        <p className="text-2xl font-black leading-tight truncate">
                           {auction?.leading_bidder || "No bids yet"}
                           {auction?.leading_bidder &&
                           auction.leading_bidder !== "No bids yet"
@@ -689,25 +702,29 @@ export default function AdminLivePage() {
                     </div>
                   </div>
 
-                  <div className="rounded-[36px] bg-[#061124] border border-white/10 p-5 shadow-2xl flex flex-col">
-                    <div className="text-center rounded-[30px] bg-[radial-gradient(circle_at_top,rgba(255,200,87,0.22),transparent_45%),#020b18] border border-[#ffc857]/30 p-6 mb-5">
-                      <div className="text-6xl mb-2">🔨</div>
-                      <p className="text-[#ffc857] text-5xl font-black leading-none">
+                  <div className="rounded-[30px] bg-[#061124] border border-white/10 p-4 shadow-2xl flex flex-col">
+                    <div className="text-center rounded-[26px] bg-[radial-gradient(circle_at_top,rgba(255,200,87,0.22),transparent_45%),#020b18] border border-[#ffc857]/30 p-5 mb-4">
+                      <div className="text-5xl mb-2">🔨</div>
+
+                      <p className="text-[#ffc857] text-4xl font-black leading-none">
                         {statusLabel === "sold" ? "SOLD!" : "LIVE"}
                       </p>
-                      <p className="text-white/60 font-bold mt-3">
+
+                      <p className="text-white/70 font-bold mt-3">
                         Next ask: R{nextBidAmount.toLocaleString()}
                       </p>
                     </div>
 
-                    <div className="bg-white text-[#07152b] rounded-[28px] p-5 shadow-xl mb-5">
-                      <p className="uppercase tracking-[0.25em] text-[10px] text-slate-400 font-black mb-2">
+                    <div className="bg-white text-[#07152b] rounded-[24px] p-4 shadow-xl mb-4">
+                      <p className="uppercase tracking-[0.25em] text-[9px] text-slate-400 font-black mb-2">
                         AI Auction MC
                       </p>
-                      <p className="text-xl font-black leading-snug">
+
+                      <p className="text-lg font-black leading-snug">
                         “
                         {auction?.mc_commentary ||
                           currentArtwork?.ai_story ||
+                          currentArtwork?.ai_intro ||
                           "Welcome to BragWall. The next masterpiece is waiting for its moment."}
                         ”
                       </p>
@@ -721,18 +738,19 @@ export default function AdminLivePage() {
                 </div>
               </section>
 
-              <section className="rounded-[36px] bg-[#061124]/90 border border-white/10 p-5 shadow-2xl">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-5">
+              <section className="rounded-[30px] bg-[#061124]/90 border border-white/10 p-4 shadow-2xl">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
                   <div>
-                    <p className="uppercase tracking-[0.3em] text-[10px] text-[#16d66d] font-black mb-2">
+                    <p className="uppercase tracking-[0.3em] text-[9px] text-[#16d66d] font-black mb-2">
                       Live Controls
                     </p>
+
                     <h3 className="text-3xl font-black">Auction rhythm</h3>
                   </div>
 
                   <button
                     onClick={loadEverything}
-                    className="rounded-2xl bg-white/10 border border-white/10 px-5 py-4 font-black hover:bg-white/15 transition"
+                    className="rounded-2xl bg-white/10 border border-white/10 px-5 py-3.5 font-black hover:bg-white/15 transition"
                   >
                     Refresh
                   </button>
@@ -746,18 +764,21 @@ export default function AdminLivePage() {
                     disabled={Boolean(busyAction)}
                     green
                   />
+
                   <ControlButton
                     label="Pause"
                     icon="⏸"
                     onClick={pauseAuction}
                     disabled={Boolean(busyAction)}
                   />
+
                   <ControlButton
                     label="Resume"
                     icon="🔁"
                     onClick={resumeAuction}
                     disabled={Boolean(busyAction)}
                   />
+
                   <ControlButton
                     label="Going Once"
                     icon="1"
@@ -765,6 +786,7 @@ export default function AdminLivePage() {
                     disabled={Boolean(busyAction)}
                     gold
                   />
+
                   <ControlButton
                     label="Going Twice"
                     icon="2"
@@ -772,6 +794,7 @@ export default function AdminLivePage() {
                     disabled={Boolean(busyAction)}
                     danger
                   />
+
                   <ControlButton
                     label="SOLD"
                     icon="🔨"
@@ -779,6 +802,7 @@ export default function AdminLivePage() {
                     disabled={Boolean(busyAction)}
                     sold
                   />
+
                   <ControlButton
                     label="Reset"
                     icon="↺"
@@ -787,23 +811,21 @@ export default function AdminLivePage() {
                   />
                 </div>
 
-                <div className="mt-3">
-                  <button
-                    onClick={clearBids}
-                    disabled={Boolean(busyAction)}
-                    className="w-full rounded-[22px] bg-white/5 border border-white/10 px-5 py-4 font-black text-white/70 hover:bg-white/10 transition disabled:opacity-40"
-                  >
-                    Clear Current Bids
-                  </button>
-                </div>
+                <button
+                  onClick={clearBids}
+                  disabled={Boolean(busyAction)}
+                  className="mt-3 w-full rounded-[20px] bg-white/5 border border-white/10 px-5 py-3.5 font-black text-white/75 hover:bg-white/10 transition disabled:opacity-40"
+                >
+                  Clear Current Bids
+                </button>
               </section>
             </div>
 
-            <aside className="space-y-5">
+            <aside className="space-y-4">
               <Panel title="Artwork Queue" subtitle="Tap an artwork to move it live">
-                <div className="space-y-3 max-h-[440px] overflow-auto pr-1">
+                <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
                   {artworks.length === 0 && (
-                    <p className="text-white/50 font-bold">
+                    <p className="text-white/60 font-bold">
                       No artwork uploaded yet.
                     </p>
                   )}
@@ -817,14 +839,14 @@ export default function AdminLivePage() {
                         key={artwork.id}
                         onClick={() => moveToArtwork(artwork)}
                         disabled={busyAction === `move-${artwork.id}`}
-                        className={`w-full text-left rounded-[24px] p-3 border transition ${
+                        className={`w-full text-left rounded-[22px] p-3 border transition ${
                           active
                             ? "bg-[#16d66d] text-[#07152b] border-[#16d66d]"
                             : "bg-white/5 text-white border-white/10 hover:bg-white/10"
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shrink-0">
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white shrink-0">
                             {displayUrl ? (
                               <img
                                 src={displayUrl}
@@ -842,9 +864,10 @@ export default function AdminLivePage() {
                             <p className="font-black truncate">
                               {artwork.child_name} {artwork.child_surname}
                             </p>
+
                             <p
-                              className={`text-sm font-bold truncate ${
-                                active ? "text-[#07152b]/70" : "text-white/50"
+                              className={`text-xs font-bold truncate ${
+                                active ? "text-[#07152b]/75" : "text-white/60"
                               }`}
                             >
                               {artwork.grade} • {artwork.status || "queued"}
@@ -868,15 +891,15 @@ export default function AdminLivePage() {
               </Panel>
 
               <Panel title="Live Bids" subtitle="Highest bids first">
-                <div className="space-y-3 max-h-[300px] overflow-auto pr-1">
+                <div className="space-y-3 max-h-[270px] overflow-auto pr-1">
                   {bids.length === 0 && (
-                    <p className="text-white/50 font-bold">No bids yet.</p>
+                    <p className="text-white/60 font-bold">No bids yet.</p>
                   )}
 
                   {bids.map((bid, index) => (
                     <div
                       key={bid.id}
-                      className={`rounded-[22px] p-4 border ${
+                      className={`rounded-[20px] p-3.5 border ${
                         index === 0
                           ? "bg-white text-[#07152b] border-white"
                           : "bg-white/5 text-white border-white/10"
@@ -888,14 +911,16 @@ export default function AdminLivePage() {
                             {index === 0 ? "👑 " : ""}
                             {bid.bidder_name}
                           </p>
+
                           <p
                             className={`text-xs font-bold ${
-                              index === 0 ? "text-slate-500" : "text-white/45"
+                              index === 0 ? "text-slate-500" : "text-white/55"
                             }`}
                           >
                             {formatTime(bid.created_at)}
                           </p>
                         </div>
+
                         <p className="text-2xl font-black text-[#16d66d]">
                           R{Number(bid.amount).toLocaleString()}
                         </p>
@@ -906,9 +931,9 @@ export default function AdminLivePage() {
               </Panel>
 
               <Panel title="Activity Feed" subtitle="Latest auction events">
-                <div className="space-y-3 max-h-[300px] overflow-auto pr-1">
+                <div className="space-y-3 max-h-[270px] overflow-auto pr-1">
                   {activity.length === 0 && (
-                    <p className="text-white/50 font-bold">
+                    <p className="text-white/60 font-bold">
                       Activity will appear here.
                     </p>
                   )}
@@ -916,12 +941,13 @@ export default function AdminLivePage() {
                   {activity.map((item) => (
                     <div
                       key={item.id}
-                      className="rounded-[22px] bg-white/5 border border-white/10 p-4"
+                      className="rounded-[20px] bg-white/5 border border-white/10 p-3.5"
                     >
                       <p className="font-bold text-white/80 leading-snug">
                         {item.message}
                       </p>
-                      <p className="text-xs text-white/40 font-bold mt-2">
+
+                      <p className="text-xs text-white/55 font-bold mt-2">
                         {formatTime(item.created_at)}
                       </p>
                     </div>
@@ -1004,14 +1030,14 @@ function AdminNavLink({
   return (
     <a
       href={href}
-      className={`flex items-center gap-3 rounded-[22px] px-4 py-4 font-black transition ${
+      className={`flex items-center gap-3 rounded-[20px] px-3.5 py-3.5 font-black transition ${
         active
           ? "bg-[#16d66d] text-[#07152b]"
-          : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
+          : "bg-white/5 text-white/75 border border-white/10 hover:bg-white/10"
       }`}
     >
-      <span className="text-2xl">{icon}</span>
-      <span>{label}</span>
+      <span className="text-xl">{icon}</span>
+      <span className="text-sm">{label}</span>
     </a>
   );
 }
@@ -1028,12 +1054,13 @@ function MetricCard({
   gold?: boolean;
 }) {
   return (
-    <div className="rounded-[26px] bg-white/5 border border-white/10 p-4 shadow-xl">
-      <p className="uppercase tracking-[0.25em] text-[9px] text-white/40 font-black mb-2">
+    <div className="rounded-[22px] bg-white/5 border border-white/10 p-3.5 shadow-xl">
+      <p className="uppercase tracking-[0.25em] text-[8px] text-white/50 font-black mb-2">
         {label}
       </p>
+
       <p
-        className={`text-2xl lg:text-3xl font-black leading-none ${
+        className={`text-2xl font-black leading-none ${
           green ? "text-[#16d66d]" : gold ? "text-[#ffc857]" : "text-white"
         }`}
       >
@@ -1051,7 +1078,7 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <div
-      className={`rounded-[24px] px-5 py-4 text-center border shrink-0 ${
+      className={`rounded-[20px] px-4 py-3 text-center border shrink-0 ${
         isSold
           ? "bg-[#ffc857] text-[#07152b] border-[#ffc857]"
           : isDanger
@@ -1063,10 +1090,11 @@ function StatusBadge({ status }: { status: string }) {
           : "bg-[#16d66d] text-[#07152b] border-[#16d66d]"
       }`}
     >
-      <p className="uppercase tracking-[0.25em] text-[9px] font-black opacity-70">
+      <p className="uppercase tracking-[0.25em] text-[8px] font-black opacity-70">
         Status
       </p>
-      <p className="text-xl font-black">{formatStatus(status)}</p>
+
+      <p className="text-lg font-black">{formatStatus(status)}</p>
     </div>
   );
 }
@@ -1075,20 +1103,20 @@ function ArtworkStage({ artwork }: { artwork: Artwork | null }) {
   const displayUrl = getArtworkDisplayUrl(artwork);
 
   return (
-    <div className="rounded-[34px] overflow-hidden border border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.45)] bg-[#16110b]">
-      <div className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,#241b13,#090909)] p-4 lg:p-6">
-        <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2.5 rounded-[28px] shadow-[0_0_45px_rgba(255,200,87,0.18)]">
-          <div className="bg-[#f8f5ef] rounded-[22px] p-4">
-            <div className="rounded-[16px] overflow-hidden bg-white min-h-[320px] flex items-center justify-center">
+    <div className="rounded-[28px] overflow-hidden border border-white/10 shadow-[0_24px_70px_rgba(0,0,0,0.42)] bg-[#16110b]">
+      <div className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,#241b13,#090909)] p-3 lg:p-4">
+        <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2 rounded-[24px] shadow-[0_0_45px_rgba(255,200,87,0.18)]">
+          <div className="bg-[#f8f5ef] rounded-[18px] p-3">
+            <div className="rounded-[14px] overflow-hidden bg-white min-h-[260px] flex items-center justify-center">
               {displayUrl ? (
                 <img
                   src={displayUrl}
                   alt="Current artwork"
-                  className="w-full max-h-[62vh] object-contain"
+                  className="w-full max-h-[52vh] object-contain"
                 />
               ) : (
                 <div className="text-center text-slate-400 p-10">
-                  <div className="text-7xl mb-4">🎨</div>
+                  <div className="text-6xl mb-4">🎨</div>
                   <p className="text-2xl font-black">No artwork selected</p>
                 </div>
               )}
@@ -1097,17 +1125,18 @@ function ArtworkStage({ artwork }: { artwork: Artwork | null }) {
         </div>
       </div>
 
-      <div className="h-10 bg-gradient-to-b from-[#5b3312] to-[#1b1008]" />
+      <div className="h-8 bg-gradient-to-b from-[#5b3312] to-[#1b1008]" />
     </div>
   );
 }
 
 function SmallInfo({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[24px] bg-white/5 border border-white/10 p-4 text-center">
-      <p className="uppercase tracking-[0.25em] text-[9px] text-white/40 font-black mb-2">
+    <div className="rounded-[20px] bg-white/5 border border-white/10 p-3.5 text-center">
+      <p className="uppercase tracking-[0.25em] text-[8px] text-white/50 font-black mb-2">
         {label}
       </p>
+
       <p className="text-3xl font-black text-white">{value}</p>
     </div>
   );
@@ -1136,7 +1165,7 @@ function ControlButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-[24px] p-4 font-black text-left shadow-xl transition hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 ${
+      className={`rounded-[20px] p-3.5 font-black text-left shadow-xl transition hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 ${
         green
           ? "bg-[#16d66d] text-[#07152b]"
           : gold
@@ -1148,8 +1177,9 @@ function ControlButton({
           : "bg-white/5 text-white border border-white/10 hover:bg-white/10"
       }`}
     >
-      <div className="text-3xl mb-3">{icon}</div>
-      <p>{label}</p>
+      <div className="text-2xl mb-2">{icon}</div>
+
+      <p className="text-sm">{label}</p>
     </button>
   );
 }
@@ -1161,15 +1191,16 @@ function Panel({
 }: {
   title: string;
   subtitle: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <section className="rounded-[34px] bg-[#061124]/90 border border-white/10 p-5 shadow-2xl">
-      <div className="mb-5">
-        <p className="uppercase tracking-[0.3em] text-[10px] text-[#16d66d] font-black mb-2">
+    <section className="rounded-[28px] bg-[#061124]/90 border border-white/10 p-4 shadow-2xl">
+      <div className="mb-4">
+        <p className="uppercase tracking-[0.3em] text-[9px] text-[#16d66d] font-black mb-2">
           {title}
         </p>
-        <p className="text-white/50 font-bold">{subtitle}</p>
+
+        <p className="text-white/60 text-sm font-bold">{subtitle}</p>
       </div>
 
       {children}
