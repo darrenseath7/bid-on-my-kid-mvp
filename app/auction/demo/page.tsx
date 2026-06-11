@@ -29,13 +29,6 @@ type Bid = {
   created_at?: string | null;
 };
 
-const fallbackCommentary = [
-  "The room is warming up beautifully. Someone is about to make a bold emotional decision.",
-  "Bragging rights are officially on the table.",
-  "Parents, grandparents, and competitive uncles — this is your moment.",
-  "This masterpiece is looking dangerously collectible.",
-];
-
 const BID_STEP = 100;
 const BID_PAUSE_SECONDS = 5;
 const SILENCE_BEFORE_GOING_ONCE_SECONDS = 8;
@@ -49,7 +42,6 @@ export default function DemoAuctionPage() {
   const [joined, setJoined] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [pauseRemaining, setPauseRemaining] = useState(0);
-  const [commentIndex, setCommentIndex] = useState(0);
   const [biddingNow, setBiddingNow] = useState(false);
   const [winnerEmail, setWinnerEmail] = useState("");
   const [submittingEmail, setSubmittingEmail] = useState(false);
@@ -65,8 +57,6 @@ export default function DemoAuctionPage() {
   const nextBidAmount = useMemo(() => {
     return Math.max((auction?.current_bid || 0) + BID_STEP, BID_STEP);
   }, [auction?.current_bid]);
-
-  const topBid = bids[0];
 
   const isSold = auction?.status === "sold";
   const isWaiting = auction?.status === "waiting";
@@ -100,25 +90,6 @@ export default function DemoAuctionPage() {
     const audio = new Audio(src);
     audio.volume = 0.65;
     audio.play().catch(() => {});
-  }
-
-  function formatRelativeTime(value?: string | null) {
-    if (!value) return "Just now";
-
-    const seconds = Math.max(
-      0,
-      Math.floor((Date.now() - new Date(value).getTime()) / 1000)
-    );
-
-    if (seconds < 10) return "Just now";
-    if (seconds < 60) return `${seconds}s ago`;
-
-    const minutes = Math.floor(seconds / 60);
-
-    if (minutes < 60) return `${minutes}m ago`;
-
-    const hours = Math.floor(minutes / 60);
-    return `${hours}h ago`;
   }
 
   async function playWelcomeVoice() {
@@ -272,14 +243,6 @@ export default function DemoAuctionPage() {
 
     return () => clearInterval(interval);
   }, [auction]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCommentIndex((current) => (current + 1) % fallbackCommentary.length);
-    }, 6000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -568,82 +531,69 @@ export default function DemoAuctionPage() {
     setSubmittingEmail(false);
   }
 
-  const dynamicArtworkStory =
-    auction?.mc_commentary ||
-    fallbackCommentary[commentIndex] ||
-    "Parents, prepare yourselves. Tonight’s masterpieces may cause sudden generosity, family rivalry, and fridge-door upgrades.";
-
   if (!joined) {
     return (
-      <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
+      <main className="h-[100dvh] bg-[#020b18] text-white overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_80%_15%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_62%,#010712)]" />
 
-        <div className="relative max-w-md mx-auto min-h-screen px-5 py-6 flex flex-col">
-          <div className="bg-white rounded-[28px] p-4 mb-5 flex justify-center shadow-2xl">
+        <div className="relative max-w-sm mx-auto h-[100dvh] px-4 py-3 flex flex-col">
+          <div className="bg-white rounded-[24px] px-4 py-3 mb-3 flex justify-center shadow-2xl shrink-0">
             <img
               src="/bragwall-logo.png"
               alt="BragWall"
-              className="h-24 w-auto object-contain"
+              className="h-16 w-auto object-contain"
             />
           </div>
 
-          <div className="flex-1 bg-white text-[#07152b] rounded-[36px] p-6 shadow-2xl border border-black/5 flex flex-col">
-            <p className="uppercase tracking-[0.35em] text-xs text-[#0b63ce] font-black mb-4">
-              Welcome Parents
-            </p>
-
-            <h1 className="text-5xl font-black leading-[0.9] mb-4">
-              Welcome to BragWall.
-            </h1>
-
-            <p className="text-slate-600 text-base leading-relaxed mb-5 font-bold">
-              Tonight we are turning school artwork into a live fundraising
-              event — with proud parents, dangerous grandparents, competitive
-              uncles, and masterpieces that deserve prime fridge-door real
-              estate.
-            </p>
-
-            <button
-              onClick={playWelcomeVoice}
-              disabled={welcomeVoiceLoading}
-              className="w-full bg-[#16d66d] text-[#07152b] rounded-[24px] py-4 font-black text-lg shadow-xl mb-5 disabled:opacity-50"
-            >
-              {welcomeVoiceLoading
-                ? "Loading Welcome Voice..."
-                : welcomeVoicePlaying
-                ? "Playing Welcome..."
-                : "▶ Play Welcome Voice"}
-            </button>
-
-            <div className="bg-[#f7f5f0] rounded-[26px] p-5 mb-5">
-              <p className="uppercase tracking-[0.3em] text-[10px] text-slate-400 font-black mb-3">
-                How Tonight Works
+          <div className="flex-1 min-h-0 bg-white text-[#07152b] rounded-[30px] p-4 shadow-2xl border border-black/5 flex flex-col overflow-hidden">
+            <div className="shrink-0">
+              <p className="uppercase tracking-[0.35em] text-[9px] text-[#0b63ce] font-black mb-2">
+                Welcome Parents
               </p>
 
-              <div className="space-y-2 text-slate-600 font-bold leading-relaxed">
-                <p>1. Enter your bidder name.</p>
-                <p>2. Watch each artwork go live.</p>
-                <p>3. Bid when the next amount appears.</p>
-                <p>4. Winners enter email for invoice and certificate.</p>
+              <h1 className="text-4xl font-black leading-[0.88] mb-3">
+                Welcome to BragWall.
+              </h1>
+
+              <p className="text-slate-600 text-[13px] leading-relaxed mb-3 font-bold">
+                Tonight we are turning school artwork into a live fundraising
+                event — with proud parents, dangerous grandparents, competitive
+                uncles, and masterpieces that deserve prime fridge-door real
+                estate.
+              </p>
+
+              <button
+                onClick={playWelcomeVoice}
+                disabled={welcomeVoiceLoading}
+                className="w-full bg-[#16d66d] text-[#07152b] rounded-[20px] py-3.5 font-black text-base shadow-xl mb-3 disabled:opacity-50"
+              >
+                {welcomeVoiceLoading
+                  ? "Loading Welcome Voice..."
+                  : welcomeVoicePlaying
+                  ? "Playing Welcome..."
+                  : "▶ Play Welcome Voice"}
+              </button>
+
+              <div className="bg-[#f7f5f0] rounded-[22px] p-4 mb-3">
+                <p className="uppercase tracking-[0.3em] text-[8px] text-slate-400 font-black mb-2">
+                  How Tonight Works
+                </p>
+
+                <div className="space-y-1.5 text-slate-600 text-[12px] font-bold leading-relaxed">
+                  <p>1. Enter your bidder name.</p>
+                  <p>2. Watch each artwork go live.</p>
+                  <p>3. Bid when the next amount appears.</p>
+                  <p>4. Winners enter email for invoice and certificate.</p>
+                </div>
               </div>
             </div>
 
-            <div className="bg-[#07152b] text-white rounded-[26px] p-5 mb-5">
-              <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
-                Auction Sound
-              </p>
-
-              <p className="text-lg font-black leading-relaxed">
-                Welcome voice, bid ding, and gavel on SOLD.
-              </p>
-            </div>
-
-            <div className="mt-auto">
+            <div className="shrink-0 mt-3">
               <input
                 value={bidderName}
                 onChange={(event) => setBidderName(event.target.value)}
                 placeholder="Your bidder name"
-                className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg mb-4 outline-none"
+                className="w-full rounded-2xl border border-slate-200 px-4 py-4 text-base mb-3 outline-none"
               />
 
               <button
@@ -653,7 +603,7 @@ export default function DemoAuctionPage() {
                     setJoined(true);
                   }
                 }}
-                className="w-full bg-[#07152b] text-white rounded-2xl py-5 font-black text-xl shadow-xl"
+                className="w-full bg-[#07152b] text-white rounded-2xl py-4 font-black text-lg shadow-xl"
               >
                 JOIN AUCTION
               </button>
@@ -1024,44 +974,7 @@ export default function DemoAuctionPage() {
           </motion.div>
         )}
 
-        <motion.div
-          key={dynamicArtworkStory}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex-1 min-h-0 bg-[#07152b] border border-white/10 text-white rounded-[24px] p-4 shadow-xl overflow-hidden"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <p className="uppercase tracking-[0.25em] text-[9px] text-[#16d66d] font-black">
-              AI Auction MC
-            </p>
-
-            <div className="h-[14px] w-24 rounded-full bg-gradient-to-r from-[#16d66d] via-[#16d66d]/40 to-transparent opacity-80" />
-          </div>
-
-          <p
-            className="text-base leading-snug font-black overflow-hidden"
-            style={{
-              display: "-webkit-box",
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: "vertical",
-            }}
-          >
-            “{dynamicArtworkStory}”
-          </p>
-
-          {topBid && (
-            <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-3">
-              <p className="text-white/50 text-xs font-bold truncate">
-                Latest: {topBid.bidder_name} •{" "}
-                {formatRelativeTime(topBid.created_at)}
-              </p>
-
-              <p className="text-[#16d66d] font-black shrink-0">
-                R{topBid.amount.toLocaleString()}
-              </p>
-            </div>
-          )}
-        </motion.div>
+        <div className="flex-1 min-h-0" />
       </div>
 
       {!isSold && (
