@@ -3,65 +3,94 @@ import AdminLogoutButton from "@/components/AdminLogoutButton";
 
 export default function AdminDashboardPage() {
   return (
-    <main className="min-h-screen bg-[#020b18] text-white overflow-x-hidden">
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_12%,rgba(22,214,109,0.2),transparent_28%),radial-gradient(circle_at_78%_18%,rgba(255,200,87,0.13),transparent_26%),linear-gradient(135deg,#061124_0%,#020b18_48%,#121823_100%)]" />
-      <div className="fixed inset-0 pointer-events-none opacity-[0.11] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:72px_72px]" />
+    <main className="h-screen bg-[#020b18] text-white overflow-hidden">
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            .bragwall-admin-scroll {
+              scrollbar-width: thin;
+              scrollbar-color: rgba(255,255,255,0.18) transparent;
+            }
 
-      <section className="relative min-h-screen p-4 lg:p-5">
-        <div className="min-h-[calc(100vh-40px)] rounded-[32px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.65)] overflow-hidden">
-          <div className="grid xl:grid-cols-[250px_1fr] min-h-[calc(100vh-40px)]">
-            <aside className="border-b xl:border-b-0 xl:border-r border-white/10 bg-[#061124]/88 backdrop-blur-2xl p-5">
-              <div className="bg-white rounded-[18px] p-4 shadow-2xl mb-6">
+            .bragwall-admin-scroll::-webkit-scrollbar {
+              width: 8px;
+            }
+
+            .bragwall-admin-scroll::-webkit-scrollbar-track {
+              background: transparent;
+            }
+
+            .bragwall-admin-scroll::-webkit-scrollbar-thumb {
+              background: rgba(255,255,255,0.16);
+              border-radius: 999px;
+            }
+
+            .bragwall-admin-scroll::-webkit-scrollbar-thumb:hover {
+              background: rgba(255,255,255,0.26);
+            }
+          `,
+        }}
+      />
+
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_14%,rgba(22,214,109,0.22),transparent_29%),radial-gradient(circle_at_78%_18%,rgba(255,200,87,0.14),transparent_28%),linear-gradient(135deg,#061124_0%,#020b18_48%,#111827_100%)]" />
+
+      <div className="fixed inset-0 pointer-events-none opacity-[0.105] bg-[linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:72px_72px]" />
+
+      <section className="relative h-screen p-3.5">
+        <div className="h-full rounded-[30px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.72)] overflow-hidden">
+          <div className="grid h-full grid-cols-[248px_1fr]">
+            <aside className="h-full border-r border-white/10 bg-[#061124]/92 backdrop-blur-2xl p-4 flex flex-col">
+              <div className="rounded-[18px] bg-white p-3.5 shadow-2xl mb-5">
                 <img
                   src="/bragwall-logo.png"
                   alt="BragWall"
                   className="w-full h-auto object-contain"
                 />
 
-                <p className="mt-3 text-center uppercase tracking-[0.45em] text-[9px] text-slate-400 font-black">
+                <p className="mt-2.5 text-center uppercase tracking-[0.42em] text-[8px] text-slate-400 font-black">
                   Young Art • Big Pride
                 </p>
               </div>
 
-              <nav className="space-y-3">
-                <AdminNavLink
+              <nav className="space-y-2.5">
+                <SidebarLink
                   href="/admin"
                   label="Dashboard"
                   icon={<HomeIcon />}
                   active
                   tone="green"
                 />
-                <AdminNavLink
+                <SidebarLink
                   href="/admin/live"
                   label="Live Room"
                   icon={<GavelIcon />}
                   tone="yellow"
                 />
-                <AdminNavLink
+                <SidebarLink
                   href="/admin/artworks"
                   label="Artwork Upload"
                   icon={<PaletteIcon />}
                   tone="purple"
                 />
-                <AdminNavLink
+                <SidebarLink
                   href="/admin/school"
                   label="School Profile"
                   icon={<SchoolIcon />}
                   tone="blue"
                 />
-                <AdminNavLink
+                <SidebarLink
                   href="/admin/events/new"
                   label="New Event"
                   icon={<CalendarIcon />}
                   tone="white"
                 />
-                <AdminNavLink
+                <SidebarLink
                   href="/admin/sales"
                   label="Sales Records"
                   icon={<CardIcon />}
                   tone="blue"
                 />
-                <AdminNavLink
+                <SidebarLink
                   href="/auction/demo"
                   label="Parent View"
                   icon={<PeopleIcon />}
@@ -69,62 +98,62 @@ export default function AdminDashboardPage() {
                 />
               </nav>
 
-              <div className="mt-6 rounded-[22px] bg-white/[0.045] border border-white/12 p-5 shadow-xl">
-                <p className="uppercase tracking-[0.35em] text-[9px] text-white/45 font-black mb-3">
+              <div className="mt-auto rounded-[20px] border border-white/12 bg-white/[0.045] p-4 shadow-xl">
+                <p className="uppercase tracking-[0.34em] text-[8px] text-white/45 font-black mb-3">
                   Admin Mode
                 </p>
 
-                <p className="text-3xl font-black text-[#16d66d] leading-none">
+                <p className="text-[28px] font-black text-[#16d66d] leading-none">
                   LIVE
                 </p>
 
-                <p className="text-white/62 text-sm font-medium mt-3 leading-relaxed">
+                <p className="text-white/62 text-[13px] font-medium mt-2.5 leading-relaxed">
                   BragWall event control centre
                 </p>
               </div>
 
-              <div className="mt-5">
+              <div className="mt-4">
                 <AdminLogoutButton />
               </div>
             </aside>
 
-            <section className="min-w-0">
-              <div className="px-6 lg:px-9 pt-7 lg:pt-9 pb-6 border-b border-white/10 bg-[#020b18]/42 backdrop-blur-xl">
-                <div className="flex flex-col 2xl:flex-row 2xl:items-center 2xl:justify-between gap-6">
+            <section className="h-full overflow-y-auto bragwall-admin-scroll">
+              <div className="px-7 pt-6 pb-5">
+                <div className="flex items-start justify-between gap-8">
                   <div>
-                    <div className="inline-flex items-center gap-3 rounded-full bg-white/10 border border-white/12 px-5 py-2.5 mb-5 shadow-xl">
-                      <span className="h-3 w-3 rounded-full bg-[#16d66d] shadow-[0_0_18px_rgba(22,214,109,0.9)]" />
-                      <span className="uppercase tracking-[0.35em] text-[9px] font-black text-white/72">
+                    <div className="inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/10 px-5 py-2 shadow-xl mb-4">
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#16d66d] shadow-[0_0_18px_rgba(22,214,109,0.9)]" />
+                      <span className="uppercase tracking-[0.35em] text-[8px] font-black text-white/72">
                         BragWall Admin
                       </span>
                     </div>
 
-                    <h1 className="text-5xl lg:text-[64px] font-black leading-[0.88] tracking-[-0.06em]">
+                    <h1 className="text-[54px] font-black leading-[0.9] tracking-[-0.065em]">
                       Your <span className="text-[#16d66d]">auction</span>{" "}
                       command centre.
                     </h1>
 
-                    <p className="text-white/72 text-base lg:text-lg font-medium mt-4 max-w-4xl leading-relaxed">
+                    <p className="max-w-4xl text-white/72 text-base leading-relaxed font-medium mt-3">
                       Prepare school artwork, run the live auction, track bids,
                       capture winners, and manage the event from one premium
                       control room.
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 min-w-full 2xl:min-w-[560px]">
-                    <MetricCard
+                  <div className="grid grid-cols-3 gap-3.5 min-w-[470px] pt-4">
+                    <StatusCard
                       label="Auction"
                       value="Demo"
                       icon={<CalendarIcon />}
                       tone="white"
                     />
-                    <MetricCard
+                    <StatusCard
                       label="Status"
                       value="Ready"
                       icon={<CheckCircleIcon />}
                       tone="green"
                     />
-                    <MetricCard
+                    <StatusCard
                       label="Mode"
                       value="Live"
                       icon={<BroadcastIcon />}
@@ -134,26 +163,26 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="p-5 lg:p-7 space-y-5">
-                <section className="rounded-[32px] bg-white/[0.045] border border-white/10 p-4 lg:p-5 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
-                  <div className="grid xl:grid-cols-[1fr_310px] gap-5">
-                    <div className="rounded-[30px] bg-[#061124]/94 border border-white/12 p-6 lg:p-7 shadow-2xl">
-                      <p className="uppercase tracking-[0.35em] text-[9px] text-[#16d66d] font-black mb-4">
+              <div className="px-7 pb-7">
+                <div className="rounded-[30px] border border-white/10 bg-white/[0.045] p-4.5 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
+                  <div className="grid grid-cols-[1fr_306px] gap-4.5">
+                    <div className="rounded-[28px] border border-white/12 bg-[#061124]/95 p-6 shadow-2xl">
+                      <p className="uppercase tracking-[0.35em] text-[8px] text-[#16d66d] font-black mb-3.5">
                         Event Workflow
                       </p>
 
-                      <h2 className="text-4xl lg:text-[46px] font-black leading-[0.95] tracking-[-0.045em] mb-4">
+                      <h2 className="text-[41px] font-black leading-[0.95] tracking-[-0.05em] mb-3.5">
                         From upload to{" "}
                         <span className="text-[#16d66d]">SOLD.</span>
                       </h2>
 
-                      <p className="text-white/68 text-base lg:text-lg font-medium leading-relaxed max-w-4xl mb-6">
+                      <p className="text-white/68 text-base font-medium leading-relaxed max-w-4xl mb-5.5">
                         Start by loading artwork into the studio, then open the
                         live room to control bidding, SOLD moments, and parent
                         follow-up.
                       </p>
 
-                      <div className="grid lg:grid-cols-3 gap-5 items-stretch">
+                      <div className="grid grid-cols-3 gap-4.5">
                         <WorkflowCard
                           number="01"
                           title="Upload"
@@ -178,24 +207,24 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <div className="rounded-[30px] bg-[#061124]/94 border border-[#ffc857]/35 p-5 shadow-2xl flex flex-col">
-                      <div className="text-center rounded-[26px] bg-[radial-gradient(circle_at_top,rgba(255,200,87,0.18),transparent_46%),#020b18] border border-[#ffc857]/35 p-6 mb-4 shadow-[0_0_45px_rgba(255,200,87,0.1)]">
-                        <div className="mx-auto mb-5 h-24 w-24 rounded-full border border-[#c678ff]/55 bg-[#c678ff]/10 text-[#f2c8ff] flex items-center justify-center">
+                    <div className="rounded-[28px] border border-[#ffc857]/38 bg-[#061124]/95 p-4.5 shadow-2xl flex flex-col">
+                      <div className="flex-1 rounded-[24px] border border-[#ffc857]/35 bg-[radial-gradient(circle_at_top,rgba(255,200,87,0.2),transparent_49%),#020b18] p-5 flex flex-col items-center justify-center text-center shadow-[0_0_45px_rgba(255,200,87,0.12)]">
+                        <div className="mb-5 h-[92px] w-[92px] rounded-full border border-[#d36cff]/65 bg-[#d36cff]/12 text-[#f2c8ff] flex items-center justify-center shadow-[0_0_36px_rgba(211,108,255,0.17)]">
                           <LargeGavelIcon />
                         </div>
 
-                        <p className="text-[#ffc857] text-5xl font-black leading-none tracking-[-0.055em]">
+                        <p className="text-[#ffc857] text-[49px] font-black leading-none tracking-[-0.065em] drop-shadow-[0_0_16px_rgba(255,200,87,0.18)]">
                           READY
                         </p>
 
-                        <p className="text-white/70 font-medium mt-4">
+                        <p className="text-white/70 text-sm font-medium mt-4">
                           Auction cockpit standing by
                         </p>
                       </div>
 
                       <a
                         href="/admin/live"
-                        className="rounded-[18px] bg-[#16d66d] text-[#07152b] px-5 py-4 text-center text-base font-black shadow-[0_18px_45px_rgba(22,214,109,0.28)] hover:scale-[1.02] transition mb-3"
+                        className="mt-3.5 rounded-[17px] bg-[#16d66d] text-[#07152b] px-5 py-3.5 text-center text-[15px] font-black shadow-[0_18px_45px_rgba(22,214,109,0.28)] hover:scale-[1.02] transition"
                       >
                         <span className="inline-flex align-middle mr-3">
                           <HomeIcon />
@@ -205,7 +234,7 @@ export default function AdminDashboardPage() {
 
                       <a
                         href="/auction/demo"
-                        className="rounded-[18px] bg-white text-[#07152b] px-5 py-4 text-center text-base font-black shadow-xl hover:scale-[1.02] transition"
+                        className="mt-2.5 rounded-[17px] bg-white text-[#07152b] px-5 py-3.5 text-center text-[15px] font-black shadow-xl hover:scale-[1.02] transition"
                       >
                         <span className="inline-flex align-middle mr-3">
                           <HomeIcon />
@@ -214,9 +243,9 @@ export default function AdminDashboardPage() {
                       </a>
                     </div>
                   </div>
-                </section>
+                </div>
 
-                <section className="grid md:grid-cols-2 xl:grid-cols-4 gap-5">
+                <div className="mt-4.5 grid grid-cols-4 gap-4.5">
                   <DashboardTile
                     href="/admin/artworks"
                     icon={<PaletteIcon />}
@@ -252,7 +281,7 @@ export default function AdminDashboardPage() {
                     action="Edit Profile"
                     tone="purple"
                   />
-                </section>
+                </div>
               </div>
             </section>
           </div>
@@ -262,7 +291,7 @@ export default function AdminDashboardPage() {
   );
 }
 
-function AdminNavLink({
+function SidebarLink({
   href,
   label,
   icon,
@@ -273,20 +302,18 @@ function AdminNavLink({
   label: string;
   icon: ReactNode;
   active?: boolean;
-  tone: "green" | "yellow" | "blue" | "purple" | "white";
+  tone: Tone;
 }) {
-  const toneClass = getToneText(tone);
-
   return (
     <a
       href={href}
-      className={`flex items-center gap-4 rounded-[16px] px-4 py-3.5 font-black transition border text-sm ${
+      className={`flex items-center gap-3.5 rounded-[15px] px-3.5 py-3.5 text-[13px] font-black transition border ${
         active
-          ? "bg-[#16d66d]/22 text-white border-[#16d66d]/75 shadow-[0_0_30px_rgba(22,214,109,0.18)]"
+          ? "bg-[#16d66d]/24 text-white border-[#16d66d]/75 shadow-[0_0_30px_rgba(22,214,109,0.2)]"
           : "bg-white/[0.045] text-white/76 border-white/10 hover:bg-white/10 hover:text-white"
       }`}
     >
-      <span className={`h-6 w-6 flex items-center justify-center ${toneClass}`}>
+      <span className={`h-5.5 w-5.5 flex items-center justify-center ${toneText(tone)}`}>
         {icon}
       </span>
       <span>{label}</span>
@@ -294,7 +321,7 @@ function AdminNavLink({
   );
 }
 
-function MetricCard({
+function StatusCard({
   label,
   value,
   icon,
@@ -303,22 +330,20 @@ function MetricCard({
   label: string;
   value: string;
   icon: ReactNode;
-  tone: "green" | "yellow" | "white";
+  tone: Tone;
 }) {
-  const textClass = getToneText(tone);
-
   return (
-    <div className="rounded-[22px] bg-white/[0.055] border border-white/12 p-4 shadow-xl flex items-center gap-4">
-      <div className={`h-11 w-11 flex items-center justify-center ${textClass}`}>
+    <div className="rounded-[20px] bg-white/[0.06] border border-white/12 p-4 shadow-xl flex items-center gap-3.5">
+      <div className={`h-10 w-10 flex items-center justify-center ${toneText(tone)}`}>
         {icon}
       </div>
 
       <div>
-        <p className="uppercase tracking-[0.28em] text-[9px] text-white/48 font-black mb-2">
+        <p className="uppercase tracking-[0.28em] text-[8px] text-white/48 font-black mb-1.5">
           {label}
         </p>
 
-        <p className={`text-2xl font-black leading-none ${textClass}`}>
+        <p className={`text-[22px] font-black leading-none ${toneText(tone)}`}>
           {value}
         </p>
       </div>
@@ -337,25 +362,26 @@ function WorkflowCard({
   title: string;
   text: string;
   icon: ReactNode;
-  tone: "green" | "yellow" | "blue";
+  tone: Tone;
 }) {
-  const textClass = getToneText(tone);
-  const borderClass = getToneBorder(tone);
-
   return (
-    <div className="rounded-[24px] bg-white/[0.045] border border-white/10 p-5 min-h-[190px] overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="rounded-[22px] bg-white/[0.05] border border-white/10 p-4.5 min-h-[170px] shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]">
       <div
-        className={`mb-4 h-18 w-18 rounded-full border ${borderClass} ${textClass} bg-[#020b18]/45 flex items-center justify-center`}
+        className={`mb-3.5 h-[66px] w-[66px] rounded-full border ${toneBorder(
+          tone
+        )} ${toneText(tone)} bg-[#020b18]/45 flex items-center justify-center shadow-[0_0_24px_rgba(0,0,0,0.18)]`}
       >
         {icon}
       </div>
 
-      <div className="flex items-end gap-3 mb-3">
-        <p className={`text-3xl font-black ${textClass}`}>{number}</p>
-        <h3 className="text-2xl font-black leading-none">{title}</h3>
+      <div className="flex items-end gap-3 mb-2.5">
+        <p className={`text-[28px] font-black leading-none ${toneText(tone)}`}>
+          {number}
+        </p>
+        <h3 className="text-[22px] font-black leading-none">{title}</h3>
       </div>
 
-      <p className="text-white/62 text-sm font-medium leading-relaxed">
+      <p className="text-white/62 text-[13px] font-medium leading-relaxed">
         {text}
       </p>
     </div>
@@ -375,47 +401,49 @@ function DashboardTile({
   title: string;
   text: string;
   action: string;
-  tone: "green" | "yellow" | "blue" | "purple";
+  tone: Tone;
 }) {
-  const textClass = getToneText(tone);
-  const borderClass = getToneBorder(tone);
   const buttonClass =
     tone === "green"
-      ? "bg-[#16d66d] text-[#07152b] border-[#16d66d]"
+      ? "bg-[#16d66d] text-[#07152b] border-[#16d66d] shadow-[0_14px_35px_rgba(22,214,109,0.2)]"
       : tone === "yellow"
-      ? "bg-[#ffc857] text-[#07152b] border-[#ffc857]"
+      ? "bg-[#ffc857] text-[#07152b] border-[#ffc857] shadow-[0_14px_35px_rgba(255,200,87,0.18)]"
       : "bg-white/[0.08] text-white border-white/15 group-hover:bg-white group-hover:text-[#07152b]";
 
   return (
     <a
       href={href}
-      className="group rounded-[28px] bg-[#061124]/94 border border-white/10 p-5 shadow-2xl hover:-translate-y-1 hover:bg-[#071b38] transition min-h-[275px] flex flex-col"
+      className="group rounded-[26px] bg-[#061124]/95 border border-white/10 p-4.5 shadow-2xl hover:-translate-y-1 hover:bg-[#071b38] transition min-h-[248px] flex flex-col"
     >
       <div
-        className={`h-20 w-20 rounded-full border ${borderClass} ${textClass} bg-[#020b18]/45 flex items-center justify-center mb-6 shadow-xl`}
+        className={`h-[70px] w-[70px] rounded-full border ${toneBorder(
+          tone
+        )} ${toneText(tone)} bg-[#020b18]/45 flex items-center justify-center mb-5 shadow-xl`}
       >
         {icon}
       </div>
 
-      <h3 className="text-3xl font-black leading-none tracking-[-0.04em] mb-3">
+      <h3 className="text-[25px] font-black leading-none tracking-[-0.04em] mb-3">
         {title}
       </h3>
 
-      <p className="text-white/68 text-base font-medium leading-relaxed mb-6">
+      <p className="text-white/68 text-sm font-medium leading-relaxed mb-5">
         {text}
       </p>
 
       <div
-        className={`mt-auto rounded-[16px] px-5 py-3.5 text-center font-black border transition ${buttonClass}`}
+        className={`mt-auto rounded-[15px] px-4 py-3 text-center text-[14px] font-black border transition ${buttonClass}`}
       >
-        <span className="inline-flex align-middle mr-3">{icon}</span>
+        <span className="inline-flex align-middle mr-2.5">{icon}</span>
         {action}
       </div>
     </a>
   );
 }
 
-function getToneText(tone: string) {
+type Tone = "green" | "yellow" | "blue" | "purple" | "white";
+
+function toneText(tone: Tone) {
   if (tone === "green") return "text-[#16d66d]";
   if (tone === "yellow") return "text-[#ffc857]";
   if (tone === "blue") return "text-[#4b9cff]";
@@ -423,7 +451,7 @@ function getToneText(tone: string) {
   return "text-white";
 }
 
-function getToneBorder(tone: string) {
+function toneBorder(tone: Tone) {
   if (tone === "green") return "border-[#16d66d]/60";
   if (tone === "yellow") return "border-[#ffc857]/70";
   if (tone === "blue") return "border-[#4b9cff]/60";
@@ -443,10 +471,10 @@ function IconSvg({
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2.1"
+      strokeWidth="2.15"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={large ? "h-12 w-12" : "h-6 w-6"}
+      className={large ? "h-12 w-12" : "h-5.5 w-5.5"}
     >
       {children}
     </svg>
