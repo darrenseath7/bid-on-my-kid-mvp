@@ -42,9 +42,6 @@ const SILENCE_BEFORE_GOING_ONCE_SECONDS = 8;
 const GOING_ONCE_SECONDS = 3;
 const GOING_TWICE_SECONDS = 3;
 
-const WELCOME_VOICE_TEXT =
-  "Welcome to BragWall. Tonight we are turning school artwork into a live fundraising event with proud parents, dangerous grandparents, competitive uncles, and masterpieces that deserve prime fridge-door real estate.";
-
 export default function DemoAuctionPage() {
   const [auction, setAuction] = useState<AuctionState | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
@@ -137,45 +134,26 @@ export default function DemoAuctionPage() {
         welcomeAudioRef.current = null;
       }
 
-      const response = await fetch("/api/welcome-voice", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          text: WELCOME_VOICE_TEXT,
-        }),
-      });
-
-      if (!response.ok) {
-        const result = await response.json().catch(() => null);
-        alert(result?.error || "Could not generate welcome voice.");
-        setWelcomeVoiceLoading(false);
-        return;
-      }
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
+      const audio = new Audio("/sounds/welcome-mc.wav");
 
       welcomeAudioRef.current = audio;
-      audio.volume = 0.9;
+      audio.volume = 0.95;
 
       audio.onplay = () => {
         setWelcomeVoicePlaying(true);
+        setWelcomeVoiceLoading(false);
       };
 
       audio.onended = () => {
         setWelcomeVoicePlaying(false);
-        URL.revokeObjectURL(audioUrl);
       };
 
       audio.onerror = () => {
+        setWelcomeVoiceLoading(false);
         setWelcomeVoicePlaying(false);
-        URL.revokeObjectURL(audioUrl);
+        alert("Could not play welcome voice.");
       };
 
-      setWelcomeVoiceLoading(false);
       await audio.play();
     } catch (error) {
       setWelcomeVoiceLoading(false);
@@ -631,7 +609,7 @@ export default function DemoAuctionPage() {
               className="w-full bg-[#16d66d] text-[#07152b] rounded-[24px] py-4 font-black text-lg shadow-xl mb-5 disabled:opacity-50"
             >
               {welcomeVoiceLoading
-                ? "Creating Welcome Voice..."
+                ? "Loading Welcome Voice..."
                 : welcomeVoicePlaying
                 ? "Playing Welcome..."
                 : "▶ Play Welcome Voice"}
@@ -1123,13 +1101,7 @@ export default function DemoAuctionPage() {
   );
 }
 
-function NextStep({
-  icon,
-  title,
-}: {
-  icon: string;
-  title: string;
-}) {
+function NextStep({ icon, title }: { icon: string; title: string }) {
   return (
     <div>
       <div className="w-16 h-16 rounded-full border border-[#ffc857] flex items-center justify-center text-3xl mx-auto mb-3">
