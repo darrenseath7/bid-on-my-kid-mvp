@@ -563,74 +563,80 @@ export default function DemoAuctionPage() {
       <main className="min-h-[100svh] bg-[#020b18] text-white overflow-y-auto">
         <div className="fixed inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_80%_15%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_62%,#010712)]" />
 
-        <div className="relative max-w-sm mx-auto min-h-[100svh] px-4 py-2.5 flex flex-col">
-          <div className="bg-white rounded-[22px] px-4 py-2.5 mb-2.5 flex justify-center shadow-2xl shrink-0">
-            <img
-              src="/bragwall-logo.png"
-              alt="BragWall"
-              className="h-12 w-auto object-contain"
-            />
-          </div>
+        <div className="relative max-w-[390px] mx-auto min-h-[100svh] px-4 py-4 flex items-start justify-center">
+          <div className="w-full rounded-[34px] p-[10px] bg-[linear-gradient(135deg,#251308,#6b3514_18%,#1a0d05_38%,#8b4a1d_62%,#2a1308_82%,#0f0703)] shadow-[0_28px_85px_rgba(0,0,0,0.7),0_0_38px_rgba(255,200,87,0.18)] border border-[#9b5d24]">
+            <div className="rounded-[28px] p-[5px] bg-[linear-gradient(135deg,#4d250c,#f5cf74_22%,#8a551d_48%,#fff0b8_72%,#4a230b)] shadow-[inset_0_0_22px_rgba(0,0,0,0.55)]">
+              <div className="rounded-[24px] bg-[#f4ead8] p-3 shadow-[inset_0_0_32px_rgba(73,38,10,0.18)]">
+                <div className="rounded-[22px] border border-[#c6933f] bg-white p-3 shadow-[0_12px_35px_rgba(66,36,10,0.28)]">
+                  <div className="bg-white rounded-[18px] px-4 py-2 mb-2.5 flex justify-center shadow-sm border border-slate-100">
+                    <img
+                      src="/bragwall-logo.png"
+                      alt="BragWall"
+                      className="h-12 w-auto object-contain"
+                    />
+                  </div>
 
-          <div className="bg-white text-[#07152b] rounded-[28px] p-3.5 shadow-2xl border border-black/5">
-            <p className="uppercase tracking-[0.35em] text-[8px] text-[#0b63ce] font-black mb-1.5">
-              Welcome Parents
-            </p>
+                  <p className="uppercase tracking-[0.35em] text-[8px] text-[#0b63ce] font-black mb-1.5">
+                    Welcome Parents
+                  </p>
 
-            <h1 className="text-3xl font-black leading-[0.9] mb-2.5">
-              Welcome to BragWall.
-            </h1>
+                  <h1 className="text-3xl font-black leading-[0.9] mb-2.5 text-[#07152b]">
+                    Welcome to BragWall.
+                  </h1>
 
-            <p className="text-slate-600 text-[12px] leading-relaxed mb-2.5 font-bold">
-              Tonight we are turning school artwork into a live fundraising
-              event — with proud parents, dangerous grandparents, competitive
-              uncles, and masterpieces that deserve prime fridge-door real
-              estate.
-            </p>
+                  <p className="text-slate-600 text-[12px] leading-relaxed mb-2.5 font-bold">
+                    Tonight we are turning school artwork into a live fundraising
+                    event — with proud parents, dangerous grandparents,
+                    competitive uncles, and masterpieces that deserve prime
+                    fridge-door real estate.
+                  </p>
 
-            <button
-              onClick={playWelcomeVoice}
-              disabled={welcomeVoiceLoading}
-              className="w-full bg-[#16d66d] text-[#07152b] rounded-[18px] py-3 font-black text-sm shadow-xl mb-2.5 disabled:opacity-50"
-            >
-              {welcomeVoiceLoading
-                ? "Loading Welcome Voice..."
-                : welcomeVoicePlaying
-                ? "Playing Welcome..."
-                : "▶ Play Welcome Voice"}
-            </button>
+                  <button
+                    onClick={playWelcomeVoice}
+                    disabled={welcomeVoiceLoading}
+                    className="w-full bg-[#16d66d] text-[#07152b] rounded-[18px] py-3 font-black text-sm shadow-xl mb-2.5 disabled:opacity-50"
+                  >
+                    {welcomeVoiceLoading
+                      ? "Loading Welcome Voice..."
+                      : welcomeVoicePlaying
+                      ? "Playing Welcome..."
+                      : "▶ Play Welcome Voice"}
+                  </button>
 
-            <div className="bg-[#f7f5f0] rounded-[20px] p-3 mb-2.5">
-              <p className="uppercase tracking-[0.3em] text-[7px] text-slate-400 font-black mb-1.5">
-                How Tonight Works
-              </p>
+                  <div className="bg-[#f7f5f0] rounded-[20px] p-3 mb-2.5">
+                    <p className="uppercase tracking-[0.3em] text-[7px] text-slate-400 font-black mb-1.5">
+                      How Tonight Works
+                    </p>
 
-              <div className="space-y-1 text-slate-600 text-[11px] font-bold leading-relaxed">
-                <p>1. Enter your bidder name.</p>
-                <p>2. Watch each artwork go live.</p>
-                <p>3. Bid when the next amount appears.</p>
-                <p>4. Winners enter email for invoice and certificate.</p>
+                    <div className="space-y-1 text-slate-600 text-[11px] font-bold leading-relaxed">
+                      <p>1. Enter your bidder name.</p>
+                      <p>2. Watch each artwork go live.</p>
+                      <p>3. Bid when the next amount appears.</p>
+                      <p>4. Winners enter email for invoice and certificate.</p>
+                    </div>
+                  </div>
+
+                  <input
+                    value={bidderName}
+                    onChange={(event) => setBidderName(event.target.value)}
+                    placeholder="Your bidder name"
+                    className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm mb-2.5 outline-none text-[#07152b]"
+                  />
+
+                  <button
+                    onClick={() => {
+                      if (bidderName.trim()) {
+                        audioUnlockedRef.current = true;
+                        setJoined(true);
+                      }
+                    }}
+                    className="w-full bg-[#07152b] text-white rounded-2xl py-3.5 font-black text-base shadow-xl"
+                  >
+                    JOIN AUCTION
+                  </button>
+                </div>
               </div>
             </div>
-
-            <input
-              value={bidderName}
-              onChange={(event) => setBidderName(event.target.value)}
-              placeholder="Your bidder name"
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm mb-2.5 outline-none"
-            />
-
-            <button
-              onClick={() => {
-                if (bidderName.trim()) {
-                  audioUnlockedRef.current = true;
-                  setJoined(true);
-                }
-              }}
-              className="w-full bg-[#07152b] text-white rounded-2xl py-3.5 font-black text-base shadow-xl"
-            >
-              JOIN AUCTION
-            </button>
           </div>
         </div>
       </main>
