@@ -46,10 +46,12 @@ export default function DemoAuctionPage() {
   const [winnerEmail, setWinnerEmail] = useState("");
   const [submittingEmail, setSubmittingEmail] = useState(false);
   const [emailSubmittedLocally, setEmailSubmittedLocally] = useState(false);
+  const [waitingForNextArtwork, setWaitingForNextArtwork] = useState(false);
   const [welcomeVoiceLoading, setWelcomeVoiceLoading] = useState(false);
   const [welcomeVoicePlaying, setWelcomeVoicePlaying] = useState(false);
 
   const previousStatusRef = useRef<string | null>(null);
+  const previousArtworkKeyRef = useRef("");
   const audioUnlockedRef = useRef(false);
   const autoActionKeyRef = useRef("");
   const welcomeAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -73,7 +75,9 @@ export default function DemoAuctionPage() {
     Boolean(auction?.winner_email) || emailSubmittedLocally;
 
   const shouldShowSoldOverlay =
-    isSold && !(isWinningBidder && winnerEmailAlreadySubmitted);
+    isSold &&
+    !waitingForNextArtwork &&
+    !(isWinningBidder && winnerEmailAlreadySubmitted);
 
   const canBid = Boolean(
     auction &&
@@ -83,6 +87,10 @@ export default function DemoAuctionPage() {
       !isBidPaused &&
       !biddingNow
   );
+
+  const currentArtworkKey = `${auction?.child_name || ""}-${
+    auction?.child_surname || ""
+  }-${auction?.grade || ""}-${auction?.artwork_url || ""}`;
 
   function playSound(src: string) {
     if (!audioUnlockedRef.current) return;
@@ -207,6 +215,24 @@ export default function DemoAuctionPage() {
       supabase.removeChannel(bidsDeleteChannel);
     };
   }, []);
+
+  useEffect(() => {
+    if (!auction) return;
+
+    const artworkChanged =
+      previousArtworkKeyRef.current &&
+      previousArtworkKeyRef.current !== currentArtworkKey;
+
+    if (artworkChanged || auction.status !== "sold") {
+      setWaitingForNextArtwork(false);
+      setEmailSubmittedLocally(false);
+      setWinnerEmail("");
+    }
+
+    if (currentArtworkKey) {
+      previousArtworkKeyRef.current = currentArtworkKey;
+    }
+  }, [auction?.status, currentArtworkKey]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -528,6 +554,7 @@ export default function DemoAuctionPage() {
     );
 
     setEmailSubmittedLocally(true);
+    setWaitingForNextArtwork(true);
     setSubmittingEmail(false);
   }
 
@@ -618,7 +645,7 @@ export default function DemoAuctionPage() {
     );
   }
 
-  if (isWaiting) {
+  if (isWaiting || waitingForNextArtwork) {
     return (
       <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_80%_15%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_62%,#010712)]" />
@@ -634,30 +661,31 @@ export default function DemoAuctionPage() {
 
           <div className="flex-1 bg-white/10 border border-white/10 rounded-[36px] p-7 shadow-2xl flex flex-col justify-center">
             <div className="w-20 h-20 rounded-[28px] bg-[#16d66d] text-[#07152b] flex items-center justify-center text-5xl mb-6 shadow-2xl">
-              🎨
+              {waitingForNextArtwork ? "✅" : "🎨"}
             </div>
 
             <p className="uppercase tracking-[0.35em] text-xs text-[#16d66d] font-black mb-4">
-              Parent Waiting Room
+              {waitingForNextArtwork ? "Details Saved" : "Parent Waiting Room"}
             </p>
 
-            <h1 className="text-6xl font-black leading-none mb-5">
-              You’re in.
+            <h1 className="text-5xl font-black leading-none mb-5">
+              {waitingForNextArtwork ? "You’re all set." : "You’re in."}
             </h1>
 
             <p className="text-white/70 text-lg leading-relaxed mb-6 font-bold">
-              Keep this page open. The first artwork will appear automatically
-              when the auction starts.
+              {waitingForNextArtwork
+                ? `Thanks, ${bidderName}. Your winner details have been saved. Stay here for the next artwork.`
+                : "Keep this page open. The first artwork will appear automatically when the auction starts."}
             </p>
 
             <div className="bg-[#16d66d] text-[#07152b] rounded-[26px] p-5">
               <p className="uppercase tracking-[0.3em] text-xs font-black mb-3">
-                Auction Ready
+                Waiting For Next Artwork
               </p>
 
               <p className="text-xl leading-relaxed font-black">
-                Watch the screen. The live artwork will appear when the admin
-                starts the auction.
+                The next artwork will appear automatically when the admin starts
+                it in the live room.
               </p>
             </div>
           </div>
@@ -830,19 +858,6 @@ export default function DemoAuctionPage() {
       </AnimatePresence>
 
       <div className="relative flex-1 min-h-0 max-w-md mx-auto w-full px-4 py-3 flex flex-col gap-2.5 overflow-hidden">
-        {isSold && isWinningBidder && winnerEmailAlreadySubmitted && (
-          <div className="shrink-0 bg-[#16d66d] text-[#07152b] rounded-[20px] p-3 shadow-xl">
-            <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-1">
-              Email Submitted
-            </p>
-
-            <p className="font-black text-sm leading-snug">
-              Thanks, {bidderName}. Your invoice and certificate will be
-              emailed to you.
-            </p>
-          </div>
-        )}
-
         <div className="shrink-0 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="uppercase tracking-[0.25em] text-[10px] text-[#16d66d] font-black mb-1">
