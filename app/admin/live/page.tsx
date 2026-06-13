@@ -840,8 +840,10 @@ export default function AdminLivePage() {
         }}
       />
 
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_12%,rgba(22,214,109,0.18),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(255,200,87,0.13),transparent_30%),linear-gradient(135deg,#061124_0%,#020b18_48%,#111827_100%)]" />
-      <div className="fixed inset-0 pointer-events-none opacity-[0.11] bg-[linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:72px_72px]" />
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_12%,rgba(22,214,109,0.2),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(255,200,87,0.14),transparent_30%),linear-gradient(135deg,#061124_0%,#020b18_48%,#111827_100%)]" />
+      <div className="fixed inset-0 pointer-events-none opacity-[0.055] bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center" />
+      <div className="fixed inset-0 pointer-events-none bg-[#020b18]/72" />
+      <div className="fixed inset-0 pointer-events-none opacity-[0.105] bg-[linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:72px_72px]" />
 
       <section className="relative h-screen p-3.5">
         <div className="h-full rounded-[30px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.72)] overflow-hidden">
@@ -883,7 +885,10 @@ export default function AdminLivePage() {
                 />
               </nav>
 
-              <div className="mt-auto rounded-[22px] border border-white/10 bg-[#020b18]/55 p-4 shadow-xl">
+              <div className="mt-auto rounded-[22px] border border-white/10 bg-[#020b18]/55 p-4 shadow-xl relative overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.12] bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center" />
+                <div className="absolute inset-0 bg-[#020b18]/78" />
+                <div className="relative">
                 <p className="uppercase tracking-[0.34em] text-[9px] text-white/55 font-black mb-3">
                   Auction Code
                 </p>
@@ -895,6 +900,7 @@ export default function AdminLivePage() {
                 <p className="text-white/58 text-xs font-bold mt-3 leading-relaxed">
                   Parent access: /auction/demo
                 </p>
+                </div>
               </div>
 
               <div className="mt-4">
@@ -903,60 +909,66 @@ export default function AdminLivePage() {
             </aside>
 
             <section className="h-full overflow-y-auto bragwall-live-scroll">
-              <header className="px-6 pt-6 pb-5">
-                <div className="flex items-start justify-between gap-8">
-                  <div>
-                    <div className="inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/10 px-5 py-2 shadow-xl mb-4">
-                      <span
-                        className={`h-2.5 w-2.5 rounded-full ${
-                          isLive
-                            ? "bg-[#16d66d] shadow-[0_0_18px_rgba(22,214,109,0.9)]"
-                            : "bg-[#ffc857] shadow-[0_0_18px_rgba(255,200,87,0.7)]"
-                        }`}
-                      />
-                      <span className="uppercase tracking-[0.35em] text-[9px] font-black text-white/72">
-                        Auction Cockpit
-                      </span>
+              <header className="px-6 pt-5 pb-4">
+                <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[#061124]/86 p-5.5 shadow-[0_28px_85px_rgba(0,0,0,0.42)]">
+                  <div className="absolute inset-0 pointer-events-none opacity-[0.11] bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center" />
+                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#061124] via-[#061124]/92 to-[#061124]/74" />
+                  <div className="absolute right-0 top-0 h-full w-[42%] pointer-events-none bg-[radial-gradient(circle_at_72%_24%,rgba(255,200,87,0.16),transparent_34%),radial-gradient(circle_at_55%_70%,rgba(22,214,109,0.16),transparent_36%)]" />
+
+                  <div className="relative flex items-start justify-between gap-8">
+                    <div>
+                      <div className="inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/10 px-5 py-2 shadow-xl mb-4">
+                        <span
+                          className={`h-2.5 w-2.5 rounded-full ${
+                            isLive
+                              ? "bg-[#16d66d] shadow-[0_0_18px_rgba(22,214,109,0.9)]"
+                              : "bg-[#ffc857] shadow-[0_0_18px_rgba(255,200,87,0.7)]"
+                          }`}
+                        />
+                        <span className="uppercase tracking-[0.35em] text-[9px] font-black text-white/72">
+                          BragWall Live Room
+                        </span>
+                      </div>
+
+                      <h1 className="text-[54px] font-black leading-[0.9] tracking-[-0.065em]">
+                        Live <span className="text-[#16d66d]">control</span>{" "}
+                        room.
+                      </h1>
+
+                      <p className="max-w-4xl text-white/72 text-base leading-relaxed font-medium mt-3">
+                        Run artwork intros, bidding rhythm, SOLD moments, and
+                        the parent screen from one polished BragWall cockpit.
+                      </p>
                     </div>
 
-                    <h1 className="text-[56px] font-black leading-[0.9] tracking-[-0.065em]">
-                      Live <span className="text-[#16d66d]">control</span>{" "}
-                      room.
-                    </h1>
-
-                    <p className="max-w-4xl text-white/72 text-base leading-relaxed font-medium mt-3">
-                      Run the artwork stage, bidding rhythm, SOLD moments, and
-                      parent screen from one premium BragWall cockpit.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-4 gap-3.5 min-w-[690px] pt-5">
-                    <TopMetric
-                      label="Status"
-                      value={formatStatus(statusLabel)}
-                      icon={<ClockIcon />}
-                      tone="purple"
-                    />
-                    <TopMetric
-                      label="Current Bid"
-                      value={`R${Number(
-                        auction?.current_bid || 0
-                      ).toLocaleString()}`}
-                      icon={<MoneyIcon />}
-                      tone="green"
-                    />
-                    <TopMetric
-                      label="Bid Step"
-                      value={`R${bidIncrement.toLocaleString()}`}
-                      icon={<ArrowUpIcon />}
-                      tone="yellow"
-                    />
-                    <TopMetric
-                      label="Bidders"
-                      value={`${uniqueBidderCount}`}
-                      icon={<PeopleIcon />}
-                      tone="blue"
-                    />
+                    <div className="grid grid-cols-4 gap-3.5 min-w-[690px] pt-3">
+                      <TopMetric
+                        label="Status"
+                        value={formatStatus(statusLabel)}
+                        icon={<ClockIcon />}
+                        tone="purple"
+                      />
+                      <TopMetric
+                        label="Current Bid"
+                        value={`R${Number(
+                          auction?.current_bid || 0
+                        ).toLocaleString()}`}
+                        icon={<MoneyIcon />}
+                        tone="green"
+                      />
+                      <TopMetric
+                        label="Bid Step"
+                        value={`R${bidIncrement.toLocaleString()}`}
+                        icon={<ArrowUpIcon />}
+                        tone="yellow"
+                      />
+                      <TopMetric
+                        label="Bidders"
+                        value={`${uniqueBidderCount}`}
+                        icon={<PeopleIcon />}
+                        tone="blue"
+                      />
+                    </div>
                   </div>
                 </div>
               </header>
@@ -1014,7 +1026,10 @@ export default function AdminLivePage() {
                           </div>
                         </div>
 
-                        <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-4 shadow-2xl flex flex-col">
+                        <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-4 shadow-2xl flex flex-col relative overflow-hidden">
+                          <div className="absolute inset-0 pointer-events-none opacity-[0.08] bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center" />
+                          <div className="absolute inset-0 pointer-events-none bg-[#061124]/78" />
+                          <div className="relative flex flex-col h-full">
                           <div className="rounded-[24px] border border-[#ffc857]/32 bg-[radial-gradient(circle_at_top,rgba(211,108,255,0.24),transparent_36%),#020b18] p-5 text-center shadow-[0_0_45px_rgba(211,108,255,0.08)]">
                             <div className="mx-auto mb-4 h-[86px] w-[86px] rounded-[24px] border border-[#d36cff]/45 bg-[#d36cff]/12 text-[#f2c8ff] flex items-center justify-center shadow-[0_0_36px_rgba(211,108,255,0.18)]">
                               <LargeGavelIcon />
@@ -1083,6 +1098,7 @@ export default function AdminLivePage() {
                               label="Bidders"
                               value={`${uniqueBidderCount}`}
                             />
+                          </div>
                           </div>
                         </div>
                       </div>
@@ -1708,9 +1724,9 @@ function WhiteDataCard({
 
 function SmallInfo({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[20px] bg-white/[0.065] border border-white/12 px-4 py-3.5 text-left shadow-xl min-h-[76px] flex items-center justify-between gap-3">
+    <div className="rounded-[20px] bg-white/[0.075] border border-white/12 px-4 py-3.5 text-left shadow-xl min-h-[82px] flex items-center justify-between gap-3 hover:bg-white/[0.095] transition">
       <div className="min-w-0">
-        <p className="uppercase tracking-[0.16em] text-[8px] text-white/48 font-black mb-1.5 truncate">
+        <p className="uppercase tracking-[0.16em] text-[8px] text-white/52 font-black mb-1.5 truncate">
           {label}
         </p>
 
@@ -1719,7 +1735,7 @@ function SmallInfo({ label, value }: { label: string; value: string }) {
         </p>
       </div>
 
-      <p className="text-[34px] font-black text-white leading-none shrink-0">
+      <p className="text-[36px] font-black text-[#16d66d] leading-none shrink-0">
         {value}
       </p>
     </div>

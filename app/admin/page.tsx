@@ -3,7 +3,7 @@ import AdminLogoutButton from "@/components/AdminLogoutButton";
 
 export default function AdminDashboardPage() {
   return (
-    <main className="h-screen bg-[#020b18] text-white overflow-hidden">
+    <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -32,27 +32,18 @@ export default function AdminDashboardPage() {
         }}
       />
 
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_14%,rgba(22,214,109,0.22),transparent_29%),radial-gradient(circle_at_78%_18%,rgba(255,200,87,0.14),transparent_28%),linear-gradient(135deg,#061124_0%,#020b18_48%,#111827_100%)]" />
-
-      <div className="fixed inset-0 pointer-events-none opacity-[0.105] bg-[linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:72px_72px]" />
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.13),transparent_32%),radial-gradient(circle_at_52%_88%,rgba(11,99,206,0.14),transparent_38%),linear-gradient(180deg,#061124,#020b18_58%,#010712)]" />
+      <div className="fixed inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] bg-[size:52px_52px]" />
+      <div className="fixed inset-3 pointer-events-none rounded-[32px] border border-[#c78b25]/20 shadow-[inset_0_0_70px_rgba(199,139,37,0.07)]" />
+      <DashboardArtDecor />
 
       <section className="relative h-screen p-3.5">
         <div className="h-full rounded-[30px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.72)] overflow-hidden">
           <div className="grid h-full grid-cols-[248px_1fr]">
             <aside className="h-full border-r border-white/10 bg-[#061124]/92 backdrop-blur-2xl p-4 flex flex-col">
-              <div className="rounded-[18px] bg-white p-3.5 shadow-2xl mb-5">
-                <img
-                  src="/bragwall-logo.png"
-                  alt="BragWall"
-                  className="w-full h-auto object-contain"
-                />
+              <LogoBlock />
 
-                <p className="mt-2.5 text-center uppercase tracking-[0.42em] text-[8px] text-slate-400 font-black">
-                  Young Art • Big Pride
-                </p>
-              </div>
-
-              <nav className="space-y-2.5">
+              <nav className="space-y-2.5 mt-5">
                 <SidebarLink
                   href="/admin"
                   label="Dashboard"
@@ -81,23 +72,28 @@ export default function AdminDashboardPage() {
                 <SidebarLink
                   href="/auction/demo"
                   label="Parent View"
-                  icon={<PeopleIcon />}
+                  icon={<PhoneIcon />}
                   tone="purple"
                 />
               </nav>
 
-              <div className="mt-auto rounded-[20px] border border-white/12 bg-white/[0.045] p-4 shadow-xl">
-                <p className="uppercase tracking-[0.34em] text-[8px] text-white/45 font-black mb-3">
-                  Admin Mode
-                </p>
+              <div className="mt-auto rounded-[24px] border border-white/12 bg-white/[0.045] p-4 shadow-xl overflow-hidden relative">
+                <div className="absolute inset-0 bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center opacity-18" />
+                <div className="absolute inset-0 bg-[#020b18]/72" />
 
-                <p className="text-[28px] font-black text-[#16d66d] leading-none">
-                  LIVE
-                </p>
+                <div className="relative">
+                  <p className="uppercase tracking-[0.34em] text-[8px] text-white/55 font-black mb-3">
+                    Admin Mode
+                  </p>
 
-                <p className="text-white/62 text-[13px] font-medium mt-2.5 leading-relaxed">
-                  BragWall event control centre
-                </p>
+                  <p className="text-[31px] font-black text-[#16d66d] leading-none">
+                    READY
+                  </p>
+
+                  <p className="text-white/70 text-[13px] font-bold mt-2.5 leading-relaxed">
+                    BragWall event control centre
+                  </p>
+                </div>
               </div>
 
               <div className="mt-4">
@@ -107,125 +103,140 @@ export default function AdminDashboardPage() {
 
             <section className="h-full overflow-y-auto bragwall-admin-scroll">
               <div className="px-7 pt-6 pb-5">
-                <div className="flex items-start justify-between gap-8">
-                  <div>
-                    <div className="inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/10 px-5 py-2 shadow-xl mb-4">
-                      <span className="h-2.5 w-2.5 rounded-full bg-[#16d66d] shadow-[0_0_18px_rgba(22,214,109,0.9)]" />
-                      <span className="uppercase tracking-[0.35em] text-[8px] font-black text-white/72">
-                        BragWall Admin
-                      </span>
+                <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-[#061124]/70 p-6 shadow-[0_28px_90px_rgba(0,0,0,0.36)]">
+                  <div className="absolute inset-0 bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center opacity-25" />
+                  <div className="absolute inset-0 bg-[linear-gradient(90deg,#020b18_0%,rgba(2,11,24,0.92)_42%,rgba(2,11,24,0.68)_100%)]" />
+                  <div className="absolute right-8 top-8 h-32 w-32 rounded-full bg-[#16d66d]/16 blur-3xl" />
+                  <div className="absolute right-32 bottom-3 h-28 w-28 rounded-full bg-[#ffc857]/14 blur-3xl" />
+
+                  <div className="relative flex items-start justify-between gap-8">
+                    <div>
+                      <div className="inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/10 px-5 py-2 shadow-xl mb-4">
+                        <span className="h-2.5 w-2.5 rounded-full bg-[#16d66d] shadow-[0_0_18px_rgba(22,214,109,0.9)]" />
+                        <span className="uppercase tracking-[0.35em] text-[8px] font-black text-white/72">
+                          BragWall Admin
+                        </span>
+                      </div>
+
+                      <h1 className="text-[56px] font-black leading-[0.9] tracking-[-0.065em] max-w-4xl">
+                        Your <span className="text-[#16d66d]">auction</span>{" "}
+                        command centre.
+                      </h1>
+
+                      <p className="max-w-3xl text-white/76 text-base leading-relaxed font-semibold mt-4">
+                        Prepare artwork, run the live room, capture winners, and
+                        manage every school fundraising moment from one polished
+                        BragWall dashboard.
+                      </p>
                     </div>
 
-                    <h1 className="text-[54px] font-black leading-[0.9] tracking-[-0.065em]">
-                      Your <span className="text-[#16d66d]">auction</span>{" "}
-                      command centre.
-                    </h1>
-
-                    <p className="max-w-4xl text-white/72 text-base leading-relaxed font-medium mt-3">
-                      Prepare school artwork, run the live auction, track bids,
-                      capture winners, and manage the event from one premium
-                      control room.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3.5 min-w-[470px] pt-4">
-                    <StatusCard
-                      label="Auction"
-                      value="Demo"
-                      icon={<CalendarIcon />}
-                      tone="white"
-                    />
-                    <StatusCard
-                      label="Status"
-                      value="Ready"
-                      icon={<CheckCircleIcon />}
-                      tone="green"
-                    />
-                    <StatusCard
-                      label="Mode"
-                      value="Live"
-                      icon={<BroadcastIcon />}
-                      tone="yellow"
-                    />
+                    <div className="grid grid-cols-3 gap-3.5 min-w-[480px] pt-4">
+                      <StatusCard
+                        label="Auction"
+                        value="Demo"
+                        icon={<CalendarIcon />}
+                        tone="white"
+                      />
+                      <StatusCard
+                        label="Status"
+                        value="Ready"
+                        icon={<CheckCircleIcon />}
+                        tone="green"
+                      />
+                      <StatusCard
+                        label="Mode"
+                        value="Live"
+                        icon={<BroadcastIcon />}
+                        tone="yellow"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="px-7 pb-7">
-                <div className="rounded-[30px] border border-white/10 bg-white/[0.045] p-4.5 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
-                  <div className="grid grid-cols-[1fr_306px] gap-4.5">
-                    <div className="rounded-[28px] border border-white/12 bg-[#061124]/95 p-6 shadow-2xl">
-                      <p className="uppercase tracking-[0.35em] text-[8px] text-[#16d66d] font-black mb-3.5">
-                        Event Workflow
-                      </p>
+                <div className="rounded-[34px] border border-white/10 bg-white/[0.045] p-4.5 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
+                  <div className="grid grid-cols-[1fr_330px] gap-4.5">
+                    <div className="rounded-[30px] border border-white/12 bg-[#061124]/95 p-6 shadow-2xl overflow-hidden relative">
+                      <div className="absolute right-[-80px] top-[-80px] h-56 w-56 rounded-full bg-[#16d66d]/10 blur-3xl" />
+                      <div className="absolute right-16 bottom-[-70px] h-44 w-44 rounded-full bg-[#ffc857]/10 blur-3xl" />
 
-                      <h2 className="text-[41px] font-black leading-[0.95] tracking-[-0.05em] mb-3.5">
-                        From setup to{" "}
-                        <span className="text-[#16d66d]">SOLD.</span>
-                      </h2>
+                      <div className="relative">
+                        <p className="uppercase tracking-[0.35em] text-[8px] text-[#16d66d] font-black mb-3.5">
+                          Event Workflow
+                        </p>
 
-                      <p className="text-white/68 text-base font-medium leading-relaxed max-w-4xl mb-5.5">
-                        Start by setting up the school, banking, bid increment,
-                        and artwork queue, then open the live room to control
-                        bidding, SOLD moments, and parent follow-up.
-                      </p>
+                        <h2 className="text-[43px] font-black leading-[0.95] tracking-[-0.05em] mb-3.5">
+                          From school setup to{" "}
+                          <span className="text-[#16d66d]">SOLD.</span>
+                        </h2>
 
-                      <div className="grid grid-cols-3 gap-4.5">
-                        <WorkflowCard
-                          number="01"
-                          title="Setup"
-                          text="Add school details, banking, payment reference, bid increment, and artworks."
-                          icon={<PaletteIcon />}
-                          tone="purple"
-                        />
-                        <WorkflowCard
-                          number="02"
-                          title="Go Live"
-                          text="Start the auction room and move artworks onto the stage."
-                          icon={<BroadcastIcon />}
-                          tone="yellow"
-                        />
-                        <WorkflowCard
-                          number="03"
-                          title="Collect"
-                          text="Capture winner details for invoices, certificates, and collection."
-                          icon={<TrophyIcon />}
-                          tone="blue"
-                        />
+                        <p className="text-white/70 text-base font-semibold leading-relaxed max-w-4xl mb-5.5">
+                          Start with school details, payment references, bid
+                          increments, and artwork. Then open the live room and
+                          let parents bid from their phones.
+                        </p>
+
+                        <div className="grid grid-cols-3 gap-4.5">
+                          <WorkflowCard
+                            number="01"
+                            title="Setup"
+                            text="Add school details, banking, payment reference, bid increment, and artworks."
+                            icon={<PaletteIcon />}
+                            tone="purple"
+                          />
+                          <WorkflowCard
+                            number="02"
+                            title="Go Live"
+                            text="Start the auction room and move each artwork onto the stage."
+                            icon={<BroadcastIcon />}
+                            tone="yellow"
+                          />
+                          <WorkflowCard
+                            number="03"
+                            title="Collect"
+                            text="Capture winner details for invoices, certificates, and collection."
+                            icon={<TrophyIcon />}
+                            tone="blue"
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="rounded-[28px] border border-[#ffc857]/38 bg-[#061124]/95 p-4.5 shadow-2xl flex flex-col">
-                      <div className="flex-1 rounded-[24px] border border-[#ffc857]/35 bg-[radial-gradient(circle_at_top,rgba(255,200,87,0.2),transparent_49%),#020b18] p-5 flex flex-col items-center justify-center text-center shadow-[0_0_45px_rgba(255,200,87,0.12)]">
-                        <div className="mb-5 h-[92px] w-[92px] rounded-full border border-[#d36cff]/65 bg-[#d36cff]/12 text-[#f2c8ff] flex items-center justify-center shadow-[0_0_36px_rgba(211,108,255,0.17)]">
+                    <div className="rounded-[30px] border border-[#ffc857]/34 bg-[#061124]/95 p-4.5 shadow-2xl flex flex-col">
+                      <div className="relative flex-1 overflow-hidden rounded-[26px] border border-[#ffc857]/30 bg-[#020b18] p-5 flex flex-col items-center justify-center text-center shadow-[0_0_45px_rgba(255,200,87,0.12)]">
+                        <div className="absolute inset-0 bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center opacity-24" />
+                        <div className="absolute inset-0 bg-[#020b18]/68" />
+
+                        <div className="relative mb-5 h-[92px] w-[92px] rounded-full border border-[#d36cff]/65 bg-[#d36cff]/12 text-[#f2c8ff] flex items-center justify-center shadow-[0_0_36px_rgba(211,108,255,0.17)]">
                           <LargeGavelIcon />
                         </div>
 
-                        <p className="text-[#ffc857] text-[49px] font-black leading-none tracking-[-0.065em] drop-shadow-[0_0_16px_rgba(255,200,87,0.18)]">
+                        <p className="relative text-[#ffc857] text-[50px] font-black leading-none tracking-[-0.065em] drop-shadow-[0_0_16px_rgba(255,200,87,0.18)]">
                           READY
                         </p>
 
-                        <p className="text-white/70 text-sm font-medium mt-4">
+                        <p className="relative text-white/76 text-sm font-bold mt-4">
                           Auction cockpit standing by
                         </p>
                       </div>
 
                       <a
                         href="/admin/live"
-                        className="mt-3.5 rounded-[17px] bg-[#16d66d] text-[#07152b] px-5 py-3.5 text-center text-[15px] font-black shadow-[0_18px_45px_rgba(22,214,109,0.28)] hover:scale-[1.02] transition"
+                        className="mt-3.5 rounded-[18px] bg-[#16d66d] text-[#07152b] px-5 py-3.5 text-center text-[15px] font-black shadow-[0_18px_45px_rgba(22,214,109,0.28)] hover:scale-[1.02] transition"
                       >
                         <span className="inline-flex align-middle mr-3">
-                          <HomeIcon />
+                          <GavelIcon />
                         </span>
                         Open Live Room
                       </a>
 
                       <a
                         href="/auction/demo"
-                        className="mt-2.5 rounded-[17px] bg-white text-[#07152b] px-5 py-3.5 text-center text-[15px] font-black shadow-xl hover:scale-[1.02] transition"
+                        className="mt-2.5 rounded-[18px] bg-white text-[#07152b] px-5 py-3.5 text-center text-[15px] font-black shadow-xl hover:scale-[1.02] transition"
                       >
                         <span className="inline-flex align-middle mr-3">
-                          <HomeIcon />
+                          <PhoneIcon />
                         </span>
                         View Parent Screen
                       </a>
@@ -247,7 +258,7 @@ export default function AdminDashboardPage() {
                     href="/admin/live"
                     icon={<GavelIcon />}
                     title="Live Auction Room"
-                    text="Control the auction rhythm, bids, queue, going once, going twice, and SOLD."
+                    text="Control the auction rhythm, intros, bids, queue, going once, going twice, and SOLD."
                     action="Run Auction"
                     tone="yellow"
                   />
@@ -279,6 +290,38 @@ export default function AdminDashboardPage() {
   );
 }
 
+function LogoBlock() {
+  return (
+    <div className="rounded-[22px] bg-white p-3.5 shadow-2xl border border-white/15">
+      <img
+        src="/bragwall-logo.png"
+        alt="BragWall"
+        className="w-full h-auto object-contain"
+      />
+
+      <p className="mt-2.5 text-center uppercase tracking-[0.36em] text-[8px] text-[#07152b]/55 font-black">
+        Young Art - Big Pride
+      </p>
+    </div>
+  );
+}
+
+function DashboardArtDecor() {
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <div className="absolute left-5 right-5 top-5 hidden h-px bg-gradient-to-r from-transparent via-[#c78b25]/22 to-transparent md:block" />
+      <div className="absolute left-5 right-5 bottom-5 hidden h-px bg-gradient-to-r from-transparent via-[#16d66d]/16 to-transparent md:block" />
+      <div className="absolute -right-24 top-28 hidden h-72 w-72 rounded-full border border-[#c78b25]/10 bg-[radial-gradient(circle,rgba(255,200,87,0.10),transparent_64%)] blur-[1px] lg:block" />
+      <div className="absolute -left-24 bottom-24 hidden h-80 w-80 rounded-full border border-[#16d66d]/10 bg-[radial-gradient(circle,rgba(22,214,109,0.10),transparent_66%)] blur-[1px] lg:block" />
+      <div className="absolute left-[9%] top-[22%] h-2.5 w-2.5 rounded-full bg-[#ffc857] shadow-[0_0_22px_rgba(255,200,87,0.85)]" />
+      <div className="absolute right-[14%] top-[26%] h-2 w-2 rounded-full bg-[#16d66d] shadow-[0_0_18px_rgba(22,214,109,0.8)]" />
+      <div className="absolute right-[22%] bottom-[18%] text-[#8b7cff]/55 text-3xl font-black rotate-12">
+        ✦
+      </div>
+    </div>
+  );
+}
+
 function SidebarLink({
   href,
   label,
@@ -301,7 +344,11 @@ function SidebarLink({
           : "bg-white/[0.045] text-white/76 border-white/10 hover:bg-white/10 hover:text-white"
       }`}
     >
-      <span className={`h-5.5 w-5.5 flex items-center justify-center ${toneText(tone)}`}>
+      <span
+        className={`h-5.5 w-5.5 flex items-center justify-center ${toneText(
+          tone
+        )}`}
+      >
         {icon}
       </span>
       <span>{label}</span>
@@ -321,13 +368,17 @@ function StatusCard({
   tone: Tone;
 }) {
   return (
-    <div className="rounded-[20px] bg-white/[0.06] border border-white/12 p-4 shadow-xl flex items-center gap-3.5">
-      <div className={`h-10 w-10 flex items-center justify-center ${toneText(tone)}`}>
+    <div className="rounded-[20px] bg-white/[0.08] border border-white/12 p-4 shadow-xl flex items-center gap-3.5 backdrop-blur">
+      <div
+        className={`h-10 w-10 flex items-center justify-center ${toneText(
+          tone
+        )}`}
+      >
         {icon}
       </div>
 
       <div>
-        <p className="uppercase tracking-[0.28em] text-[8px] text-white/48 font-black mb-1.5">
+        <p className="uppercase tracking-[0.28em] text-[8px] text-white/50 font-black mb-1.5">
           {label}
         </p>
 
@@ -353,11 +404,13 @@ function WorkflowCard({
   tone: Tone;
 }) {
   return (
-    <div className="rounded-[22px] bg-white/[0.05] border border-white/10 p-4.5 min-h-[170px] shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]">
+    <div className="rounded-[24px] bg-white/[0.055] border border-white/10 p-4.5 min-h-[178px] shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]">
       <div
         className={`mb-3.5 h-[66px] w-[66px] rounded-full border ${toneBorder(
           tone
-        )} ${toneText(tone)} bg-[#020b18]/45 flex items-center justify-center shadow-[0_0_24px_rgba(0,0,0,0.18)]`}
+        )} ${toneText(
+          tone
+        )} bg-[#020b18]/45 flex items-center justify-center shadow-[0_0_24px_rgba(0,0,0,0.18)]`}
       >
         {icon}
       </div>
@@ -369,7 +422,7 @@ function WorkflowCard({
         <h3 className="text-[22px] font-black leading-none">{title}</h3>
       </div>
 
-      <p className="text-white/62 text-[13px] font-medium leading-relaxed">
+      <p className="text-white/66 text-[13px] font-semibold leading-relaxed">
         {text}
       </p>
     </div>
@@ -401,26 +454,30 @@ function DashboardTile({
   return (
     <a
       href={href}
-      className="group rounded-[26px] bg-[#061124]/95 border border-white/10 p-4.5 shadow-2xl hover:-translate-y-1 hover:bg-[#071b38] transition min-h-[248px] flex flex-col"
+      className="group rounded-[28px] bg-[#061124]/95 border border-white/10 p-4.5 shadow-2xl hover:-translate-y-1 hover:bg-[#071b38] transition min-h-[252px] flex flex-col overflow-hidden relative"
     >
+      <div className="absolute right-[-60px] top-[-60px] h-36 w-36 rounded-full bg-white/[0.035] blur-2xl group-hover:bg-[#16d66d]/10" />
+
       <div
-        className={`h-[70px] w-[70px] rounded-full border ${toneBorder(
+        className={`relative h-[70px] w-[70px] rounded-full border ${toneBorder(
           tone
-        )} ${toneText(tone)} bg-[#020b18]/45 flex items-center justify-center mb-5 shadow-xl`}
+        )} ${toneText(
+          tone
+        )} bg-[#020b18]/45 flex items-center justify-center mb-5 shadow-xl`}
       >
         {icon}
       </div>
 
-      <h3 className="text-[25px] font-black leading-none tracking-[-0.04em] mb-3">
+      <h3 className="relative text-[25px] font-black leading-none tracking-[-0.04em] mb-3">
         {title}
       </h3>
 
-      <p className="text-white/68 text-sm font-medium leading-relaxed mb-5">
+      <p className="relative text-white/70 text-sm font-semibold leading-relaxed mb-5">
         {text}
       </p>
 
       <div
-        className={`mt-auto rounded-[15px] px-4 py-3 text-center text-[14px] font-black border transition ${buttonClass}`}
+        className={`relative mt-auto rounded-[16px] px-4 py-3 text-center text-[14px] font-black border transition ${buttonClass}`}
       >
         <span className="inline-flex align-middle mr-2.5">{icon}</span>
         {action}
@@ -534,17 +591,6 @@ function CardIcon() {
       <path d="M3 10h18" />
       <path d="M7 15h4" />
       <path d="M15 15h2" />
-    </IconSvg>
-  );
-}
-
-function PeopleIcon() {
-  return (
-    <IconSvg>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </IconSvg>
   );
 }
