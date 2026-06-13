@@ -327,6 +327,34 @@ export default function DemoAuctionPage() {
     }
   }
 
+
+
+  function handleJoinAuction() {
+    const cleanBidderName = bidderName.trim();
+
+    if (!cleanBidderName) {
+      alert("Please enter your bidder name first.");
+      return;
+    }
+
+    if (typeof document !== "undefined") {
+      const activeElement = document.activeElement;
+
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur();
+      }
+    }
+
+    audioUnlockedRef.current = true;
+    setSoundEnabled(true);
+    setBidderName(cleanBidderName);
+    setJoined(true);
+
+    // Do not await this on iPhone. Some iOS browsers delay or reject the
+    // audio unlock promise, and awaiting it can stop the parent from joining.
+    void unlockBrowserAudio();
+  }
+
   async function openBiddingAfterIntro(reason: "audio-finished" | "backup-timer") {
     if (!auction || auction.status !== "intro") return;
 
@@ -993,16 +1021,15 @@ export default function DemoAuctionPage() {
             />
 
             <button
-              onPointerDown={() => {
-                void unlockBrowserAudio();
+              type="button"
+              onTouchStart={() => {
+                audioUnlockedRef.current = true;
               }}
-              onClick={async () => {
-                if (bidderName.trim()) {
-                  await unlockBrowserAudio();
-                  setJoined(true);
-                }
+              onMouseDown={() => {
+                audioUnlockedRef.current = true;
               }}
-              className="w-full bg-[#07152b] text-white rounded-2xl py-3.5 font-black text-base shadow-xl"
+              onClick={handleJoinAuction}
+              className="relative z-10 w-full touch-manipulation select-none bg-[#07152b] text-white rounded-2xl py-4 font-black text-base shadow-xl active:scale-[0.98]"
             >
               JOIN AUCTION & ENABLE SOUND
             </button>
