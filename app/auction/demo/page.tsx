@@ -84,6 +84,7 @@ export default function DemoAuctionPage() {
 
   const previousStatusRef = useRef<string | null>(null);
   const audioUnlockedRef = useRef(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const autoActionKeyRef = useRef("");
   const welcomeAudioRef = useRef<HTMLAudioElement | null>(null);
   const introAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -204,6 +205,42 @@ export default function DemoAuctionPage() {
       !biddingNow
   );
 
+  async function unlockBrowserAudio() {
+    audioUnlockedRef.current = true;
+
+    if (typeof window === "undefined") return;
+
+    try {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+
+      if (AudioContextClass) {
+        const audioContext =
+          audioContextRef.current || new AudioContextClass();
+
+        audioContextRef.current = audioContext;
+
+        if (audioContext.state === "suspended") {
+          await audioContext.resume();
+        }
+
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        gain.gain.value = 0.00001;
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        oscillator.start();
+        oscillator.stop(audioContext.currentTime + 0.05);
+      }
+    } catch {
+      // Some browsers still block audio until the next user gesture.
+      // The replay button remains available as a fallback.
+    }
+  }
+
   function stopIntroAudio() {
     if (introAudioRef.current) {
       introAudioRef.current.pause();
@@ -223,7 +260,7 @@ export default function DemoAuctionPage() {
   async function playWelcomeVoice() {
     if (welcomeVoiceLoading) return;
 
-    audioUnlockedRef.current = true;
+    await unlockBrowserAudio();
     setWelcomeVoiceLoading(true);
 
     try {
@@ -321,6 +358,8 @@ export default function DemoAuctionPage() {
       const audio = new Audio(mcAudioUrl);
 
       introAudioRef.current = audio;
+      audio.preload = "auto";
+      (audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
       audio.volume = 1;
 
       audio.onplay = () => {
@@ -338,6 +377,7 @@ export default function DemoAuctionPage() {
 
       await audio.play();
     } catch {
+      playedIntroAudioKeyRef.current = "";
       setIntroAudioStatus("blocked");
     }
   }
@@ -924,9 +964,12 @@ export default function DemoAuctionPage() {
             />
 
             <button
-              onClick={() => {
+              onPointerDown={() => {
+                void unlockBrowserAudio();
+              }}
+              onClick={async () => {
                 if (bidderName.trim()) {
-                  audioUnlockedRef.current = true;
+                  await unlockBrowserAudio();
                   setJoined(true);
                 }
               }}
@@ -1519,7 +1562,7 @@ function getIntroAudioStatusLabel(
   if (status === "playing") return "AI MC voice playing now.";
   if (status === "finished") return "AI MC intro complete.";
   if (status === "blocked")
-    return "Tap Replay Voice if your browser blocked audio.";
+    return "Tap Replay Voice once to enable sound on this device.";
   if (status === "error") return "Voice could not play. Tap Replay Voice.";
   if (status === "missing") return "No AI voice clip found for this artwork.";
 
