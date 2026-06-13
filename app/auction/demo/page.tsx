@@ -92,6 +92,7 @@ export default function DemoAuctionPage() {
   const introAudioRef = useRef<HTMLAudioElement | null>(null);
   const playedIntroAudioKeyRef = useRef("");
   const previousArtworkKeyRef = useRef("");
+  const lastManualIntroTapRef = useRef(0);
 
   const uniqueBidderCount = useMemo(() => {
     const uniqueNames = new Set(
@@ -168,10 +169,6 @@ export default function DemoAuctionPage() {
     auction?.grade,
     activeArtwork?.id,
   ]);
-
-  const mcIntroText = useMemo(() => {
-    return getMcIntroText(auction, activeArtwork);
-  }, [auction, activeArtwork]);
 
   const mcAudioUrl = useMemo(() => {
     return auction?.mc_audio_url || activeArtwork?.mc_audio_url || "";
@@ -388,10 +385,6 @@ export default function DemoAuctionPage() {
   async function playIntroAudio({ force = false }: { force?: boolean } = {}) {
     if (!auction || !isIntro) return;
 
-    if (force) {
-      await unlockBrowserAudio();
-    }
-
     audioUnlockedRef.current = true;
 
     if (!mcAudioUrl) {
@@ -432,11 +425,30 @@ export default function DemoAuctionPage() {
         setIntroAudioStatus("error");
       };
 
-      await audio.play();
+      // Important for iPhone Safari: audio.play() must be called immediately
+      // from the tap event. Do not await any unlock/resume promise before this.
+      const playPromise = audio.play();
+
+      if (force) {
+        void unlockBrowserAudio();
+      }
+
+      await playPromise;
     } catch {
       playedIntroAudioKeyRef.current = "";
       setIntroAudioStatus("blocked");
     }
+  }
+
+  function handleManualIntroAudioTap(event?: { preventDefault: () => void }) {
+    event?.preventDefault();
+
+    const now = Date.now();
+
+    if (now - lastManualIntroTapRef.current < 700) return;
+
+    lastManualIntroTapRef.current = now;
+    void playIntroAudio({ force: true });
   }
 
   useEffect(() => {
@@ -1366,42 +1378,35 @@ export default function DemoAuctionPage() {
                 {mcAudioUrl && introAudioStatus !== "playing" && (
                   <button
                     type="button"
-                    onClick={() => playIntroAudio({ force: true })}
-                    className="mt-4 mb-4 w-full bg-[#07152b] text-white rounded-[22px] px-4 py-5 text-lg font-black shadow-xl border-2 border-white/20 active:scale-[0.98] transition"
+                    onClick={handleManualIntroAudioTap}
+                    onTouchEnd={handleManualIntroAudioTap}
+                    className="mt-4 mb-4 w-full bg-[#07152b] text-white rounded-[24px] px-4 py-6 text-xl font-black shadow-xl border-2 border-white/25 active:scale-[0.98] transition touch-manipulation"
                   >
-                    🔊 Tap to hear MC intro
+                    🔊 Play MC Voice
                   </button>
                 )}
 
                 {mcAudioUrl && introAudioStatus === "playing" && (
-                  <div className="mt-4 mb-4 w-full bg-[#16d66d] text-[#07152b] rounded-[22px] px-4 py-5 text-lg font-black shadow-xl text-center">
+                  <div className="mt-4 mb-4 w-full bg-[#16d66d] text-[#07152b] rounded-[24px] px-4 py-6 text-xl font-black shadow-xl text-center">
                     🔊 MC voice playing now
                   </div>
                 )}
 
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <p className="text-xs font-black opacity-70">
-                    {getIntroAudioStatusLabel(introAudioStatus)}
+                {!mcAudioUrl && (
+                  <div className="mt-4 mb-4 rounded-[22px] bg-[#07152b]/10 border border-[#07152b]/15 p-4 text-center font-black">
+                    MC voice is still loading.
+                  </div>
+                )}
+
+                <p className="text-sm font-black leading-snug opacity-75">
+                  Bidding opens when the MC voice intro finishes.
+                </p>
+
+                {(introAudioStatus === "blocked" || introAudioStatus === "error") && (
+                  <p className="text-xs font-black mt-3 opacity-70">
+                    iPhone blocked the sound. Tap Play MC Voice again.
                   </p>
-
-                  {introAudioStatus === "finished" && mcAudioUrl && (
-                    <button
-                      type="button"
-                      onClick={() => playIntroAudio({ force: true })}
-                      className="bg-[#07152b] text-white rounded-full px-3 py-1.5 text-[11px] font-black shrink-0"
-                    >
-                      Replay Voice
-                    </button>
-                  )}
-                </div>
-
-                <p className="font-black text-sm leading-snug">
-                  {mcIntroText}
-                </p>
-
-                <p className="text-[10px] font-black mt-3 opacity-60">
-                  AI-generated voice. Bidding opens after the full voice intro finishes.
-                </p>
+                )}
               </div>
             </div>
           </motion.div>
@@ -1607,29 +1612,6 @@ function getSafeBidIncrement(value?: number | null) {
 
 function getArtworkDisplayUrl(artwork: Artwork) {
   return artwork.enhanced_artwork_url || artwork.artwork_url || "";
-}
-
-function getMcIntroText(auction: AuctionState | null, artwork: Artwork | null) {
-  const story =
-    auction?.mc_commentary?.trim() ||
-    artwork?.ai_story?.trim() ||
-    artwork?.ai_intro?.trim() ||
-    artwork?.description?.trim();
-
-  if (story) return story;
-
-  if (!auction) {
-    return "The MC is getting the next masterpiece ready for the room.";
-  }
-
-  const childName = [auction.child_name, auction.child_surname]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-
-  return `Ladies and gentlemen, our next BragWall masterpiece is by ${
-    childName || "one of our young artists"
-  } from ${auction.grade || "the school"}. Take a good look — bidding opens in a moment.`;
 }
 
 function getIntroAudioStatusLabel(
