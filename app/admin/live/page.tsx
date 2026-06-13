@@ -21,6 +21,7 @@ type AuctionState = {
   last_bid_at?: string | null;
   winner_email?: string | null;
   winner_email_submitted_at?: string | null;
+  mc_audio_url?: string | null;
 };
 
 type Artwork = {
@@ -34,11 +35,13 @@ type Artwork = {
   enhancement_status?: string | null;
   ai_story?: string | null;
   ai_intro?: string | null;
+  description?: string | null;
   status?: string | null;
   sort_order?: number | null;
   sold_amount?: number | null;
   winning_bidder?: string | null;
   winner_email?: string | null;
+  mc_audio_url?: string | null;
   created_at?: string | null;
 };
 
@@ -66,6 +69,10 @@ type Tone = "green" | "yellow" | "blue" | "purple" | "white" | "red";
 
 const AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
+const MIN_MC_INTRO_SECONDS = 28;
+const MAX_MC_INTRO_SECONDS = 120;
+const MC_WORDS_PER_SECOND = 2.2;
+const MC_INTRO_PADDING_SECONDS = 8;
 
 export default function AdminLivePage() {
   const [auction, setAuction] = useState<AuctionState | null>(null);
@@ -80,11 +87,21 @@ export default function AdminLivePage() {
     return getCurrentArtwork(auction, artworks);
   }, [auction, artworks]);
 
-  const queuedArtworks = artworks.filter(
-    (artwork) => artwork.status !== "sold"
+  const activeQueueArtworks = artworks.filter(
+    (artwork) => artwork.status !== "sold" && artwork.status !== "archived"
   );
 
+  const queuedArtworks = activeQueueArtworks;
+
   const soldArtworks = artworks.filter((artwork) => artwork.status === "sold");
+
+  const archivedArtworks = artworks.filter(
+    (artwork) => artwork.status === "archived"
+  );
+
+  const nextArtwork = useMemo(() => {
+    return getNextArtwork(currentArtwork, activeQueueArtworks);
+  }, [currentArtwork, activeQueueArtworks]);
 
   const totalRaised = soldArtworks.reduce((sum, artwork) => {
     return sum + Number(artwork.sold_amount || 0);
@@ -109,6 +126,7 @@ export default function AdminLivePage() {
   );
 
   const statusLabel = auction?.status || "waiting";
+  const isPreparingIntro = statusLabel === "preparing_intro";
   const isLive = statusLabel !== "waiting" && statusLabel !== "sold";
 
   useEffect(() => {
@@ -293,6 +311,9 @@ export default function AdminLivePage() {
     setBusyAction(`move-${artwork.id}`);
 
     const displayUrl = getArtworkDisplayUrl(artwork);
+    const commentary = getMcIntroText(artwork);
+
+    await supabase.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
 
     await supabase
       .from("demo_artworks")
@@ -300,19 +321,72 @@ export default function AdminLivePage() {
         status: "queued",
       })
       .eq("auction_code", AUCTION_CODE)
-      .neq("status", "sold");
+      .in("status", [
+        "live",
+        "preparing_intro",
+        "intro",
+        "open",
+        "paused",
+        "going once",
+        "going twice",
+      ]);
 
     await supabase
       .from("demo_artworks")
       .update({
         status: "live",
+        mc_audio_url: null,
       })
       .eq("id", artwork.id);
 
-    const commentary =
-      artwork.ai_story ||
-      artwork.ai_intro ||
-      `${artwork.child_name}'s artwork is live. Parents, prepare yourselves. Bragging rights are now officially on the table.`;
+    const preparingResult = await supabase
+      .from("live_auction_state")
+      .update({
+        child_name: artwork.child_name,
+        child_surname: artwork.child_surname,
+        grade: artwork.grade,
+        artwork_url: displayUrl,
+        current_bid: 0,
+        leading_bidder: "No bids yet",
+        status: "preparing_intro",
+        status_deadline: null,
+        bid_pause_until: null,
+        next_bid_amount: bidIncrement,
+        last_bid_at: null,
+        winner_email: null,
+        winner_email_submitted_at: null,
+        mc_commentary:
+          "The AI MC is preparing this artwork intro. Bidding will open after the story.",
+        mc_audio_url: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("auction_code", AUCTION_CODE);
+
+    if (preparingResult.error) {
+      alert(preparingResult.error.message);
+      setBusyAction("");
+      return;
+    }
+
+    await addActivity(
+      `Preparing AI MC intro for ${artwork.child_name} ${artwork.child_surname}`
+    );
+
+    const mcAudioUrl = await generateMcVoiceAudio(artwork, commentary);
+
+    await supabase
+      .from("demo_artworks")
+      .update({
+        status: "live",
+        mc_audio_url: mcAudioUrl,
+      })
+      .eq("id", artwork.id);
+
+    const introSeconds = estimateMcIntroSeconds(commentary);
+
+    const introDeadline = new Date(
+      Date.now() + introSeconds * 1000
+    ).toISOString();
 
     const { error } = await supabase
       .from("live_auction_state")
@@ -323,14 +397,15 @@ export default function AdminLivePage() {
         artwork_url: displayUrl,
         current_bid: 0,
         leading_bidder: "No bids yet",
-        status: "open",
-        status_deadline: null,
+        status: "intro",
+        status_deadline: introDeadline,
         bid_pause_until: null,
         next_bid_amount: bidIncrement,
         last_bid_at: null,
         winner_email: null,
         winner_email_submitted_at: null,
         mc_commentary: commentary,
+        mc_audio_url: mcAudioUrl,
         updated_at: new Date().toISOString(),
       })
       .eq("auction_code", AUCTION_CODE);
@@ -341,13 +416,50 @@ export default function AdminLivePage() {
       return;
     }
 
-    await supabase.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
-
     await addActivity(
-      `${artwork.child_name} ${artwork.child_surname}'s artwork is now live`
+      mcAudioUrl
+        ? `AI MC voice generated for ${artwork.child_name} ${artwork.child_surname}`
+        : `MC intro started for ${artwork.child_name} ${artwork.child_surname}`
     );
 
     setBusyAction("");
+  }
+
+  async function generateMcVoiceAudio(artwork: Artwork, commentary: string) {
+    try {
+      const response = await fetch("/api/mc-voice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auctionCode: AUCTION_CODE,
+          artworkId: artwork.id,
+          text: commentary,
+          childName: [artwork.child_name, artwork.child_surname]
+            .filter(Boolean)
+            .join(" ")
+            .trim(),
+          grade: artwork.grade,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not generate MC voice.");
+      }
+
+      return String(result.audioUrl || "");
+    } catch (error) {
+      console.error("Could not generate AI MC voice:", error);
+
+      await addActivity(
+        `MC intro started for ${artwork.child_name} ${artwork.child_surname}, but AI voice could not be generated`
+      );
+
+      return null;
+    }
   }
 
   async function pauseAuction() {
@@ -507,6 +619,97 @@ export default function AdminLivePage() {
     setBusyAction("");
   }
 
+  async function archiveUnsoldArtwork() {
+    if (!auction || !currentArtwork) {
+      alert("There is no current artwork to archive.");
+      return;
+    }
+
+    if (currentArtwork.status === "sold") {
+      alert("This artwork is already marked as sold.");
+      return;
+    }
+
+    const hasBids = Number(auction.current_bid || 0) > 0;
+    const confirmed = window.confirm(
+      hasBids
+        ? "This artwork has bids. Archive it as unsold anyway?"
+        : "Archive this artwork as unsold and move it out of the live queue?"
+    );
+
+    if (!confirmed) return;
+
+    setBusyAction("archive");
+
+    await supabase.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
+
+    const { error: artworkError } = await supabase
+      .from("demo_artworks")
+      .update({
+        status: "archived",
+        sold_amount: null,
+        winning_bidder: null,
+        winner_email: null,
+        mc_audio_url: null,
+      })
+      .eq("id", currentArtwork.id);
+
+    if (artworkError) {
+      alert(artworkError.message);
+      setBusyAction("");
+      return;
+    }
+
+    const { error: stateError } = await supabase
+      .from("live_auction_state")
+      .update({
+        child_name: "",
+        child_surname: "",
+        grade: "",
+        artwork_url: "",
+        current_bid: 0,
+        leading_bidder: "No bids yet",
+        status: "waiting",
+        status_deadline: null,
+        bid_pause_until: null,
+        next_bid_amount: bidIncrement,
+        last_bid_at: null,
+        winner_email: null,
+        winner_email_submitted_at: null,
+        mc_commentary: `${currentArtwork.child_name} ${currentArtwork.child_surname} has been archived as unsold. The next artwork will begin shortly.`,
+        mc_audio_url: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("auction_code", AUCTION_CODE);
+
+    if (stateError) {
+      alert(stateError.message);
+    } else {
+      await addActivity(
+        `Archived unsold artwork: ${currentArtwork.child_name} ${currentArtwork.child_surname}`
+      );
+    }
+
+    setBusyAction("");
+  }
+
+  async function moveToNextArtwork() {
+    if (!nextArtwork) {
+      alert("There are no more queued artworks. Sold and archived artworks are excluded from the live queue.");
+      return;
+    }
+
+    if (auction?.status !== "sold" && currentArtwork?.status !== "archived") {
+      const confirmed = window.confirm(
+        "Move to the next artwork now? Make sure the current artwork has been sold or archived first."
+      );
+
+      if (!confirmed) return;
+    }
+
+    await moveToArtwork(nextArtwork);
+  }
+
   async function resetAuction() {
     const confirmed = window.confirm(
       "Reset the live auction state? This will clear the current bids and return the parent screen to waiting."
@@ -524,7 +727,8 @@ export default function AdminLivePage() {
         status: "queued",
       })
       .eq("auction_code", AUCTION_CODE)
-      .neq("status", "sold");
+      .neq("status", "sold")
+      .neq("status", "archived");
 
     const { error } = await supabase
       .from("live_auction_state")
@@ -543,6 +747,7 @@ export default function AdminLivePage() {
         winner_email: null,
         winner_email_submitted_at: null,
         mc_commentary: "Welcome to BragWall. The auction is waiting to begin.",
+        mc_audio_url: null,
         updated_at: new Date().toISOString(),
       })
       .eq("auction_code", AUCTION_CODE);
@@ -584,6 +789,7 @@ export default function AdminLivePage() {
           winner_email: null,
           winner_email_submitted_at: null,
           mc_commentary: "Bids have been cleared. The auction is open again.",
+          mc_audio_url: null,
           updated_at: new Date().toISOString(),
         })
         .eq("auction_code", AUCTION_CODE);
@@ -836,16 +1042,42 @@ export default function AdminLivePage() {
                                 "Welcome to BragWall. The auction is waiting to begin."}
                               ”
                             </p>
+
+                            {auction?.status === "preparing_intro" && (
+                              <div className="mt-3 rounded-2xl bg-[#ffc857]/15 border border-[#ffc857]/30 px-3 py-2">
+                                <p className="text-[10px] uppercase tracking-[0.22em] text-[#ffc857] font-black mb-1">
+                                  Preparing AI Voice
+                                </p>
+                                <p className="text-xs text-white/70 font-bold">
+                                  Parent bidding is locked while the MC intro is generated.
+                                </p>
+                              </div>
+                            )}
+
+                            {auction?.mc_audio_url && auction.status === "intro" && (
+                              <div className="mt-3 rounded-2xl bg-[#16d66d]/15 border border-[#16d66d]/30 px-3 py-2">
+                                <p className="text-[10px] uppercase tracking-[0.22em] text-[#16d66d] font-black mb-1">
+                                  AI Voice Ready
+                                </p>
+                                <p className="text-xs text-white/70 font-bold">
+                                  Parent devices will play the generated MC intro.
+                                </p>
+                              </div>
+                            )}
                           </div>
 
-                          <div className="mt-auto grid grid-cols-3 gap-3 pt-4">
+                          <div className="mt-auto grid grid-cols-4 gap-3 pt-4">
                             <SmallInfo
-                              label="Artworks"
+                              label="Queue"
                               value={`${queuedArtworks.length}`}
                             />
                             <SmallInfo
                               label="Sold"
                               value={`${soldArtworks.length}`}
+                            />
+                            <SmallInfo
+                              label="Archived"
+                              value={`${archivedArtworks.length}`}
                             />
                             <SmallInfo
                               label="Bidders"
@@ -879,9 +1111,9 @@ export default function AdminLivePage() {
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-7 gap-3">
+                      <div className="grid grid-cols-9 gap-3">
                         <ControlButton
-                          label="Start Live"
+                          label={busyAction ? "Preparing..." : "Start Intro"}
                           icon={<PlayIcon />}
                           onClick={startAuction}
                           disabled={Boolean(busyAction)}
@@ -923,6 +1155,20 @@ export default function AdminLivePage() {
                           tone="sold"
                         />
                         <ControlButton
+                          label="Archive Unsold"
+                          iconText="A"
+                          onClick={archiveUnsoldArtwork}
+                          disabled={Boolean(busyAction) || !currentArtwork || currentArtwork.status === "sold"}
+                          tone="purple"
+                        />
+                        <ControlButton
+                          label="Next Artwork"
+                          iconText="NEXT"
+                          onClick={moveToNextArtwork}
+                          disabled={Boolean(busyAction) || !nextArtwork}
+                          tone="blue"
+                        />
+                        <ControlButton
                           label="Reset"
                           icon={<RefreshIcon />}
                           onClick={resetAuction}
@@ -955,13 +1201,13 @@ export default function AdminLivePage() {
                       icon={<ArtworkIcon />}
                     >
                       <div className="space-y-3 max-h-[275px] overflow-auto pr-1 bragwall-live-scroll">
-                        {artworks.length === 0 && (
+                        {queuedArtworks.length === 0 && (
                           <p className="text-white/72 font-bold">
-                            No artwork uploaded yet.
+                            No queued artwork available. Sold and archived items are kept out of the live queue.
                           </p>
                         )}
 
-                        {artworks.map((artwork) => {
+                        {queuedArtworks.map((artwork) => {
                           const displayUrl = getArtworkDisplayUrl(artwork);
                           const active = currentArtwork?.id === artwork.id;
 
@@ -1013,6 +1259,30 @@ export default function AdminLivePage() {
                         })}
                       </div>
                     </SidePanel>
+
+                    {archivedArtworks.length > 0 && (
+                      <SidePanel
+                        title="Archived / Unsold"
+                        subtitle="Kept out of the live queue"
+                        icon={<ArchiveIcon />}
+                      >
+                        <div className="space-y-3 max-h-[170px] overflow-auto pr-1 bragwall-live-scroll">
+                          {archivedArtworks.map((artwork) => (
+                            <div
+                              key={artwork.id}
+                              className="rounded-[18px] bg-white/[0.045] border border-white/10 p-3"
+                            >
+                              <p className="font-black truncate">
+                                {artwork.child_name} {artwork.child_surname}
+                              </p>
+                              <p className="text-xs text-white/55 font-bold">
+                                {artwork.grade} - archived unsold
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </SidePanel>
+                    )}
 
                     <SidePanel
                       title="Live Feed"
@@ -1116,6 +1386,16 @@ export default function AdminLivePage() {
   );
 }
 
+function estimateMcIntroSeconds(text: string) {
+  const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+  const estimated = Math.ceil(wordCount / MC_WORDS_PER_SECOND) + MC_INTRO_PADDING_SECONDS;
+
+  return Math.min(
+    MAX_MC_INTRO_SECONDS,
+    Math.max(MIN_MC_INTRO_SECONDS, estimated)
+  );
+}
+
 function getSafeBidIncrement(value?: number | null) {
   const parsed = Number(value);
 
@@ -1150,20 +1430,73 @@ function getCurrentArtwork(
     if (matchedArtwork) return matchedArtwork;
   }
 
+  const activeArtworks = artworks.filter(
+    (item) => item.status !== "sold" && item.status !== "archived"
+  );
+
   return (
-    artworks.find((item) => item.status === "live") ||
-    artworks.find((item) => item.status === "queued") ||
-    artworks.find((item) => item.status === "pending") ||
-    artworks.find((item) => item.sort_order === 1) ||
-    artworks[0] ||
+    activeArtworks.find((item) => item.status === "live") ||
+    activeArtworks.find((item) => item.status === "queued") ||
+    activeArtworks.find((item) => item.status === "pending") ||
+    activeArtworks.find((item) => item.sort_order === 1) ||
+    activeArtworks[0] ||
     null
   );
+}
+
+function getNextArtwork(
+  currentArtwork: Artwork | null,
+  activeQueueArtworks: Artwork[]
+): Artwork | null {
+  const sorted = [...activeQueueArtworks].sort((a, b) => {
+    const aOrder = Number(a.sort_order || 0);
+    const bOrder = Number(b.sort_order || 0);
+
+    if (aOrder !== bOrder) return aOrder - bOrder;
+
+    return String(a.created_at || "").localeCompare(String(b.created_at || ""));
+  });
+
+  if (!currentArtwork) {
+    return sorted.find((item) => item.status !== "live") || sorted[0] || null;
+  }
+
+  const currentIndex = sorted.findIndex((item) => item.id === currentArtwork.id);
+
+  if (currentIndex >= 0) {
+    return sorted.slice(currentIndex + 1).find((item) => item.id !== currentArtwork.id) ||
+      sorted.find((item) => item.id !== currentArtwork.id) ||
+      null;
+  }
+
+  return sorted.find((item) => item.id !== currentArtwork.id) || null;
+}
+
+function getMcIntroText(artwork: Artwork) {
+  const story =
+    artwork.ai_story?.trim() ||
+    artwork.ai_intro?.trim() ||
+    artwork.description?.trim();
+
+  if (story) return story;
+
+  const childName = [artwork.child_name, artwork.child_surname]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return `Ladies and gentlemen, our next BragWall masterpiece is by ${
+    childName || "one of our young artists"
+  } from ${
+    artwork.grade || "the school"
+  }. Take a good look — bidding opens in a moment.`;
 }
 
 function formatStatus(status: string) {
   if (!status) return "Waiting";
 
   return status
+    .replace(/_/g, " ")
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
@@ -1290,12 +1623,18 @@ function StatusBadge({ status }: { status: string }) {
   const isWaiting = status === "waiting";
   const isDanger = status === "going twice";
   const isGold = status === "going once";
+  const isIntro = status === "intro";
+  const isPreparingIntro = status === "preparing_intro";
 
   return (
     <div
       className={`rounded-[18px] px-4 py-3 text-center border shrink-0 ${
         isSold
           ? "bg-[#ffc857] text-[#07152b] border-[#ffc857]"
+          : isPreparingIntro
+          ? "bg-[#ffc857] text-[#07152b] border-[#ffc857]"
+          : isIntro
+          ? "bg-[#d36cff] text-white border-[#d36cff]"
           : isDanger
           ? "bg-[#ef2b20] text-white border-[#ff8d86]/40"
           : isGold
@@ -1614,6 +1953,37 @@ function ActivityIcon() {
     <IconSvg>
       <path d="M4 12h4l2-5 4 10 2-5h4" />
     </IconSvg>
+  );
+}
+
+function ArchiveIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M4 7h16v13H4V7Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3 4h18v3H3V4Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 11h6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

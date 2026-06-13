@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 
 type AuctionState = {
+  artwork_id?: string | null;
   child_name: string;
   child_surname: string;
   grade: string;
@@ -15,6 +16,7 @@ type AuctionState = {
   total_raised: number;
   status_deadline?: string | null;
   mc_commentary?: string | null;
+  mc_audio_url?: string | null;
   bid_pause_until?: string | null;
   next_bid_amount?: number | null;
   last_bid_at?: string | null;
@@ -46,11 +48,16 @@ type Artwork = {
   sort_order?: number | null;
   sold_amount?: number | null;
   winning_bidder?: string | null;
+  ai_intro?: string | null;
+  ai_story?: string | null;
+  description?: string | null;
+  mc_audio_url?: string | null;
 };
 
 const AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
 const BID_PAUSE_SECONDS = 5;
+const MC_INTRO_SECONDS = 120;
 const SILENCE_BEFORE_GOING_ONCE_SECONDS = 8;
 const GOING_ONCE_SECONDS = 3;
 const GOING_TWICE_SECONDS = 3;
@@ -67,15 +74,21 @@ export default function DemoAuctionPage() {
   const [biddingNow, setBiddingNow] = useState(false);
   const [winnerEmail, setWinnerEmail] = useState("");
   const [submittingEmail, setSubmittingEmail] = useState(false);
-  const [emailSubmittedLocally, setEmailSubmittedLocally] = useState(false);
+  const [emailSubmittedArtworkKey, setEmailSubmittedArtworkKey] = useState<string | null>(null);
   const [welcomeVoiceLoading, setWelcomeVoiceLoading] = useState(false);
   const [welcomeVoicePlaying, setWelcomeVoicePlaying] = useState(false);
   const [bidIncrement, setBidIncrement] = useState(DEFAULT_BID_STEP);
+  const [introAudioStatus, setIntroAudioStatus] = useState<
+    "idle" | "loading" | "playing" | "finished" | "blocked" | "error" | "missing"
+  >("idle");
 
   const previousStatusRef = useRef<string | null>(null);
   const audioUnlockedRef = useRef(false);
   const autoActionKeyRef = useRef("");
   const welcomeAudioRef = useRef<HTMLAudioElement | null>(null);
+  const introAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playedIntroAudioKeyRef = useRef("");
+  const previousArtworkKeyRef = useRef("");
 
   const uniqueBidderCount = useMemo(() => {
     const uniqueNames = new Set(
@@ -102,9 +115,70 @@ export default function DemoAuctionPage() {
 
   const isSold = auction?.status === "sold";
   const isWaiting = auction?.status === "waiting";
+  const isIntro = auction?.status === "intro";
+  const isPreparingIntro =
+    auction?.status === "preparing_intro" ||
+    auction?.status === "preparing intro" ||
+    auction?.status === "generating_intro" ||
+    auction?.status === "generating intro";
   const isUrgency =
     auction?.status === "going once" || auction?.status === "going twice";
+  const isAuctionOpenForBids = auction?.status === "open" || isUrgency;
   const isBidPaused = pauseRemaining > 0 && auction?.status === "open";
+
+  const activeArtwork = useMemo(() => {
+    if (!auction) return null;
+
+    return (
+      artworks.find(
+        (artwork) =>
+          (auction.artwork_id && artwork.id === auction.artwork_id) ||
+          artwork.artwork_url === auction.artwork_url ||
+          artwork.enhanced_artwork_url === auction.artwork_url
+      ) ||
+      artworks.find(
+        (artwork) =>
+          artwork.child_name === auction.child_name &&
+          artwork.child_surname === auction.child_surname &&
+          artwork.grade === auction.grade
+      ) ||
+      null
+    );
+  }, [auction, artworks]);
+
+  const activeArtworkKey = useMemo(() => {
+    if (!auction) return "";
+
+    return (
+      auction.artwork_id ||
+      activeArtwork?.id ||
+      auction.artwork_url ||
+      [auction.child_name, auction.child_surname, auction.grade]
+        .filter(Boolean)
+        .join("-")
+    );
+  }, [
+    auction?.artwork_id,
+    auction?.artwork_url,
+    auction?.child_name,
+    auction?.child_surname,
+    auction?.grade,
+    activeArtwork?.id,
+  ]);
+
+  const mcIntroText = useMemo(() => {
+    return getMcIntroText(auction, activeArtwork);
+  }, [auction, activeArtwork]);
+
+  const mcAudioUrl = useMemo(() => {
+    return auction?.mc_audio_url || activeArtwork?.mc_audio_url || "";
+  }, [auction?.mc_audio_url, activeArtwork?.mc_audio_url]);
+
+  const introSecondsRemaining = isIntro
+    ? secondsRemaining > 0
+      ? secondsRemaining
+      : MC_INTRO_SECONDS
+    : 0;
 
   const isWinningBidder =
     Boolean(auction?.leading_bidder) &&
@@ -112,7 +186,8 @@ export default function DemoAuctionPage() {
       auction?.leading_bidder.trim().toLowerCase();
 
   const winnerEmailAlreadySubmitted =
-    Boolean(auction?.winner_email) || emailSubmittedLocally;
+    Boolean(auction?.winner_email) ||
+    (Boolean(activeArtworkKey) && emailSubmittedArtworkKey === activeArtworkKey);
 
   const shouldShowSoldOverlay =
     isSold && !(isWinningBidder && winnerEmailAlreadySubmitted);
@@ -120,11 +195,22 @@ export default function DemoAuctionPage() {
   const canBid = Boolean(
     auction &&
       joined &&
+      isAuctionOpenForBids &&
       !isSold &&
       !isWaiting &&
+      !isIntro &&
+      !isPreparingIntro &&
       !isBidPaused &&
       !biddingNow
   );
+
+  function stopIntroAudio() {
+    if (introAudioRef.current) {
+      introAudioRef.current.pause();
+      introAudioRef.current.currentTime = 0;
+      introAudioRef.current = null;
+    }
+  }
 
   function playSound(src: string) {
     if (!audioUnlockedRef.current) return;
@@ -179,6 +265,83 @@ export default function DemoAuctionPage() {
     }
   }
 
+  async function openBiddingAfterIntro(reason: "audio-finished" | "backup-timer") {
+    if (!auction || auction.status !== "intro") return;
+
+    const actionKey = `open-after-intro-${reason}-${
+      auction.artwork_id || auction.artwork_url || "artwork"
+    }-${auction.status_deadline || "deadline"}`;
+
+    if (autoActionKeyRef.current === actionKey) return;
+    autoActionKeyRef.current = actionKey;
+
+    if (reason === "backup-timer") {
+      stopIntroAudio();
+    }
+
+    await supabase
+      .from("live_auction_state")
+      .update({
+        status: "open",
+        status_deadline: null,
+        bid_pause_until: null,
+        mc_commentary: `Bidding is now open for ${auction.child_name}’s masterpiece. Opening bid is R${nextBidAmount.toLocaleString()}.`,
+      })
+      .eq("auction_code", AUCTION_CODE)
+      .eq("status", "intro");
+
+    await addActivity(
+      `Bidding opened for ${auction.child_name} ${auction.child_surname}`
+    );
+  }
+
+  async function playIntroAudio({ force = false }: { force?: boolean } = {}) {
+    if (!auction || !isIntro) return;
+
+    audioUnlockedRef.current = true;
+
+    if (!mcAudioUrl) {
+      setIntroAudioStatus("missing");
+      return;
+    }
+
+    const introKey = [
+      auction.artwork_id || auction.artwork_url || "artwork",
+      auction.status_deadline || "deadline",
+      mcAudioUrl,
+    ].join("|");
+
+    if (!force && playedIntroAudioKeyRef.current === introKey) return;
+
+    playedIntroAudioKeyRef.current = introKey;
+    stopIntroAudio();
+    setIntroAudioStatus("loading");
+
+    try {
+      const audio = new Audio(mcAudioUrl);
+
+      introAudioRef.current = audio;
+      audio.volume = 1;
+
+      audio.onplay = () => {
+        setIntroAudioStatus("playing");
+      };
+
+      audio.onended = () => {
+        setIntroAudioStatus("finished");
+        openBiddingAfterIntro("audio-finished");
+      };
+
+      audio.onerror = () => {
+        setIntroAudioStatus("error");
+      };
+
+      await audio.play();
+    } catch {
+      setIntroAudioStatus("blocked");
+    }
+  }
+
   useEffect(() => {
     fetchAuction();
     fetchSchoolProfile();
@@ -186,7 +349,7 @@ export default function DemoAuctionPage() {
     fetchArtworks();
 
     const auctionChannel = supabase
-      .channel("bw-parent-premium-state-gallery-bidders")
+      .channel("bw-parent-premium-state-gallery-bidders-ai-mc")
       .on(
         "postgres_changes",
         {
@@ -213,7 +376,7 @@ export default function DemoAuctionPage() {
       .subscribe();
 
     const schoolProfileChannel = supabase
-      .channel("bw-parent-school-profile-bid-increment-gallery-bidders")
+      .channel("bw-parent-school-profile-bid-increment-gallery-bidders-ai-mc")
       .on(
         "postgres_changes",
         {
@@ -229,7 +392,7 @@ export default function DemoAuctionPage() {
       .subscribe();
 
     const artworksChannel = supabase
-      .channel("bw-parent-gallery-artworks-bidders")
+      .channel("bw-parent-gallery-artworks-bidders-ai-mc")
       .on(
         "postgres_changes",
         {
@@ -245,7 +408,7 @@ export default function DemoAuctionPage() {
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("bw-parent-premium-bids-gallery-bidders")
+      .channel("bw-parent-premium-bids-gallery-bidders-ai-mc")
       .on(
         "postgres_changes",
         {
@@ -262,12 +425,49 @@ export default function DemoAuctionPage() {
       .subscribe();
 
     return () => {
+      stopIntroAudio();
       supabase.removeChannel(auctionChannel);
       supabase.removeChannel(schoolProfileChannel);
       supabase.removeChannel(artworksChannel);
       supabase.removeChannel(bidsChannel);
     };
   }, []);
+
+  useEffect(() => {
+    if (!joined) return;
+
+    if (!isIntro) {
+      stopIntroAudio();
+      setIntroAudioStatus("idle");
+      return;
+    }
+
+    playIntroAudio();
+  }, [
+    joined,
+    isIntro,
+    auction?.artwork_id,
+    auction?.artwork_url,
+    auction?.status_deadline,
+    mcAudioUrl,
+  ]);
+
+  useEffect(() => {
+    if (!activeArtworkKey) return;
+
+    if (!previousArtworkKeyRef.current) {
+      previousArtworkKeyRef.current = activeArtworkKey;
+      return;
+    }
+
+    if (previousArtworkKeyRef.current !== activeArtworkKey) {
+      previousArtworkKeyRef.current = activeArtworkKey;
+      setEmailSubmittedArtworkKey(null);
+      setWinnerEmail("");
+      setSubmittingEmail(false);
+    }
+  }, [activeArtworkKey]);
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -311,14 +511,31 @@ export default function DemoAuctionPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [auction]);
+  }, [auction, introAudioStatus, mcAudioUrl, nextBidAmount]);
 
   async function runAutoAuctionRhythm() {
     if (!auction) return;
-    if (auction.current_bid <= 0) return;
-    if (auction.status === "sold" || auction.status === "waiting") return;
 
     const now = Date.now();
+
+    if (auction.status === "intro" && auction.status_deadline) {
+      const deadline = new Date(auction.status_deadline).getTime();
+
+      if (now >= deadline) {
+        const audioCanStillFinish =
+          Boolean(mcAudioUrl) &&
+          (introAudioStatus === "playing" || introAudioStatus === "loading");
+
+        if (!audioCanStillFinish) {
+          await openBiddingAfterIntro("backup-timer");
+        }
+      }
+
+      return;
+    }
+
+    if (auction.current_bid <= 0) return;
+    if (auction.status === "sold" || auction.status === "waiting") return;
 
     if (auction.status === "open") {
       const pauseUntil = auction.bid_pause_until
@@ -497,6 +714,21 @@ export default function DemoAuctionPage() {
       return;
     }
 
+    if (auction.status === "intro") {
+      alert("The MC is introducing this artwork. Bidding will open in a moment.");
+      return;
+    }
+
+    if (isPreparingIntro) {
+      alert("The MC intro is being prepared. Bidding will open after the intro.");
+      return;
+    }
+
+    if (!isAuctionOpenForBids) {
+      alert("Bidding is not open yet.");
+      return;
+    }
+
     if (isBidPaused) {
       return;
     }
@@ -610,7 +842,7 @@ export default function DemoAuctionPage() {
       `${auction.leading_bidder} submitted email for invoice and certificate`
     );
 
-    setEmailSubmittedLocally(true);
+    setEmailSubmittedArtworkKey(activeArtworkKey);
     setSubmittingEmail(false);
   }
 
@@ -967,6 +1199,87 @@ export default function DemoAuctionPage() {
           </div>
         )}
 
+        {isPreparingIntro && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="shrink-0 bg-[#07152b] text-white rounded-[24px] p-4 shadow-xl border border-[#ffc857]/50"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-[#ffc857] text-[#07152b] flex items-center justify-center text-3xl shrink-0 shadow-xl">
+                ⏳
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="uppercase tracking-[0.22em] text-[9px] font-black text-[#ffc857] mb-1.5">
+                  Waiting for MC Intro
+                </p>
+
+                <p className="font-black text-sm leading-snug">
+                  The artwork is on screen, but bidding has not opened yet.
+                </p>
+
+                <p className="text-xs font-bold text-white/65 mt-2 leading-relaxed">
+                  The AI MC voice is being prepared. Once the intro starts and finishes,
+                  the bid button will unlock automatically.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {isIntro && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="shrink-0 bg-[#ffc857] text-[#07152b] rounded-[24px] p-4 shadow-xl border border-[#ffe9a6]"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-[#07152b] text-white flex items-center justify-center text-3xl shrink-0 shadow-xl">
+                🎙️
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <p className="uppercase tracking-[0.22em] text-[9px] font-black opacity-70">
+                    AI MC Artwork Intro
+                  </p>
+
+                  <p className="bg-[#07152b] text-white rounded-full px-3 py-1 text-xs font-black shrink-0">
+                    {introSecondsRemaining}s
+                  </p>
+                </div>
+
+                <p className="font-black text-sm leading-snug">
+                  {mcIntroText}
+                </p>
+
+                <div className="mt-3 flex items-center justify-between gap-3">
+                  <p className="text-xs font-black opacity-70">
+                    {getIntroAudioStatusLabel(introAudioStatus)}
+                  </p>
+
+                  {(introAudioStatus === "blocked" ||
+                    introAudioStatus === "error" ||
+                    introAudioStatus === "finished") &&
+                    mcAudioUrl && (
+                      <button
+                        onClick={() => playIntroAudio({ force: true })}
+                        className="bg-[#07152b] text-white rounded-full px-3 py-1.5 text-[11px] font-black shrink-0"
+                      >
+                        Replay Voice
+                      </button>
+                    )}
+                </div>
+
+                <p className="text-[10px] font-black mt-2 opacity-60">
+                  AI-generated voice. Bidding opens after the full voice intro finishes.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <div className="shrink-0 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="uppercase tracking-[0.25em] text-[10px] text-[#16d66d] font-black mb-1">
@@ -1118,11 +1431,17 @@ export default function DemoAuctionPage() {
                   : "#94a3b8",
               }}
             >
-              {isBidPaused
+              {isPreparingIntro
+                ? "Waiting for MC"
+                : isIntro
+                ? `MC Intro • ${introSecondsRemaining}s`
+                : isBidPaused
                 ? `Paused • ${pauseRemaining}s`
                 : biddingNow
                 ? "Placing Bid..."
-                : `Bid R${nextBidAmount.toLocaleString()}`}
+                : canBid
+                ? `Bid R${nextBidAmount.toLocaleString()}`
+                : "Bidding Not Open"}
             </motion.button>
 
             <p
@@ -1130,9 +1449,17 @@ export default function DemoAuctionPage() {
                 isUrgency ? "text-[#ff8d86]" : "text-white/40"
               }`}
             >
-              {isUrgency
+              {isPreparingIntro
+                ? "The artwork is ready. Please wait for the MC intro before bidding opens."
+                : isIntro
+                ? introAudioStatus === "playing"
+                  ? "The AI MC is presenting the artwork. Bidding opens when the full intro finishes."
+                  : "The MC intro is preparing. Bidding opens next."
+                : isUrgency
                 ? "Last chance — tap to keep the artwork alive."
-                : `Secure bidding • ${bidderCounterLabel} • bid step R${bidIncrement.toLocaleString()}`}
+                : canBid
+                ? `Secure bidding • ${bidderCounterLabel} • bid step R${bidIncrement.toLocaleString()}`
+                : "Bidding will open after the MC introduces the artwork."}
             </p>
           </div>
         </div>
@@ -1153,6 +1480,50 @@ function getSafeBidIncrement(value?: number | null) {
 
 function getArtworkDisplayUrl(artwork: Artwork) {
   return artwork.enhanced_artwork_url || artwork.artwork_url || "";
+}
+
+function getMcIntroText(auction: AuctionState | null, artwork: Artwork | null) {
+  const story =
+    auction?.mc_commentary?.trim() ||
+    artwork?.ai_story?.trim() ||
+    artwork?.ai_intro?.trim() ||
+    artwork?.description?.trim();
+
+  if (story) return story;
+
+  if (!auction) {
+    return "The MC is getting the next masterpiece ready for the room.";
+  }
+
+  const childName = [auction.child_name, auction.child_surname]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return `Ladies and gentlemen, our next BragWall masterpiece is by ${
+    childName || "one of our young artists"
+  } from ${auction.grade || "the school"}. Take a good look — bidding opens in a moment.`;
+}
+
+function getIntroAudioStatusLabel(
+  status:
+    | "idle"
+    | "loading"
+    | "playing"
+    | "finished"
+    | "blocked"
+    | "error"
+    | "missing"
+) {
+  if (status === "loading") return "Loading AI MC voice...";
+  if (status === "playing") return "AI MC voice playing now.";
+  if (status === "finished") return "AI MC intro complete.";
+  if (status === "blocked")
+    return "Tap Replay Voice if your browser blocked audio.";
+  if (status === "error") return "Voice could not play. Tap Replay Voice.";
+  if (status === "missing") return "No AI voice clip found for this artwork.";
+
+  return "AI MC voice ready.";
 }
 
 function GalleryModal({

@@ -1,23 +1,45 @@
 "use client";
 
-import { FormEvent, ReactNode, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import BrandHeader from "@/components/BrandHeader";
 import { supabase } from "@/lib/supabase";
 
 export default function HomePage() {
   const router = useRouter();
 
-  const [email, setEmail] = useState("darren@roadprotect.co.za");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [adminSessionActive, setAdminSessionActive] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  async function signIn(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession();
+
+      setAdminSessionActive(Boolean(data.session));
+      setCheckingSession(false);
+    }
+
+    checkSession();
+  }, []);
+
+  async function login() {
+    if (!email.trim()) {
+      alert("Please enter your admin email address.");
+      return;
+    }
+
+    if (!password.trim()) {
+      alert("Please enter your password.");
+      return;
+    }
 
     setLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password,
     });
 
@@ -33,241 +55,154 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(22,214,109,0.2),transparent_28%),radial-gradient(circle_at_70%_18%,rgba(255,200,87,0.12),transparent_26%),linear-gradient(135deg,#061124_0%,#020b18_46%,#151922_100%)]" />
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.15),transparent_32%),radial-gradient(circle_at_50%_88%,rgba(11,99,206,0.18),transparent_38%),linear-gradient(180deg,#061124,#020b18_58%,#010712)]" />
+      <div className="fixed inset-0 pointer-events-none opacity-[0.07] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:52px_52px]" />
 
-      <div className="fixed inset-0 opacity-[0.13] bg-[linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:72px_72px]" />
+      <section className="relative max-w-7xl mx-auto px-5 md:px-8 py-5 md:py-8">
+        <header className="flex items-center justify-between gap-4 mb-8 md:mb-14">
+          <div className="bg-white rounded-[26px] px-4 py-3 shadow-2xl">
+            <BrandHeader />
+          </div>
 
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_22%,rgba(255,255,255,0.09),transparent_23%),radial-gradient(circle_at_42%_28%,rgba(11,99,206,0.12),transparent_22%)]" />
+          <div className="hidden md:flex items-center gap-3 rounded-full bg-white/8 border border-white/10 px-5 py-3">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#16d66d] shadow-[0_0_16px_rgba(22,214,109,0.9)]" />
+            <span className="uppercase tracking-[0.32em] text-[10px] text-white/60 font-black">
+              Young Art • Big Pride
+            </span>
+          </div>
+        </header>
 
-      <section className="relative min-h-screen px-5 py-6 lg:p-8">
-        <div className="relative min-h-[calc(100vh-48px)] rounded-[34px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.65)] overflow-hidden">
-          <div className="pointer-events-none hidden lg:block absolute top-0 bottom-0 left-[51.5%] w-px bg-white/10 z-20" />
-          <div className="pointer-events-none hidden lg:block absolute top-[7%] bottom-[7%] left-[51.5%] w-px bg-[#ffc857]/80 shadow-[0_0_35px_rgba(255,200,87,0.8)] z-30" />
-          <div className="pointer-events-none hidden lg:block absolute top-[22%] bottom-[22%] left-[51.5%] w-[3px] -translate-x-1/2 bg-[#ffc857]/60 blur-[5px] z-30" />
+        <div className="grid lg:grid-cols-[1fr_430px] gap-7 lg:gap-10 items-start">
+          <section className="min-w-0">
+            <div className="inline-flex items-center gap-3 rounded-full bg-white/10 border border-white/10 px-4 py-3 mb-6">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#ffc857] shadow-[0_0_14px_rgba(255,200,87,0.7)]" />
+              <span className="uppercase tracking-[0.35em] text-[10px] font-black text-white/60">
+                School fundraising, made live
+              </span>
+            </div>
 
-          <div className="grid min-h-[calc(100vh-48px)] lg:grid-cols-[1.06fr_0.94fr]">
-            <section className="relative p-7 sm:p-10 lg:p-14 xl:p-16 flex flex-col justify-between overflow-hidden">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(22,214,109,0.22),transparent_26%),radial-gradient(circle_at_78%_28%,rgba(11,99,206,0.16),transparent_26%)]" />
-              <div className="absolute inset-x-0 bottom-0 h-[58%] opacity-35 bg-[radial-gradient(ellipse_at_bottom,rgba(0,0,0,0.95),transparent_62%)]" />
+            <h1 className="text-6xl md:text-8xl xl:text-9xl font-black leading-[0.84] tracking-[-0.08em] mb-7 max-w-5xl">
+              Turn school artwork into a{" "}
+              <span className="text-[#16d66d]">live fundraising event.</span>
+            </h1>
 
-              <div className="relative">
-                <div className="mb-11">
-                  <img
-                    src="/bragwall-logo.png"
-                    alt="BragWall"
-                    className="h-20 sm:h-24 lg:h-28 w-auto object-contain drop-shadow-2xl"
-                  />
+            <div className="w-24 h-1.5 bg-[#ffc857] rounded-full mb-7" />
 
-                  <p className="mt-5 uppercase tracking-[0.58em] text-[11px] text-white/60 font-black">
-                    Young Art <span className="text-[#16d66d]">•</span> Big
-                    Pride
-                  </p>
-                </div>
+            <p className="text-xl md:text-2xl text-white/68 leading-relaxed max-w-3xl mb-7 font-medium">
+              BragWall helps schools upload student artwork, present each piece
+              like a masterpiece, run a live mobile auction, and capture winner
+              details for invoices, certificates, and collection.
+            </p>
 
-                <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-5 py-3 shadow-xl backdrop-blur mb-8">
-                  <span className="h-3 w-3 rounded-full bg-[#16d66d] shadow-[0_0_18px_rgba(22,214,109,0.9)]" />
-                  <span className="uppercase tracking-[0.3em] text-xs font-black text-white/85">
-                    Live Auction Experience
-                  </span>
-                </div>
+            <div className="grid sm:grid-cols-3 gap-3 max-w-3xl mb-7">
+              <HeroMetric label="Auction" value="Live mobile bidding" />
+              <HeroMetric label="Artwork" value="Premium gallery view" />
+              <HeroMetric label="Admin" value="One control room" />
+            </div>
 
-                <h1 className="max-w-3xl text-[54px] sm:text-[70px] lg:text-[76px] xl:text-[86px] font-black leading-[0.88] tracking-[-0.075em] mb-8">
-                  A live art auction that feels like{" "}
-                  <span className="text-[#16d66d]">a big night out.</span>
-                </h1>
-
-                <div className="h-1.5 w-24 rounded-full bg-[#ffc857] shadow-[0_0_18px_rgba(255,200,87,0.45)] mb-7" />
-
-                <p className="max-w-xl text-lg sm:text-xl text-white/75 leading-relaxed font-semibold mb-9">
-                  BragWall turns student artwork into a premium mobile auction
-                  experience — framed masterpieces, live bids, dramatic SOLD
-                  moments, and winner follow-up built in.
-                </p>
-
-                <div className="grid grid-cols-2 xl:grid-cols-4 gap-5 mb-10 max-w-4xl">
-                  <FeaturePill
-                    icon={<ArtworkIcon />}
-                    title="Original student masterpieces"
-                    accent="green"
-                  />
-                  <FeaturePill
-                    icon={<GavelIcon />}
-                    title="Live bidding with auction MC"
-                    accent="yellow"
-                  />
-                  <FeaturePill
-                    icon={<MoneyIcon />}
-                    title="Secure payments & invoicing"
-                    accent="green"
-                  />
-                  <FeaturePill
-                    icon={<TrophyIcon />}
-                    title="Winner certificates & follow-up"
-                    accent="yellow"
-                  />
-                </div>
-
-                <button
-                  onClick={() => router.push("/auction/demo")}
-                  className="group w-full max-w-xl rounded-[24px] bg-[#16d66d] px-8 py-6 text-[#07152b] text-2xl font-black shadow-[0_0_45px_rgba(22,214,109,0.35)] transition hover:scale-[1.015] hover:bg-[#1ff07e] active:scale-[0.99]"
-                >
-                  <span className="inline-flex items-center justify-center mr-4 align-middle">
-                    <PeopleIcon />
-                  </span>
-                  Join the Auction
-                </button>
-
-                <p className="max-w-xl text-center text-white/55 font-semibold mt-4">
-                  Perfect for parents, family & friends
-                </p>
-              </div>
-
-              <div className="relative mt-10 grid grid-cols-2 sm:grid-cols-4 rounded-[28px] border border-white/10 bg-white/[0.06] backdrop-blur-xl shadow-2xl overflow-hidden max-w-4xl">
-                <StatBlock
-                  icon={<PeopleIcon />}
-                  value="250+"
-                  label="Families"
-                  accent="green"
+            <div className="rounded-[34px] bg-white/[0.055] border border-white/10 p-5 md:p-6 shadow-2xl max-w-4xl">
+              <div className="grid md:grid-cols-4 gap-4">
+                <HowItWorksStep
+                  number="01"
+                  title="Upload"
+                  text="School adds artwork, child details, grade, and auction story."
                 />
-                <StatBlock
-                  icon={<ArtworkIcon />}
-                  value="500+"
-                  label="Artworks"
-                  accent="yellow"
+                <HowItWorksStep
+                  number="02"
+                  title="Preview"
+                  text="Parents can view the gallery before and during the event."
                 />
-                <StatBlock
-                  icon={<GavelIcon />}
-                  value="3.2K+"
-                  label="Bids"
-                  accent="green"
+                <HowItWorksStep
+                  number="03"
+                  title="Bid"
+                  text="The live room controls each artwork and parents bid by phone."
                 />
-                <StatBlock
-                  icon={<TrophyIcon />}
-                  value="R450K+"
-                  label="Raised"
-                  accent="yellow"
+                <HowItWorksStep
+                  number="04"
+                  title="Settle"
+                  text="Winner email is captured for invoice and certificate follow-up."
                 />
               </div>
-            </section>
+            </div>
+          </section>
 
-            <section className="relative p-7 sm:p-10 lg:p-14 xl:p-16 flex items-center justify-center">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_22%,rgba(11,99,206,0.14),transparent_24%),radial-gradient(circle_at_30%_80%,rgba(22,214,109,0.1),transparent_26%)]" />
+          <aside className="space-y-5">
+            <AdminAccessPanel
+              email={email}
+              password={password}
+              setEmail={setEmail}
+              setPassword={setPassword}
+              login={login}
+              loading={loading}
+              checkingSession={checkingSession}
+              adminSessionActive={adminSessionActive}
+            />
 
-              <div className="relative w-full max-w-[620px] rounded-[34px] border border-white/15 bg-[#071426]/86 p-6 sm:p-9 lg:p-11 shadow-[0_28px_90px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-5 py-3 mb-8 shadow-lg">
-                    <span className="text-[#16d66d]">
-                      <LockIcon />
-                    </span>
-                    <span className="uppercase tracking-[0.3em] text-xs font-black text-white/90">
-                      Admin Access
-                    </span>
-                  </div>
+            <ParentAccessPanel />
 
-                  <h2 className="text-5xl sm:text-6xl font-black tracking-[-0.06em] leading-none mb-5">
-                    Welcome <span className="text-[#16d66d]">back.</span>
-                  </h2>
+            <AuctionPreviewCard />
+          </aside>
+        </div>
+      </section>
 
-                  <p className="text-white/70 text-lg sm:text-xl leading-relaxed font-medium max-w-md mx-auto">
-                    Use your Supabase admin account to access the BragWall
-                    control room.
-                  </p>
-                </div>
+      <section className="relative max-w-7xl mx-auto px-5 md:px-8 py-10 md:py-14">
+        <div className="grid md:grid-cols-4 gap-5">
+          <Feature
+            icon="⚡"
+            title="Real-time bidding"
+            text="Parents bid live from their phones while the admin room controls the auction rhythm."
+          />
+          <Feature
+            icon="🎤"
+            title="Auction storytelling"
+            text="Each artwork can get a playful, premium, child-specific auction intro."
+          />
+          <Feature
+            icon="🖼️"
+            title="Gallery preview"
+            text="Parents can browse uploaded artwork before and during the live auction."
+          />
+          <Feature
+            icon="🏆"
+            title="Winner follow-up"
+            text="Winners submit email details for invoice, certificate, and collection."
+          />
+        </div>
+      </section>
 
-                <form onSubmit={signIn} className="space-y-6">
-                  <div>
-                    <label className="block uppercase tracking-[0.25em] text-xs font-black text-white/60 mb-3">
-                      Admin Email
-                    </label>
+      <section className="relative max-w-7xl mx-auto px-5 md:px-8 pb-14">
+        <div className="rounded-[42px] bg-[#fbf8f1] text-[#07152b] p-6 md:p-8 shadow-2xl overflow-hidden">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-8 items-center">
+            <div>
+              <p className="uppercase tracking-[0.35em] text-xs text-[#0b63ce] font-black mb-4">
+                Built for school auction nights
+              </p>
 
-                    <div className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/[0.06] px-5 py-4 focus-within:border-[#16d66d] transition">
-                      <span className="text-white/65">
-                        <MailIcon />
-                      </span>
+              <h2 className="text-5xl md:text-7xl font-black leading-[0.9] mb-5">
+                Less admin. More energy. Bigger pride.
+              </h2>
 
-                      <input
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        type="email"
-                        className="w-full bg-transparent outline-none text-white text-lg font-semibold placeholder:text-white/30 appearance-none"
-                        style={{ WebkitTextFillColor: "white" }}
-                        placeholder="admin@email.com"
-                      />
-                    </div>
-                  </div>
+              <p className="text-slate-600 text-xl leading-relaxed font-bold">
+                The school gets one setup flow, one live control room, one
+                parent auction link, and a clear record of sold artworks and
+                winner details.
+              </p>
+            </div>
 
-                  <div>
-                    <label className="block uppercase tracking-[0.25em] text-xs font-black text-white/60 mb-3">
-                      Password
-                    </label>
-
-                    <div className="flex items-center gap-4 rounded-2xl border border-white/25 bg-white/[0.06] px-5 py-4 focus-within:border-[#16d66d] transition">
-                      <span className="text-white/65">
-                        <LockIcon />
-                      </span>
-
-                      <input
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        type="password"
-                        className="w-full bg-transparent outline-none text-white text-lg font-semibold placeholder:text-white/30 appearance-none"
-                        style={{ WebkitTextFillColor: "white" }}
-                        placeholder="••••••••"
-                      />
-
-                      <span className="text-white/45">
-                        <EyeIcon />
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full rounded-2xl bg-[#16d66d] px-8 py-5 text-[#07152b] text-xl font-black shadow-[0_0_40px_rgba(22,214,109,0.25)] transition hover:bg-[#1ff07e] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
-                  >
-                    <span className="inline-flex align-middle mr-3">
-                      <LockIcon />
-                    </span>
-                    {loading ? "Signing In..." : "Sign In to Admin"}
-                  </button>
-                </form>
-
-                <div className="flex items-center gap-4 my-8">
-                  <div className="h-px flex-1 bg-white/10" />
-                  <p className="uppercase tracking-[0.38em] text-xs text-white/45 font-black whitespace-nowrap">
-                    Secure <span className="text-[#16d66d]">•</span> Private{" "}
-                    <span className="text-[#16d66d]">•</span> Protected
-                  </p>
-                  <div className="h-px flex-1 bg-white/10" />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <LoginTile
-                    icon={<ShieldIcon />}
-                    title="Secure"
-                    text="Enterprise-grade data protection"
-                    color="green"
-                  />
-                  <LoginTile
-                    icon={<GavelIcon />}
-                    title="Live Control"
-                    text="Run the auction with confidence"
-                    color="yellow"
-                  />
-                  <LoginTile
-                    icon={<PaletteIcon />}
-                    title="Studio Tools"
-                    text="Upload, manage & track everything"
-                    color="blue"
-                  />
-                </div>
-
-                <p className="text-center mt-8 text-[#6aa8ff] font-medium">
-                  Need help? Contact support
-                </p>
-              </div>
-            </section>
+            <div className="grid md:grid-cols-3 gap-4">
+              <ProcessCard
+                title="School setup"
+                text="Bank details, payment reference, bid increment, and collection instructions."
+              />
+              <ProcessCard
+                title="Artwork setup"
+                text="Upload artwork, child name, grade, auction story, and enhanced display image."
+              />
+              <ProcessCard
+                title="Live room"
+                text="Run bids, mark sold, move to next artwork, and watch the bidder count."
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -275,211 +210,275 @@ export default function HomePage() {
   );
 }
 
-function FeaturePill({
-  icon,
-  title,
-  accent,
+function AdminAccessPanel({
+  email,
+  password,
+  setEmail,
+  setPassword,
+  login,
+  loading,
+  checkingSession,
+  adminSessionActive,
 }: {
-  icon: ReactNode;
-  title: string;
-  accent: "green" | "yellow";
+  email: string;
+  password: string;
+  setEmail: (value: string) => void;
+  setPassword: (value: string) => void;
+  login: () => void;
+  loading: boolean;
+  checkingSession: boolean;
+  adminSessionActive: boolean;
 }) {
-  const borderClass =
-    accent === "green" ? "border-[#16d66d]/70" : "border-[#ffc857]/80";
-
-  const textClass = accent === "green" ? "text-[#16d66d]" : "text-[#ffc857]";
-
   return (
-    <div className="flex items-center gap-3">
-      <div
-        className={`h-12 w-12 rounded-full border ${borderClass} ${textClass} flex items-center justify-center shrink-0 bg-[#061124]/60`}
-      >
-        {icon}
+    <section className="rounded-[34px] bg-white text-[#07152b] p-5 md:p-6 shadow-2xl border border-black/5">
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <p className="uppercase tracking-[0.3em] text-[10px] text-slate-400 font-black mb-3">
+            Admin Access
+          </p>
+
+          <h2 className="text-4xl font-black leading-none">
+            Control room login.
+          </h2>
+        </div>
+
+        <div className="w-14 h-14 rounded-[22px] bg-[#16d66d] text-[#07152b] flex items-center justify-center text-3xl shadow-xl">
+          🔐
+        </div>
       </div>
 
-      <p className="text-sm text-white/85 font-semibold leading-tight">
-        {title}
+      {checkingSession ? (
+        <div className="rounded-[24px] bg-[#f7f5f0] p-5 font-black text-slate-500">
+          Checking admin session...
+        </div>
+      ) : adminSessionActive ? (
+        <div className="space-y-4">
+          <div className="rounded-[24px] bg-[#eafff2] border border-[#16d66d]/30 p-5">
+            <p className="uppercase tracking-[0.25em] text-[10px] text-[#16b85d] font-black mb-2">
+              Signed in
+            </p>
+
+            <p className="text-xl font-black leading-snug">
+              Your admin session is active.
+            </p>
+          </div>
+
+          <a
+            href="/admin"
+            className="block w-full text-center bg-[#07152b] text-white rounded-2xl py-5 font-black text-xl shadow-xl hover:scale-[1.01] transition"
+          >
+            Open Admin Dashboard
+          </a>
+        </div>
+      ) : (
+        <div>
+          <p className="text-slate-600 font-bold leading-relaxed mb-5">
+            Log in to set up the school, upload artwork, run the live room, and
+            review sales records.
+          </p>
+
+          <input
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="Admin email"
+            className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-base font-bold outline-none mb-3 placeholder:text-slate-400"
+          />
+
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                login();
+              }
+            }}
+            placeholder="Password"
+            className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-4 text-base font-bold outline-none mb-4 placeholder:text-slate-400"
+          />
+
+          <button
+            onClick={login}
+            disabled={loading}
+            className="w-full bg-[#16d66d] text-[#07152b] rounded-2xl py-5 font-black text-xl shadow-xl disabled:opacity-50 hover:scale-[1.01] transition"
+          >
+            {loading ? "Logging in..." : "Login to Admin"}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ParentAccessPanel() {
+  return (
+    <section className="rounded-[34px] bg-[#061124]/92 border border-white/10 p-5 md:p-6 shadow-2xl">
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <p className="uppercase tracking-[0.3em] text-[10px] text-[#ffc857] font-black mb-3">
+            Parent Access
+          </p>
+
+          <h2 className="text-3xl font-black leading-none">
+            Auction link for parents.
+          </h2>
+        </div>
+
+        <div className="w-14 h-14 rounded-[22px] bg-[#ffc857] text-[#07152b] flex items-center justify-center text-3xl shadow-xl">
+          📱
+        </div>
+      </div>
+
+      <p className="text-white/62 font-bold leading-relaxed mb-4">
+        Parents join from their phones using the auction link below.
       </p>
-    </div>
-  );
-}
 
-function StatBlock({
-  icon,
-  value,
-  label,
-  accent,
-}: {
-  icon: ReactNode;
-  value: string;
-  label: string;
-  accent: "green" | "yellow";
-}) {
-  const colorClass = accent === "green" ? "text-[#16d66d]" : "text-[#ffc857]";
+      <div className="rounded-[22px] bg-white text-[#07152b] p-4 mb-4">
+        <p className="uppercase tracking-[0.25em] text-[9px] text-slate-400 font-black mb-2">
+          Parent auction URL
+        </p>
 
-  return (
-    <div className="relative px-5 py-6 text-center border-r border-white/10 last:border-r-0">
-      <div className={`mx-auto mb-3 flex h-9 w-9 items-center justify-center ${colorClass}`}>
-        {icon}
+        <p className="font-black text-xl break-all">/auction/demo</p>
       </div>
 
-      <div className="text-3xl font-black leading-none">{value}</div>
+      <a
+        href="/auction/demo"
+        className="block text-center rounded-2xl bg-[#ffc857] text-[#07152b] px-5 py-4 font-black shadow-xl hover:scale-[1.01] transition"
+      >
+        Open Parent Auction
+      </a>
+    </section>
+  );
+}
 
-      <p className="text-white/65 font-medium mt-2">{label}</p>
+function AuctionPreviewCard() {
+  return (
+    <section className="rounded-[34px] bg-[#061124]/92 border border-white/10 p-4 shadow-2xl overflow-hidden">
+      <div className="rounded-[28px] bg-[radial-gradient(circle_at_top,rgba(255,200,87,0.20),transparent_42%),#020b18] border border-[#ffc857]/25 p-5 mb-4">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p className="uppercase tracking-[0.3em] text-[9px] text-[#16d66d] font-black mb-2">
+              Live Auction Preview
+            </p>
+
+            <h3 className="text-3xl font-black leading-none">
+              Artwork goes live.
+            </h3>
+          </div>
+
+          <div className="rounded-2xl bg-[#16d66d] text-[#07152b] px-3 py-2 text-center">
+            <p className="text-[9px] uppercase tracking-[0.18em] font-black">
+              Status
+            </p>
+            <p className="font-black">Live</p>
+          </div>
+        </div>
+
+        <div className="rounded-[28px] overflow-hidden bg-[#16110b] border border-white/10 shadow-xl">
+          <div className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,#241b13,#090909)] p-4">
+            <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2 rounded-[22px]">
+              <div className="bg-[#f8f5ef] rounded-[16px] p-3">
+                <div className="rounded-[12px] overflow-hidden bg-white h-[175px] flex items-center justify-center">
+                  <div className="w-full h-full bg-[radial-gradient(circle_at_30%_30%,#ffd166,transparent_22%),radial-gradient(circle_at_72%_30%,#16d66d,transparent_24%),radial-gradient(circle_at_45%_75%,#0b63ce,transparent_28%),linear-gradient(135deg,#fff7dc,#ffe4ef)]" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-7 bg-gradient-to-b from-[#5b3312] to-[#1b1008]" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="bg-white text-[#07152b] rounded-[24px] p-4 shadow-xl">
+          <p className="uppercase tracking-[0.25em] text-[9px] text-slate-400 font-black mb-2">
+            Highest Bid
+          </p>
+
+          <p className="text-4xl font-black text-[#16d66d] leading-none">
+            R500
+          </p>
+        </div>
+
+        <div className="bg-white text-[#07152b] rounded-[24px] p-4 shadow-xl text-right">
+          <p className="uppercase tracking-[0.25em] text-[9px] text-slate-400 font-black mb-2">
+            Leading
+          </p>
+
+          <p className="text-2xl font-black leading-tight">Parent 👑</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HeroMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[22px] bg-white/10 border border-white/10 p-4">
+      <p className="uppercase tracking-[0.25em] text-[9px] text-white/40 font-black mb-2">
+        {label}
+      </p>
+
+      <p className="text-lg font-black text-white leading-tight">{value}</p>
     </div>
   );
 }
 
-function LoginTile({
+function HowItWorksStep({
+  number,
+  title,
+  text,
+}: {
+  number: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="rounded-[26px] bg-white/[0.055] border border-white/10 p-5">
+      <p className="text-[#16d66d] text-3xl font-black mb-4">{number}</p>
+
+      <h3 className="text-xl font-black mb-3">{title}</h3>
+
+      <p className="text-white/55 text-sm font-bold leading-relaxed">{text}</p>
+    </div>
+  );
+}
+
+function Feature({
   icon,
   title,
   text,
-  color,
 }: {
-  icon: ReactNode;
+  icon: string;
   title: string;
   text: string;
-  color: "green" | "yellow" | "blue";
 }) {
-  const colorClass =
-    color === "green"
-      ? "text-[#16d66d]"
-      : color === "yellow"
-      ? "text-[#ffc857]"
-      : "text-[#4b9cff]";
-
   return (
-    <div className="rounded-2xl border border-white/12 bg-white/[0.045] p-5 text-center min-h-[150px] flex flex-col items-center justify-center">
-      <div className={`mb-3 flex h-12 w-12 items-center justify-center ${colorClass}`}>
+    <div className="rounded-[30px] bg-white/5 border border-white/10 p-6 shadow-xl">
+      <div className="w-16 h-16 rounded-[24px] bg-white text-[#07152b] flex items-center justify-center text-3xl mb-5 shadow-xl">
         {icon}
       </div>
 
-      <h3 className={`font-black text-lg mb-2 ${colorClass}`}>{title}</h3>
+      <h3 className="uppercase tracking-[0.18em] text-sm font-black mb-3">
+        {title}
+      </h3>
 
-      <p className="text-white/62 text-sm leading-relaxed font-medium">
-        {text}
-      </p>
+      <p className="text-white/55 leading-relaxed font-bold">{text}</p>
     </div>
   );
 }
 
-function IconSvg({ children }: { children: ReactNode }) {
+function ProcessCard({ title, text }: { title: string; text: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-6 w-6"
-    >
-      {children}
-    </svg>
-  );
-}
+    <div className="rounded-[30px] bg-white border border-black/5 p-6 shadow-xl">
+      <div className="w-12 h-12 rounded-[18px] bg-[#16d66d] text-[#07152b] flex items-center justify-center font-black text-xl mb-5">
+        ✓
+      </div>
 
-function PeopleIcon() {
-  return (
-    <IconSvg>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </IconSvg>
-  );
-}
+      <h3 className="text-3xl font-black mb-3">{title}</h3>
 
-function ArtworkIcon() {
-  return (
-    <IconSvg>
-      <rect x="3" y="4" width="18" height="16" rx="2" />
-      <circle cx="8.5" cy="9" r="1.5" />
-      <path d="m21 15-5-5L5 21" />
-      <path d="m12 17 3-3 6 6" />
-    </IconSvg>
-  );
-}
-
-function GavelIcon() {
-  return (
-    <IconSvg>
-      <path d="m14 13-7 7" />
-      <path d="m8 8 8 8" />
-      <path d="m9 7 4-4 8 8-4 4z" />
-      <path d="m4 21 5-5" />
-    </IconSvg>
-  );
-}
-
-function MoneyIcon() {
-  return (
-    <IconSvg>
-      <rect x="3" y="6" width="18" height="12" rx="2" />
-      <circle cx="12" cy="12" r="3" />
-      <path d="M7 9v.01" />
-      <path d="M17 15v.01" />
-    </IconSvg>
-  );
-}
-
-function TrophyIcon() {
-  return (
-    <IconSvg>
-      <path d="M8 21h8" />
-      <path d="M12 17v4" />
-      <path d="M7 4h10v5a5 5 0 0 1-10 0z" />
-      <path d="M5 5H3v3a4 4 0 0 0 4 4" />
-      <path d="M19 5h2v3a4 4 0 0 1-4 4" />
-    </IconSvg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <IconSvg>
-      <rect x="5" y="11" width="14" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-    </IconSvg>
-  );
-}
-
-function MailIcon() {
-  return (
-    <IconSvg>
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="m3 7 9 6 9-6" />
-    </IconSvg>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <IconSvg>
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </IconSvg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <IconSvg>
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
-      <path d="M9 12h6" />
-      <path d="M12 9v6" />
-    </IconSvg>
-  );
-}
-
-function PaletteIcon() {
-  return (
-    <IconSvg>
-      <path d="M12 22a10 10 0 1 1 10-10c0 2.2-1.4 4-3.2 4H17a2 2 0 0 0-2 2c0 2.2-1.8 4-3 4Z" />
-      <circle cx="7.5" cy="10.5" r=".8" />
-      <circle cx="10.5" cy="7.5" r=".8" />
-      <circle cx="14.5" cy="7.5" r=".8" />
-      <circle cx="16.5" cy="11.5" r=".8" />
-    </IconSvg>
+      <p className="text-slate-600 font-bold leading-relaxed">{text}</p>
+    </div>
   );
 }
