@@ -1382,15 +1382,20 @@ export default function DemoAuctionPage() {
                   )}
                 </div>
 
-                {(introAudioStatus === "blocked" || introAudioStatus === "error") &&
-                  mcAudioUrl && (
-                    <button
-                      onClick={() => playIntroAudio({ force: true })}
-                      className="mt-4 w-full bg-[#07152b] text-white rounded-[18px] px-4 py-4 text-base font-black shadow-xl"
-                    >
-                      🔊 Tap to hear MC intro
-                    </button>
-                  )}
+                {mcAudioUrl && introAudioStatus !== "playing" && (
+                  <button
+                    onClick={() => playIntroAudio({ force: true })}
+                    className="mt-4 w-full bg-[#07152b] text-white rounded-[18px] px-4 py-4 text-base font-black shadow-xl border border-[#16d66d]/40 active:scale-[0.98] transition"
+                  >
+                    🔊 Tap to hear MC intro
+                  </button>
+                )}
+
+                {mcAudioUrl && introAudioStatus === "playing" && (
+                  <div className="mt-4 w-full bg-[#16d66d] text-[#07152b] rounded-[18px] px-4 py-4 text-base font-black shadow-xl text-center">
+                    🔊 MC voice playing now
+                  </div>
+                )}
 
                 <p className="text-[10px] font-black mt-2 opacity-60">
                   AI-generated voice. Bidding opens after the full voice intro finishes.
@@ -1574,9 +1579,7 @@ export default function DemoAuctionPage() {
                 : isIntro
                 ? introAudioStatus === "playing"
                   ? "The AI MC is presenting the artwork. Bidding opens when the full intro finishes."
-                  : introAudioStatus === "blocked" || introAudioStatus === "error"
-                  ? "iPhone blocked autoplay. Tap the MC voice button above to hear the intro."
-                  : "The MC intro is preparing. Bidding opens next."
+                  : "If sound does not start automatically on iPhone, tap the MC voice button above."
                 : isUrgency
                 ? "Last chance — tap to keep the artwork alive."
                 : canBid
