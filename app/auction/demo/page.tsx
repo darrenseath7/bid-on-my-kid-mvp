@@ -1363,17 +1363,30 @@ export default function DemoAuctionPage() {
                   </p>
                 </div>
 
-                <p className="font-black text-sm leading-snug">
-                  {mcIntroText}
-                </p>
+                {mcAudioUrl && introAudioStatus !== "playing" && (
+                  <button
+                    type="button"
+                    onClick={() => playIntroAudio({ force: true })}
+                    className="mt-4 mb-4 w-full bg-[#07152b] text-white rounded-[22px] px-4 py-5 text-lg font-black shadow-xl border-2 border-white/20 active:scale-[0.98] transition"
+                  >
+                    🔊 Tap to hear MC intro
+                  </button>
+                )}
 
-                <div className="mt-3 flex items-center justify-between gap-3">
+                {mcAudioUrl && introAudioStatus === "playing" && (
+                  <div className="mt-4 mb-4 w-full bg-[#16d66d] text-[#07152b] rounded-[22px] px-4 py-5 text-lg font-black shadow-xl text-center">
+                    🔊 MC voice playing now
+                  </div>
+                )}
+
+                <div className="mb-4 flex items-center justify-between gap-3">
                   <p className="text-xs font-black opacity-70">
                     {getIntroAudioStatusLabel(introAudioStatus)}
                   </p>
 
                   {introAudioStatus === "finished" && mcAudioUrl && (
                     <button
+                      type="button"
                       onClick={() => playIntroAudio({ force: true })}
                       className="bg-[#07152b] text-white rounded-full px-3 py-1.5 text-[11px] font-black shrink-0"
                     >
@@ -1382,22 +1395,11 @@ export default function DemoAuctionPage() {
                   )}
                 </div>
 
-                {mcAudioUrl && introAudioStatus !== "playing" && (
-                  <button
-                    onClick={() => playIntroAudio({ force: true })}
-                    className="mt-4 w-full bg-[#07152b] text-white rounded-[18px] px-4 py-4 text-base font-black shadow-xl border border-[#16d66d]/40 active:scale-[0.98] transition"
-                  >
-                    🔊 Tap to hear MC intro
-                  </button>
-                )}
+                <p className="font-black text-sm leading-snug">
+                  {mcIntroText}
+                </p>
 
-                {mcAudioUrl && introAudioStatus === "playing" && (
-                  <div className="mt-4 w-full bg-[#16d66d] text-[#07152b] rounded-[18px] px-4 py-4 text-base font-black shadow-xl text-center">
-                    🔊 MC voice playing now
-                  </div>
-                )}
-
-                <p className="text-[10px] font-black mt-2 opacity-60">
+                <p className="text-[10px] font-black mt-3 opacity-60">
                   AI-generated voice. Bidding opens after the full voice intro finishes.
                 </p>
               </div>
