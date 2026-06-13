@@ -1310,7 +1310,7 @@ export default function DemoAuctionPage() {
         )}
       </AnimatePresence>
 
-      <div className="relative flex-1 min-h-0 max-w-md mx-auto w-full px-4 py-3 flex flex-col gap-2.5 overflow-hidden">
+      <div className="relative flex-1 min-h-0 max-w-md mx-auto w-full px-4 py-3 flex flex-col gap-2.5 overflow-y-auto overscroll-contain pb-6">
         {isSold && isWinningBidder && winnerEmailAlreadySubmitted && (
           <div className="shrink-0 bg-[#16d66d] text-[#07152b] rounded-[20px] p-3 shadow-xl">
             <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-1">
@@ -1549,7 +1549,7 @@ export default function DemoAuctionPage() {
         <div className="flex-1 min-h-0" />
       </div>
 
-      {!isSold && (
+      {!isSold && !isPreparingIntro && !isIntro && (
         <div className="relative shrink-0 bg-[#020b18]/95 backdrop-blur border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
           <div className="max-w-md mx-auto p-3">
             <motion.button
