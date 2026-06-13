@@ -68,6 +68,7 @@ export default function DemoAuctionPage() {
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [bidderName, setBidderName] = useState("");
   const [joined, setJoined] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [pauseRemaining, setPauseRemaining] = useState(0);
@@ -85,6 +86,7 @@ export default function DemoAuctionPage() {
   const previousStatusRef = useRef<string | null>(null);
   const audioUnlockedRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const audioUnlockElementRef = useRef<HTMLAudioElement | null>(null);
   const autoActionKeyRef = useRef("");
   const welcomeAudioRef = useRef<HTMLAudioElement | null>(null);
   const introAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -237,8 +239,31 @@ export default function DemoAuctionPage() {
       }
     } catch {
       // Some browsers still block audio until the next user gesture.
-      // The replay button remains available as a fallback.
+      // The large "Tap to play MC intro" button remains available as a fallback.
     }
+
+    try {
+      if (!audioUnlockElementRef.current) {
+        const silentAudio = new Audio(
+          "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQQAAAAAAA=="
+        );
+
+        silentAudio.preload = "auto";
+        silentAudio.volume = 0.01;
+        (silentAudio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
+        audioUnlockElementRef.current = silentAudio;
+      }
+
+      const silentAudio = audioUnlockElementRef.current;
+      silentAudio.currentTime = 0;
+      await silentAudio.play();
+      silentAudio.pause();
+      silentAudio.currentTime = 0;
+    } catch {
+      // iOS may still require the user to tap the actual MC intro button.
+    }
+
+    setSoundEnabled(true);
   }
 
   function stopIntroAudio() {
@@ -334,6 +359,10 @@ export default function DemoAuctionPage() {
 
   async function playIntroAudio({ force = false }: { force?: boolean } = {}) {
     if (!auction || !isIntro) return;
+
+    if (force) {
+      await unlockBrowserAudio();
+    }
 
     audioUnlockedRef.current = true;
 
@@ -975,8 +1004,13 @@ export default function DemoAuctionPage() {
               }}
               className="w-full bg-[#07152b] text-white rounded-2xl py-3.5 font-black text-base shadow-xl"
             >
-              JOIN AUCTION
+              JOIN AUCTION & ENABLE SOUND
             </button>
+
+            <p className="text-center text-[10px] text-slate-500 font-black mt-2 leading-relaxed">
+              On iPhone, make sure Silent Mode is off and volume is up. If iOS
+              blocks audio, tap the MC voice button when it appears.
+            </p>
           </div>
         </div>
       </main>
@@ -1024,10 +1058,19 @@ export default function DemoAuctionPage() {
               You’re in.
             </h1>
 
-            <p className="text-white/70 text-lg leading-relaxed mb-6 font-bold">
+            <p className="text-white/70 text-lg leading-relaxed mb-4 font-bold">
               Keep this page open. The first artwork will appear automatically
               when the auction starts.
             </p>
+
+            <div className="bg-[#16d66d] text-[#07152b] rounded-[22px] p-4 mb-6 shadow-xl">
+              <p className="uppercase tracking-[0.25em] text-[9px] font-black mb-1 opacity-70">
+                Sound
+              </p>
+              <p className="font-black">
+                {soundEnabled ? "Sound enabled ✅" : "Tap Join Auction to enable sound"}
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -1302,18 +1345,25 @@ export default function DemoAuctionPage() {
                     {getIntroAudioStatusLabel(introAudioStatus)}
                   </p>
 
-                  {(introAudioStatus === "blocked" ||
-                    introAudioStatus === "error" ||
-                    introAudioStatus === "finished") &&
-                    mcAudioUrl && (
-                      <button
-                        onClick={() => playIntroAudio({ force: true })}
-                        className="bg-[#07152b] text-white rounded-full px-3 py-1.5 text-[11px] font-black shrink-0"
-                      >
-                        Replay Voice
-                      </button>
-                    )}
+                  {introAudioStatus === "finished" && mcAudioUrl && (
+                    <button
+                      onClick={() => playIntroAudio({ force: true })}
+                      className="bg-[#07152b] text-white rounded-full px-3 py-1.5 text-[11px] font-black shrink-0"
+                    >
+                      Replay Voice
+                    </button>
+                  )}
                 </div>
+
+                {(introAudioStatus === "blocked" || introAudioStatus === "error") &&
+                  mcAudioUrl && (
+                    <button
+                      onClick={() => playIntroAudio({ force: true })}
+                      className="mt-4 w-full bg-[#07152b] text-white rounded-[18px] px-4 py-4 text-base font-black shadow-xl"
+                    >
+                      🔊 Tap to hear MC intro
+                    </button>
+                  )}
 
                 <p className="text-[10px] font-black mt-2 opacity-60">
                   AI-generated voice. Bidding opens after the full voice intro finishes.
@@ -1497,6 +1547,8 @@ export default function DemoAuctionPage() {
                 : isIntro
                 ? introAudioStatus === "playing"
                   ? "The AI MC is presenting the artwork. Bidding opens when the full intro finishes."
+                  : introAudioStatus === "blocked" || introAudioStatus === "error"
+                  ? "iPhone blocked autoplay. Tap the MC voice button above to hear the intro."
                   : "The MC intro is preparing. Bidding opens next."
                 : isUrgency
                 ? "Last chance — tap to keep the artwork alive."
@@ -1562,8 +1614,8 @@ function getIntroAudioStatusLabel(
   if (status === "playing") return "AI MC voice playing now.";
   if (status === "finished") return "AI MC intro complete.";
   if (status === "blocked")
-    return "Tap Replay Voice once to enable sound on this device.";
-  if (status === "error") return "Voice could not play. Tap Replay Voice.";
+    return "iPhone blocked autoplay. Tap the button below to play.";
+  if (status === "error") return "Voice could not play. Tap the button below.";
   if (status === "missing") return "No AI voice clip found for this artwork.";
 
   return "AI MC voice ready.";
