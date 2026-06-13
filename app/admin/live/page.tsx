@@ -57,14 +57,22 @@ type ActivityItem = {
   created_at?: string | null;
 };
 
+type SchoolProfile = {
+  auction_code: string;
+  bid_increment?: number | null;
+};
+
+type Tone = "green" | "yellow" | "blue" | "purple" | "white" | "red";
+
 const AUCTION_CODE = "demo";
-const BID_STEP = 100;
+const DEFAULT_BID_STEP = 100;
 
 export default function AdminLivePage() {
   const [auction, setAuction] = useState<AuctionState | null>(null);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [bidIncrement, setBidIncrement] = useState(DEFAULT_BID_STEP);
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState("");
 
@@ -72,22 +80,32 @@ export default function AdminLivePage() {
     return getCurrentArtwork(auction, artworks);
   }, [auction, artworks]);
 
-  const queuedArtworks = artworks.filter((artwork) => {
-    return artwork.status !== "sold";
-  });
+  const queuedArtworks = artworks.filter(
+    (artwork) => artwork.status !== "sold"
+  );
 
-  const soldArtworks = artworks.filter((artwork) => {
-    return artwork.status === "sold";
-  });
+  const soldArtworks = artworks.filter((artwork) => artwork.status === "sold");
 
   const totalRaised = soldArtworks.reduce((sum, artwork) => {
     return sum + Number(artwork.sold_amount || 0);
   }, 0);
 
+  const uniqueBidderCount = useMemo(() => {
+    const uniqueNames = new Set(
+      bids
+        .map((bid) => bid.bidder_name.trim().toLowerCase())
+        .filter(Boolean)
+    );
+
+    return uniqueNames.size;
+  }, [bids]);
+
+  const visibleBids = bids.slice(0, 10);
+
   const nextBidAmount = Math.max(
     Number(auction?.next_bid_amount || 0),
-    Number(auction?.current_bid || 0) + BID_STEP,
-    BID_STEP
+    Number(auction?.current_bid || 0) + bidIncrement,
+    bidIncrement
   );
 
   const statusLabel = auction?.status || "waiting";
@@ -97,7 +115,7 @@ export default function AdminLivePage() {
     loadEverything();
 
     const auctionChannel = supabase
-      .channel("admin-live-auction-state-final")
+      .channel("admin-live-auction-state-premium-bidders")
       .on(
         "postgres_changes",
         {
@@ -112,8 +130,24 @@ export default function AdminLivePage() {
       )
       .subscribe();
 
+    const schoolProfileChannel = supabase
+      .channel("admin-live-school-profile-bid-increment-bidders")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "demo_school_profile",
+          filter: `auction_code=eq.${AUCTION_CODE}`,
+        },
+        () => {
+          fetchSchoolProfile();
+        }
+      )
+      .subscribe();
+
     const artworksChannel = supabase
-      .channel("admin-live-artworks-final")
+      .channel("admin-live-artworks-premium-bidders")
       .on(
         "postgres_changes",
         {
@@ -129,7 +163,7 @@ export default function AdminLivePage() {
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("admin-live-bids-final")
+      .channel("admin-live-bids-premium-bidders")
       .on(
         "postgres_changes",
         {
@@ -145,7 +179,7 @@ export default function AdminLivePage() {
       .subscribe();
 
     const activityChannel = supabase
-      .channel("admin-live-activity-final")
+      .channel("admin-live-activity-premium-bidders")
       .on(
         "postgres_changes",
         {
@@ -162,6 +196,7 @@ export default function AdminLivePage() {
 
     return () => {
       supabase.removeChannel(auctionChannel);
+      supabase.removeChannel(schoolProfileChannel);
       supabase.removeChannel(artworksChannel);
       supabase.removeChannel(bidsChannel);
       supabase.removeChannel(activityChannel);
@@ -173,6 +208,7 @@ export default function AdminLivePage() {
 
     await Promise.all([
       fetchAuction(),
+      fetchSchoolProfile(),
       fetchArtworks(),
       fetchBids(),
       fetchActivity(),
@@ -193,6 +229,18 @@ export default function AdminLivePage() {
     }
   }
 
+  async function fetchSchoolProfile() {
+    const { data } = await supabase
+      .from("demo_school_profile")
+      .select("auction_code,bid_increment")
+      .eq("auction_code", AUCTION_CODE)
+      .maybeSingle();
+
+    const profile = data as SchoolProfile | null;
+
+    setBidIncrement(getSafeBidIncrement(profile?.bid_increment));
+  }
+
   async function fetchArtworks() {
     const { data } = await supabase
       .from("demo_artworks")
@@ -209,7 +257,7 @@ export default function AdminLivePage() {
       .select("*")
       .eq("auction_code", AUCTION_CODE)
       .order("amount", { ascending: false })
-      .limit(10);
+      .limit(500);
 
     setBids(data || []);
   }
@@ -278,7 +326,7 @@ export default function AdminLivePage() {
         status: "open",
         status_deadline: null,
         bid_pause_until: null,
-        next_bid_amount: BID_STEP,
+        next_bid_amount: bidIncrement,
         last_bid_at: null,
         winner_email: null,
         winner_email_submitted_at: null,
@@ -490,7 +538,7 @@ export default function AdminLivePage() {
         status: "waiting",
         status_deadline: null,
         bid_pause_until: null,
-        next_bid_amount: BID_STEP,
+        next_bid_amount: bidIncrement,
         last_bid_at: null,
         winner_email: null,
         winner_email_submitted_at: null,
@@ -528,7 +576,7 @@ export default function AdminLivePage() {
         .update({
           current_bid: 0,
           leading_bidder: "No bids yet",
-          next_bid_amount: BID_STEP,
+          next_bid_amount: bidIncrement,
           last_bid_at: null,
           bid_pause_until: null,
           status_deadline: null,
@@ -550,416 +598,532 @@ export default function AdminLivePage() {
     return (
       <main className="min-h-screen bg-[#020b18] text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="bg-white rounded-[26px] p-4 mb-5 shadow-2xl">
-            <img
-              src="/bragwall-logo.png"
-              alt="BragWall"
-              className="h-20 w-auto object-contain"
-            />
-          </div>
-
-          <p className="text-white/70 font-black">Loading auction cockpit...</p>
+          <DarkLogoBlock compact />
+          <p className="text-white/70 font-black mt-5">
+            Loading auction cockpit...
+          </p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#020b18] text-white">
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.15),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.13),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
-      <div className="fixed inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
+    <main className="h-screen bg-[#020b18] text-white overflow-hidden">
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            .bragwall-live-scroll {
+              scrollbar-width: thin;
+              scrollbar-color: rgba(255,255,255,0.18) transparent;
+            }
+            .bragwall-live-scroll::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
+            .bragwall-live-scroll::-webkit-scrollbar-track {
+              background: transparent;
+            }
+            .bragwall-live-scroll::-webkit-scrollbar-thumb {
+              background: rgba(255,255,255,0.16);
+              border-radius: 999px;
+            }
+            .bragwall-live-scroll::-webkit-scrollbar-thumb:hover {
+              background: rgba(255,255,255,0.28);
+            }
+          `,
+        }}
+      />
 
-      <div className="relative grid xl:grid-cols-[245px_1fr] min-h-screen">
-        <aside className="border-r border-white/10 bg-[#061124]/85 backdrop-blur-xl p-4 xl:sticky xl:top-0 xl:h-screen">
-          <div className="bg-white rounded-[24px] p-3 shadow-2xl mb-5">
-            <img
-              src="/bragwall-logo.png"
-              alt="BragWall"
-              className="h-20 w-auto object-contain mx-auto"
-            />
-          </div>
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_12%,rgba(22,214,109,0.18),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(255,200,87,0.13),transparent_30%),linear-gradient(135deg,#061124_0%,#020b18_48%,#111827_100%)]" />
+      <div className="fixed inset-0 pointer-events-none opacity-[0.11] bg-[linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:72px_72px]" />
 
-          <nav className="space-y-2.5 mb-5">
-            <AdminNavLink href="/admin" label="Dashboard" icon="🏠" />
-            <AdminNavLink href="/admin/live" label="Live Room" icon="🔨" active />
-            <AdminNavLink href="/admin/artworks" label="Artwork Upload" icon="🎨" />
-            <AdminNavLink href="/admin/sales" label="Sales Records" icon="💳" />
-            <AdminNavLink href="/auction/demo" label="Parent View" icon="📱" />
-          </nav>
+      <section className="relative h-screen p-3.5">
+        <div className="h-full rounded-[30px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.72)] overflow-hidden">
+          <div className="grid h-full grid-cols-[235px_1fr]">
+            <aside className="h-full border-r border-white/10 bg-[#061124]/92 backdrop-blur-2xl p-3.5 flex flex-col">
+              <DarkLogoBlock />
 
-          <div className="rounded-[24px] bg-white/5 border border-white/10 p-4 mb-4">
-            <p className="uppercase tracking-[0.3em] text-[9px] text-white/50 font-black mb-2">
-              Auction Code
-            </p>
+              <nav className="space-y-2.5 mt-4">
+                <SidebarLink
+                  href="/admin"
+                  label="Dashboard"
+                  icon={<HomeIcon />}
+                  tone="yellow"
+                />
+                <SidebarLink
+                  href="/admin/setup"
+                  label="Add School & Artwork"
+                  icon={<PaletteIcon />}
+                  tone="purple"
+                />
+                <SidebarLink
+                  href="/admin/live"
+                  label="Live Room"
+                  icon={<GavelIcon />}
+                  tone="green"
+                  active
+                />
+                <SidebarLink
+                  href="/admin/sales"
+                  label="Sales Records"
+                  icon={<CardIcon />}
+                  tone="blue"
+                />
+                <SidebarLink
+                  href="/auction/demo"
+                  label="Parent View"
+                  icon={<PhoneIcon />}
+                  tone="purple"
+                />
+              </nav>
 
-            <p className="text-3xl font-black text-[#16d66d]">DEMO</p>
+              <div className="mt-auto rounded-[22px] border border-white/10 bg-[#020b18]/55 p-4 shadow-xl">
+                <p className="uppercase tracking-[0.34em] text-[9px] text-white/55 font-black mb-3">
+                  Auction Code
+                </p>
 
-            <p className="text-white/60 text-xs font-bold mt-2">
-              Parent screen: /auction/demo
-            </p>
-          </div>
+                <p className="text-[30px] font-black text-[#16d66d] leading-none">
+                  DEMO
+                </p>
 
-          <AdminLogoutButton />
-        </aside>
-
-        <section className="min-h-screen flex flex-col">
-          <header className="border-b border-white/10 bg-[#020b18]/70 backdrop-blur-xl p-4 lg:p-6">
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-3 rounded-full bg-white/10 border border-white/10 px-4 py-2.5 mb-4">
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      isLive
-                        ? "bg-[#16d66d] shadow-[0_0_16px_rgba(22,214,109,0.9)]"
-                        : "bg-[#ffc857]"
-                    }`}
-                  />
-
-                  <span className="uppercase tracking-[0.32em] text-[10px] font-black text-white/65">
-                    Auction Cockpit
-                  </span>
-                </div>
-
-                <h1 className="text-4xl lg:text-6xl font-black leading-[0.9]">
-                  Live control room.
-                </h1>
-
-                <p className="text-white/70 text-base font-bold mt-3 max-w-2xl">
-                  Run the artwork stage, bidding rhythm, SOLD moments, and
-                  parent screen from one premium BragWall cockpit.
+                <p className="text-white/58 text-xs font-bold mt-3 leading-relaxed">
+                  Parent access: /auction/demo
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 min-w-full lg:min-w-[500px]">
-                <MetricCard label="Status" value={formatStatus(statusLabel)} />
-                <MetricCard
-                  label="Current Bid"
-                  value={`R${Number(
-                    auction?.current_bid || 0
-                  ).toLocaleString()}`}
-                  green
-                />
-                <MetricCard
-                  label="Raised"
-                  value={`R${totalRaised.toLocaleString()}`}
-                  gold
-                />
+              <div className="mt-4">
+                <AdminLogoutButton />
               </div>
-            </div>
-          </header>
+            </aside>
 
-          <div className="grid 2xl:grid-cols-[1fr_360px] gap-4 p-4 lg:p-6">
-            <div className="space-y-4">
-              <section className="rounded-[34px] bg-white/5 border border-white/10 p-4 shadow-[0_30px_90px_rgba(0,0,0,0.34)]">
-                <div className="grid lg:grid-cols-[1fr_280px] gap-4 items-stretch">
-                  <div className="rounded-[30px] bg-[#061124] border border-white/10 p-4 lg:p-5 shadow-2xl">
-                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
-                      <div>
-                        <p className="uppercase tracking-[0.35em] text-[9px] text-[#16d66d] font-black mb-2">
-                          On Stage
-                        </p>
-
-                        <h2 className="text-4xl lg:text-5xl font-black leading-none">
-                          {currentArtwork
-                            ? `${currentArtwork.child_name} ${currentArtwork.child_surname}`
-                            : "No artwork selected"}
-                        </h2>
-
-                        <p className="text-white/65 font-bold mt-2">
-                          {currentArtwork?.grade || "Upload artwork to begin"}
-                        </p>
-                      </div>
-
-                      <StatusBadge status={statusLabel} />
-                    </div>
-
-                    <ArtworkStage artwork={currentArtwork} />
-
-                    <div className="mt-4 grid md:grid-cols-2 gap-3">
-                      <div className="bg-white text-[#07152b] rounded-[24px] p-4 shadow-xl">
-                        <p className="uppercase tracking-[0.25em] text-[9px] text-slate-400 font-black mb-2">
-                          Highest Bid
-                        </p>
-
-                        <p className="text-4xl font-black text-[#16d66d] leading-none">
-                          R{Number(auction?.current_bid || 0).toLocaleString()}
-                        </p>
-                      </div>
-
-                      <div className="bg-white text-[#07152b] rounded-[24px] p-4 shadow-xl text-right">
-                        <p className="uppercase tracking-[0.25em] text-[9px] text-slate-400 font-black mb-2">
-                          Leading Bidder
-                        </p>
-
-                        <p className="text-2xl font-black leading-tight truncate">
-                          {auction?.leading_bidder || "No bids yet"}
-                          {auction?.leading_bidder &&
-                          auction.leading_bidder !== "No bids yet"
-                            ? " 👑"
-                            : ""}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[30px] bg-[#061124] border border-white/10 p-4 shadow-2xl flex flex-col">
-                    <div className="text-center rounded-[26px] bg-[radial-gradient(circle_at_top,rgba(255,200,87,0.22),transparent_45%),#020b18] border border-[#ffc857]/30 p-5 mb-4">
-                      <div className="text-5xl mb-2">🔨</div>
-
-                      <p className="text-[#ffc857] text-4xl font-black leading-none">
-                        {statusLabel === "sold" ? "SOLD!" : "LIVE"}
-                      </p>
-
-                      <p className="text-white/70 font-bold mt-3">
-                        Next ask: R{nextBidAmount.toLocaleString()}
-                      </p>
-                    </div>
-
-                    <div className="bg-white text-[#07152b] rounded-[24px] p-4 shadow-xl mb-4">
-                      <p className="uppercase tracking-[0.25em] text-[9px] text-slate-400 font-black mb-2">
-                        AI Auction MC
-                      </p>
-
-                      <p className="text-lg font-black leading-snug">
-                        “
-                        {auction?.mc_commentary ||
-                          currentArtwork?.ai_story ||
-                          currentArtwork?.ai_intro ||
-                          "Welcome to BragWall. The next masterpiece is waiting for its moment."}
-                        ”
-                      </p>
-                    </div>
-
-                    <div className="mt-auto grid grid-cols-2 gap-3">
-                      <SmallInfo label="Queue" value={`${queuedArtworks.length}`} />
-                      <SmallInfo label="Sold" value={`${soldArtworks.length}`} />
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-[30px] bg-[#061124]/90 border border-white/10 p-4 shadow-2xl">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+            <section className="h-full overflow-y-auto bragwall-live-scroll">
+              <header className="px-6 pt-6 pb-5">
+                <div className="flex items-start justify-between gap-8">
                   <div>
-                    <p className="uppercase tracking-[0.3em] text-[9px] text-[#16d66d] font-black mb-2">
-                      Live Controls
-                    </p>
+                    <div className="inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/10 px-5 py-2 shadow-xl mb-4">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          isLive
+                            ? "bg-[#16d66d] shadow-[0_0_18px_rgba(22,214,109,0.9)]"
+                            : "bg-[#ffc857] shadow-[0_0_18px_rgba(255,200,87,0.7)]"
+                        }`}
+                      />
+                      <span className="uppercase tracking-[0.35em] text-[9px] font-black text-white/72">
+                        Auction Cockpit
+                      </span>
+                    </div>
 
-                    <h3 className="text-3xl font-black">Auction rhythm</h3>
+                    <h1 className="text-[56px] font-black leading-[0.9] tracking-[-0.065em]">
+                      Live <span className="text-[#16d66d]">control</span>{" "}
+                      room.
+                    </h1>
+
+                    <p className="max-w-4xl text-white/72 text-base leading-relaxed font-medium mt-3">
+                      Run the artwork stage, bidding rhythm, SOLD moments, and
+                      parent screen from one premium BragWall cockpit.
+                    </p>
                   </div>
 
-                  <button
-                    onClick={loadEverything}
-                    className="rounded-2xl bg-white/10 border border-white/10 px-5 py-3.5 font-black hover:bg-white/15 transition"
-                  >
-                    Refresh
-                  </button>
+                  <div className="grid grid-cols-4 gap-3.5 min-w-[690px] pt-5">
+                    <TopMetric
+                      label="Status"
+                      value={formatStatus(statusLabel)}
+                      icon={<ClockIcon />}
+                      tone="purple"
+                    />
+                    <TopMetric
+                      label="Current Bid"
+                      value={`R${Number(
+                        auction?.current_bid || 0
+                      ).toLocaleString()}`}
+                      icon={<MoneyIcon />}
+                      tone="green"
+                    />
+                    <TopMetric
+                      label="Bid Step"
+                      value={`R${bidIncrement.toLocaleString()}`}
+                      icon={<ArrowUpIcon />}
+                      tone="yellow"
+                    />
+                    <TopMetric
+                      label="Bidders"
+                      value={`${uniqueBidderCount}`}
+                      icon={<PeopleIcon />}
+                      tone="blue"
+                    />
+                  </div>
                 </div>
+              </header>
 
-                <div className="grid md:grid-cols-4 xl:grid-cols-7 gap-3">
-                  <ControlButton
-                    label="Start Live"
-                    icon="▶"
-                    onClick={startAuction}
-                    disabled={Boolean(busyAction)}
-                    green
-                  />
+              <div className="px-6 pb-5">
+                <div className="grid grid-cols-[1fr_330px] gap-4.5">
+                  <div className="space-y-4.5">
+                    <section className="rounded-[30px] border border-white/10 bg-white/[0.045] p-4.5 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
+                      <div className="grid grid-cols-[1fr_270px] gap-4 items-start">
+                        <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-5 shadow-2xl">
+                          <div className="flex items-start justify-between gap-5 mb-4">
+                            <div>
+                              <p className="uppercase tracking-[0.35em] text-[8px] text-[#16d66d] font-black mb-3">
+                                On Stage
+                              </p>
 
-                  <ControlButton
-                    label="Pause"
-                    icon="⏸"
-                    onClick={pauseAuction}
-                    disabled={Boolean(busyAction)}
-                  />
+                              <h2 className="text-[38px] font-black leading-none tracking-[-0.045em]">
+                                {currentArtwork
+                                  ? `${currentArtwork.child_name} ${currentArtwork.child_surname}`
+                                  : "No artwork selected"}
+                              </h2>
 
-                  <ControlButton
-                    label="Resume"
-                    icon="🔁"
-                    onClick={resumeAuction}
-                    disabled={Boolean(busyAction)}
-                  />
+                              <p className="text-white/65 text-base font-bold mt-2">
+                                {currentArtwork?.grade ||
+                                  "Upload artwork to begin"}
+                              </p>
+                            </div>
 
-                  <ControlButton
-                    label="Going Once"
-                    icon="1"
-                    onClick={markGoingOnce}
-                    disabled={Boolean(busyAction)}
-                    gold
-                  />
-
-                  <ControlButton
-                    label="Going Twice"
-                    icon="2"
-                    onClick={markGoingTwice}
-                    disabled={Boolean(busyAction)}
-                    danger
-                  />
-
-                  <ControlButton
-                    label="SOLD"
-                    icon="🔨"
-                    onClick={markSold}
-                    disabled={Boolean(busyAction)}
-                    sold
-                  />
-
-                  <ControlButton
-                    label="Reset"
-                    icon="↺"
-                    onClick={resetAuction}
-                    disabled={Boolean(busyAction)}
-                  />
-                </div>
-
-                <button
-                  onClick={clearBids}
-                  disabled={Boolean(busyAction)}
-                  className="mt-3 w-full rounded-[20px] bg-white/5 border border-white/10 px-5 py-3.5 font-black text-white/75 hover:bg-white/10 transition disabled:opacity-40"
-                >
-                  Clear Current Bids
-                </button>
-              </section>
-            </div>
-
-            <aside className="space-y-4">
-              <Panel title="Artwork Queue" subtitle="Tap an artwork to move it live">
-                <div className="space-y-3 max-h-[360px] overflow-auto pr-1">
-                  {artworks.length === 0 && (
-                    <p className="text-white/60 font-bold">
-                      No artwork uploaded yet.
-                    </p>
-                  )}
-
-                  {artworks.map((artwork) => {
-                    const displayUrl = getArtworkDisplayUrl(artwork);
-                    const active = currentArtwork?.id === artwork.id;
-
-                    return (
-                      <button
-                        key={artwork.id}
-                        onClick={() => moveToArtwork(artwork)}
-                        disabled={busyAction === `move-${artwork.id}`}
-                        className={`w-full text-left rounded-[22px] p-3 border transition ${
-                          active
-                            ? "bg-[#16d66d] text-[#07152b] border-[#16d66d]"
-                            : "bg-white/5 text-white border-white/10 hover:bg-white/10"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white shrink-0">
-                            {displayUrl ? (
-                              <img
-                                src={displayUrl}
-                                alt="Artwork thumbnail"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                🎨
-                              </div>
-                            )}
+                            <StatusBadge status={statusLabel} />
                           </div>
 
-                          <div className="min-w-0 flex-1">
-                            <p className="font-black truncate">
-                              {artwork.child_name} {artwork.child_surname}
+                          <ArtworkStage artwork={currentArtwork} />
+
+                          <div className="mt-3.5 grid grid-cols-3 gap-3">
+                            <WhiteDataCard
+                              label="Highest Bid"
+                              value={`R${Number(
+                                auction?.current_bid || 0
+                              ).toLocaleString()}`}
+                              tone="green"
+                            />
+
+                            <WhiteDataCard
+                              label="Leading Bidder"
+                              value={auction?.leading_bidder || "No bids yet"}
+                              alignRight
+                            />
+
+                            <WhiteDataCard
+                              label="Bidders"
+                              value={`${uniqueBidderCount}`}
+                              tone="blue"
+                              alignRight
+                            />
+                          </div>
+                        </div>
+
+                        <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-4 shadow-2xl flex flex-col">
+                          <div className="rounded-[24px] border border-[#ffc857]/32 bg-[radial-gradient(circle_at_top,rgba(211,108,255,0.24),transparent_36%),#020b18] p-5 text-center shadow-[0_0_45px_rgba(211,108,255,0.08)]">
+                            <div className="mx-auto mb-4 h-[86px] w-[86px] rounded-[24px] border border-[#d36cff]/45 bg-[#d36cff]/12 text-[#f2c8ff] flex items-center justify-center shadow-[0_0_36px_rgba(211,108,255,0.18)]">
+                              <LargeGavelIcon />
+                            </div>
+
+                            <p className="text-[#ffc857] text-[38px] font-black leading-none tracking-[-0.055em]">
+                              {statusLabel === "sold" ? "SOLD!" : "LIVE"}
                             </p>
 
-                            <p
-                              className={`text-xs font-bold truncate ${
-                                active ? "text-[#07152b]/75" : "text-white/60"
+                            <p className="text-white/72 text-sm font-bold mt-3">
+                              Next ask: R{nextBidAmount.toLocaleString()}
+                            </p>
+                          </div>
+
+                          <div className="mt-3.5 rounded-[22px] bg-white text-[#07152b] p-4 shadow-xl max-h-[210px] overflow-y-auto bragwall-live-scroll">
+                            <p className="uppercase tracking-[0.28em] text-[8px] text-slate-400 font-black mb-2.5 sticky top-0 bg-white pb-2">
+                              AI Auction MC
+                            </p>
+
+                            <p className="text-[15px] font-black leading-snug">
+                              “
+                              {auction?.mc_commentary ||
+                                currentArtwork?.ai_story ||
+                                currentArtwork?.ai_intro ||
+                                "Welcome to BragWall. The auction is waiting to begin."}
+                              ”
+                            </p>
+                          </div>
+
+                          <div className="mt-auto grid grid-cols-3 gap-3 pt-4">
+                            <SmallInfo
+                              label="Artworks"
+                              value={`${queuedArtworks.length}`}
+                            />
+                            <SmallInfo
+                              label="Sold"
+                              value={`${soldArtworks.length}`}
+                            />
+                            <SmallInfo
+                              label="Bidders"
+                              value={`${uniqueBidderCount}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="rounded-[28px] bg-[#061124]/95 border border-white/10 p-4 shadow-2xl">
+                      <div className="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                          <p className="uppercase tracking-[0.35em] text-[8px] text-[#16d66d] font-black mb-2">
+                            Live Controls
+                          </p>
+
+                          <h3 className="text-[28px] font-black leading-none tracking-[-0.03em]">
+                            Auction rhythm
+                          </h3>
+                        </div>
+
+                        <button
+                          onClick={loadEverything}
+                          className="rounded-[18px] bg-white/5 border border-white/10 px-5 py-3 font-black hover:bg-white/10 transition"
+                        >
+                          <span className="inline-flex align-middle mr-2">
+                            <RefreshIcon />
+                          </span>
+                          Refresh
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-3">
+                        <ControlButton
+                          label="Start Live"
+                          icon={<PlayIcon />}
+                          onClick={startAuction}
+                          disabled={Boolean(busyAction)}
+                          tone="green"
+                        />
+                        <ControlButton
+                          label="Pause"
+                          icon={<PauseIcon />}
+                          onClick={pauseAuction}
+                          disabled={Boolean(busyAction)}
+                          tone="white"
+                        />
+                        <ControlButton
+                          label="Resume"
+                          icon={<PlayIcon />}
+                          onClick={resumeAuction}
+                          disabled={Boolean(busyAction)}
+                          tone="white"
+                        />
+                        <ControlButton
+                          label="Going Once"
+                          iconText="1"
+                          onClick={markGoingOnce}
+                          disabled={Boolean(busyAction)}
+                          tone="yellow"
+                        />
+                        <ControlButton
+                          label="Going Twice"
+                          iconText="2"
+                          onClick={markGoingTwice}
+                          disabled={Boolean(busyAction)}
+                          tone="red"
+                        />
+                        <ControlButton
+                          label="SOLD"
+                          icon={<GavelIcon />}
+                          onClick={markSold}
+                          disabled={Boolean(busyAction)}
+                          tone="sold"
+                        />
+                        <ControlButton
+                          label="Reset"
+                          icon={<RefreshIcon />}
+                          onClick={resetAuction}
+                          disabled={Boolean(busyAction)}
+                          tone="white"
+                        />
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between gap-3 rounded-[20px] bg-white/[0.04] border border-white/10 px-4 py-3">
+                        <button
+                          onClick={clearBids}
+                          disabled={Boolean(busyAction)}
+                          className="text-white/76 font-black hover:text-white disabled:opacity-40"
+                        >
+                          Clear Current Bids
+                        </button>
+
+                        <p className="text-white/45 text-sm font-bold">
+                          Manual override controls are available if automation
+                          needs help.
+                        </p>
+                      </div>
+                    </section>
+                  </div>
+
+                  <aside className="space-y-4.5">
+                    <SidePanel
+                      title="Artwork Queue"
+                      subtitle="Tap an artwork to move it live"
+                      icon={<ArtworkIcon />}
+                    >
+                      <div className="space-y-3 max-h-[275px] overflow-auto pr-1 bragwall-live-scroll">
+                        {artworks.length === 0 && (
+                          <p className="text-white/72 font-bold">
+                            No artwork uploaded yet.
+                          </p>
+                        )}
+
+                        {artworks.map((artwork) => {
+                          const displayUrl = getArtworkDisplayUrl(artwork);
+                          const active = currentArtwork?.id === artwork.id;
+
+                          return (
+                            <button
+                              key={artwork.id}
+                              onClick={() => moveToArtwork(artwork)}
+                              disabled={busyAction === `move-${artwork.id}`}
+                              className={`w-full text-left rounded-[20px] p-3 border transition ${
+                                active
+                                  ? "bg-[#16d66d] text-[#07152b] border-[#16d66d] shadow-[0_0_28px_rgba(22,214,109,0.22)]"
+                                  : "bg-white/[0.045] text-white border-white/10 hover:bg-white/10"
                               }`}
                             >
-                              {artwork.grade} • {artwork.status || "queued"}
-                            </p>
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-[16px] overflow-hidden bg-white shrink-0">
+                                  {displayUrl ? (
+                                    <img
+                                      src={displayUrl}
+                                      alt="Artwork thumbnail"
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                      <PaletteIcon />
+                                    </div>
+                                  )}
+                                </div>
 
-                            {artwork.enhanced_artwork_url && (
-                              <p
-                                className={`text-xs font-black mt-1 ${
-                                  active ? "text-[#07152b]" : "text-[#ffc857]"
-                                }`}
-                              >
-                                Enhanced
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </Panel>
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-black truncate">
+                                    {artwork.child_name} {artwork.child_surname}
+                                  </p>
 
-              <Panel title="Live Bids" subtitle="Highest bids first">
-                <div className="space-y-3 max-h-[270px] overflow-auto pr-1">
-                  {bids.length === 0 && (
-                    <p className="text-white/60 font-bold">No bids yet.</p>
-                  )}
+                                  <p
+                                    className={`text-xs font-bold truncate ${
+                                      active
+                                        ? "text-[#07152b]/75"
+                                        : "text-white/58"
+                                    }`}
+                                  >
+                                    {artwork.grade} •{" "}
+                                    {artwork.status || "queued"}
+                                  </p>
+                                </div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </SidePanel>
 
-                  {bids.map((bid, index) => (
-                    <div
-                      key={bid.id}
-                      className={`rounded-[20px] p-3.5 border ${
-                        index === 0
-                          ? "bg-white text-[#07152b] border-white"
-                          : "bg-white/5 text-white border-white/10"
-                      }`}
+                    <SidePanel
+                      title="Live Feed"
+                      subtitle="Highest bids first"
+                      icon={<CardIcon />}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-black truncate">
-                            {index === 0 ? "👑 " : ""}
-                            {bid.bidder_name}
-                          </p>
+                      <div className="space-y-3 max-h-[245px] overflow-auto pr-1 bragwall-live-scroll">
+                        {visibleBids.length === 0 && (
+                          <p className="text-white/72 font-bold">No bids yet.</p>
+                        )}
 
-                          <p
-                            className={`text-xs font-bold ${
-                              index === 0 ? "text-slate-500" : "text-white/55"
+                        {visibleBids.map((bid, index) => (
+                          <div
+                            key={bid.id}
+                            className={`rounded-[18px] p-3 border ${
+                              index === 0
+                                ? "bg-white text-[#07152b] border-white shadow-xl"
+                                : "bg-white/[0.045] text-white border-white/10"
                             }`}
                           >
-                            {formatTime(bid.created_at)}
-                          </p>
-                        </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="min-w-0">
+                                <p className="font-black truncate">
+                                  {index === 0 ? "👑 " : ""}
+                                  {bid.bidder_name}
+                                </p>
 
-                        <p className="text-2xl font-black text-[#16d66d]">
-                          R{Number(bid.amount).toLocaleString()}
-                        </p>
+                                <p
+                                  className={`text-xs font-bold ${
+                                    index === 0
+                                      ? "text-slate-500"
+                                      : "text-white/55"
+                                  }`}
+                                >
+                                  {formatTime(bid.created_at)}
+                                </p>
+                              </div>
+
+                              <p className="text-2xl font-black text-[#16d66d]">
+                                R{Number(bid.amount).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </Panel>
+                    </SidePanel>
 
-              <Panel title="Activity Feed" subtitle="Latest auction events">
-                <div className="space-y-3 max-h-[270px] overflow-auto pr-1">
-                  {activity.length === 0 && (
-                    <p className="text-white/60 font-bold">
-                      Activity will appear here.
-                    </p>
-                  )}
-
-                  {activity.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-[20px] bg-white/5 border border-white/10 p-3.5"
+                    <SidePanel
+                      title="Activity Log"
+                      subtitle="Latest auction events"
+                      icon={<ActivityIcon />}
                     >
-                      <p className="font-bold text-white/80 leading-snug">
-                        {item.message}
-                      </p>
+                      <div className="space-y-3 max-h-[245px] overflow-auto pr-1 bragwall-live-scroll">
+                        {activity.length === 0 && (
+                          <p className="text-white/72 font-bold">
+                            Activity will appear here.
+                          </p>
+                        )}
 
-                      <p className="text-xs text-white/55 font-bold mt-2">
-                        {formatTime(item.created_at)}
-                      </p>
-                    </div>
-                  ))}
+                        {activity.map((item) => (
+                          <div
+                            key={item.id}
+                            className="rounded-[18px] bg-white/[0.045] border border-white/10 p-3"
+                          >
+                            <p className="font-bold text-white/80 leading-snug">
+                              {item.message}
+                            </p>
+
+                            <p className="text-xs text-white/55 font-bold mt-2">
+                              {formatTime(item.created_at)}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </SidePanel>
+                  </aside>
                 </div>
-              </Panel>
-            </aside>
+
+                <div className="mt-4.5 rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-3.5 flex items-center justify-between shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#16d66d]">
+                      <ShieldIcon />
+                    </span>
+                    <p className="text-white/65 font-bold">
+                      Tip: use Add School & Artwork to load school details,
+                      bid increments, and artwork before going live.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-[#16d66d] font-black">
+                    <ShieldIcon />
+                    Auction cockpit ready
+                  </div>
+                </div>
+              </div>
+            </section>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
     </main>
   );
+}
+
+function getSafeBidIncrement(value?: number | null) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_BID_STEP;
+  }
+
+  return Math.round(parsed);
 }
 
 function getArtworkDisplayUrl(artwork: Artwork | null) {
@@ -1001,9 +1165,7 @@ function formatStatus(status: string) {
 
   return status
     .split(" ")
-    .map((word) => {
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    })
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
 
@@ -1016,56 +1178,109 @@ function formatTime(value?: string | null) {
   }).format(new Date(value));
 }
 
-function AdminNavLink({
+function DarkLogoBlock({ compact = false }: { compact?: boolean }) {
+  return (
+    <div
+      className={`rounded-[24px] border border-white/10 bg-[#020b18] shadow-2xl relative overflow-hidden ${
+        compact ? "px-7 py-5" : "px-4 py-5"
+      }`}
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(22,214,109,0.12),transparent_45%)]" />
+
+      <div className="relative text-center">
+        <div className="flex items-center justify-center">
+          <span className="font-black text-[34px] leading-none tracking-[-0.08em] text-white">
+            Brag
+          </span>
+
+          <span className="mx-[-2px] rotate-[-8deg] inline-flex h-[36px] w-[32px] items-center justify-center border-[3px] border-[#ef2b20] bg-[#0b63ce] text-white shadow-[0_0_18px_rgba(11,99,206,0.4)]">
+            <span className="font-black text-[24px] leading-none">W</span>
+          </span>
+
+          <span className="font-black text-[34px] leading-none tracking-[-0.08em] text-white">
+            all
+          </span>
+        </div>
+
+        <div className="mt-3 flex justify-center gap-1">
+          <span className="h-1 w-1 rounded-full bg-[#ef2b20]" />
+          <span className="h-1 w-1 rounded-full bg-[#ffc857]" />
+          <span className="h-1 w-1 rounded-full bg-[#16d66d]" />
+          <span className="h-1 w-1 rounded-full bg-[#0b63ce]" />
+        </div>
+
+        <p className="mt-3 uppercase tracking-[0.32em] text-[8px] text-white/58 font-black">
+          Young Art • Big Pride
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SidebarLink({
   href,
   label,
   icon,
+  tone,
   active = false,
 }: {
   href: string;
   label: string;
-  icon: string;
+  icon: ReactNode;
+  tone: Tone;
   active?: boolean;
 }) {
   return (
     <a
       href={href}
-      className={`flex items-center gap-3 rounded-[20px] px-3.5 py-3.5 font-black transition ${
+      className={`flex items-center gap-3.5 rounded-[17px] px-4 py-3.5 text-sm font-black transition border ${
         active
-          ? "bg-[#16d66d] text-[#07152b]"
-          : "bg-white/5 text-white/75 border border-white/10 hover:bg-white/10"
+          ? "bg-[#16d66d]/20 text-white border-[#16d66d]/70 shadow-[0_0_30px_rgba(22,214,109,0.18)]"
+          : "bg-white/[0.045] text-white/76 border-white/10 hover:bg-white/10 hover:text-white"
       }`}
     >
-      <span className="text-xl">{icon}</span>
-      <span className="text-sm">{label}</span>
+      <span
+        className={`h-[22px] w-[22px] flex items-center justify-center ${toneText(
+          tone
+        )}`}
+      >
+        {icon}
+      </span>
+      <span>{label}</span>
     </a>
   );
 }
 
-function MetricCard({
+function TopMetric({
   label,
   value,
-  green = false,
-  gold = false,
+  icon,
+  tone,
 }: {
   label: string;
   value: string;
-  green?: boolean;
-  gold?: boolean;
+  icon: ReactNode;
+  tone: Tone;
 }) {
   return (
-    <div className="rounded-[22px] bg-white/5 border border-white/10 p-3.5 shadow-xl">
-      <p className="uppercase tracking-[0.25em] text-[8px] text-white/50 font-black mb-2">
-        {label}
-      </p>
-
-      <p
-        className={`text-2xl font-black leading-none ${
-          green ? "text-[#16d66d]" : gold ? "text-[#ffc857]" : "text-white"
-        }`}
+    <div className="rounded-[22px] bg-white/[0.055] border border-white/12 p-4 shadow-xl flex items-center gap-3.5">
+      <div
+        className={`h-10 w-10 flex items-center justify-center ${toneText(
+          tone
+        )}`}
       >
-        {value}
-      </p>
+        {icon}
+      </div>
+
+      <div>
+        <p className="uppercase tracking-[0.28em] text-[8px] text-white/48 font-black mb-1.5">
+          {label}
+        </p>
+
+        <p className={`text-[22px] font-black leading-none ${toneText(tone)}`}>
+          {value}
+        </p>
+      </div>
     </div>
   );
 }
@@ -1078,7 +1293,7 @@ function StatusBadge({ status }: { status: string }) {
 
   return (
     <div
-      className={`rounded-[20px] px-4 py-3 text-center border shrink-0 ${
+      className={`rounded-[18px] px-4 py-3 text-center border shrink-0 ${
         isSold
           ? "bg-[#ffc857] text-[#07152b] border-[#ffc857]"
           : isDanger
@@ -1086,7 +1301,7 @@ function StatusBadge({ status }: { status: string }) {
           : isGold
           ? "bg-[#ffc857] text-[#07152b] border-[#ffc857]"
           : isWaiting
-          ? "bg-white/5 text-white border-white/10"
+          ? "bg-white/[0.055] text-white border-white/10"
           : "bg-[#16d66d] text-[#07152b] border-[#16d66d]"
       }`}
     >
@@ -1103,20 +1318,22 @@ function ArtworkStage({ artwork }: { artwork: Artwork | null }) {
   const displayUrl = getArtworkDisplayUrl(artwork);
 
   return (
-    <div className="rounded-[28px] overflow-hidden border border-white/10 shadow-[0_24px_70px_rgba(0,0,0,0.42)] bg-[#16110b]">
-      <div className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,#241b13,#090909)] p-3 lg:p-4">
-        <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2 rounded-[24px] shadow-[0_0_45px_rgba(255,200,87,0.18)]">
-          <div className="bg-[#f8f5ef] rounded-[18px] p-3">
-            <div className="rounded-[14px] overflow-hidden bg-white min-h-[260px] flex items-center justify-center">
+    <div className="rounded-[26px] overflow-hidden border border-white/10 shadow-[0_24px_70px_rgba(0,0,0,0.42)] bg-[#16110b]">
+      <div className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,#241b13,#090909)] p-3.5">
+        <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2 rounded-[22px] shadow-[0_0_48px_rgba(255,200,87,0.28)]">
+          <div className="bg-[#f8f5ef] rounded-[16px] p-3">
+            <div className="rounded-[12px] overflow-hidden bg-white h-[220px] flex items-center justify-center">
               {displayUrl ? (
                 <img
                   src={displayUrl}
                   alt="Current artwork"
-                  className="w-full max-h-[52vh] object-contain"
+                  className="w-full h-full object-contain"
                 />
               ) : (
                 <div className="text-center text-slate-400 p-10">
-                  <div className="text-6xl mb-4">🎨</div>
+                  <div className="text-[#ffc857] mb-4 flex justify-center">
+                    <PaletteIcon large />
+                  </div>
                   <p className="text-2xl font-black">No artwork selected</p>
                 </div>
               )}
@@ -1125,14 +1342,46 @@ function ArtworkStage({ artwork }: { artwork: Artwork | null }) {
         </div>
       </div>
 
-      <div className="h-8 bg-gradient-to-b from-[#5b3312] to-[#1b1008]" />
+      <div className="h-6 bg-gradient-to-b from-[#5b3312] to-[#1b1008]" />
+    </div>
+  );
+}
+
+function WhiteDataCard({
+  label,
+  value,
+  tone,
+  alignRight = false,
+}: {
+  label: string;
+  value: string;
+  tone?: Tone;
+  alignRight?: boolean;
+}) {
+  return (
+    <div
+      className={`bg-white text-[#07152b] rounded-[20px] p-4 shadow-xl ${
+        alignRight ? "text-right" : ""
+      }`}
+    >
+      <p className="uppercase tracking-[0.25em] text-[8px] text-slate-400 font-black mb-2">
+        {label}
+      </p>
+
+      <p
+        className={`text-[28px] font-black leading-none truncate ${
+          tone ? toneText(tone) : "text-[#07152b]"
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
 
 function SmallInfo({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[20px] bg-white/5 border border-white/10 p-3.5 text-center">
+    <div className="rounded-[18px] bg-white/[0.055] border border-white/10 p-3.5 text-center">
       <p className="uppercase tracking-[0.25em] text-[8px] text-white/50 font-black mb-2">
         {label}
       </p>
@@ -1145,65 +1394,267 @@ function SmallInfo({ label, value }: { label: string; value: string }) {
 function ControlButton({
   label,
   icon,
+  iconText,
   onClick,
   disabled,
-  green = false,
-  gold = false,
-  danger = false,
-  sold = false,
+  tone,
 }: {
   label: string;
-  icon: string;
+  icon?: ReactNode;
+  iconText?: string;
   onClick: () => void;
   disabled?: boolean;
-  green?: boolean;
-  gold?: boolean;
-  danger?: boolean;
-  sold?: boolean;
+  tone: Tone | "sold";
 }) {
+  const buttonClass =
+    tone === "green"
+      ? "bg-[#16d66d] text-[#07152b] border-[#16d66d]"
+      : tone === "yellow"
+      ? "bg-[#ffc857] text-[#07152b] border-[#ffc857]"
+      : tone === "red"
+      ? "bg-[#ef2b20] text-white border-[#ef2b20]"
+      : tone === "sold"
+      ? "bg-white text-[#07152b] border-white"
+      : "bg-white/[0.055] text-white border-white/10 hover:bg-white/10";
+
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-[20px] p-3.5 font-black text-left shadow-xl transition hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 ${
-        green
-          ? "bg-[#16d66d] text-[#07152b]"
-          : gold
-          ? "bg-[#ffc857] text-[#07152b]"
-          : danger
-          ? "bg-[#ef2b20] text-white"
-          : sold
-          ? "bg-white text-[#07152b]"
-          : "bg-white/5 text-white border border-white/10 hover:bg-white/10"
-      }`}
+      className={`rounded-[18px] p-3.5 font-black text-left shadow-xl transition hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 border ${buttonClass}`}
     >
-      <div className="text-2xl mb-2">{icon}</div>
+      <div className="h-7 flex items-center mb-2">
+        {iconText ? (
+          <span className="text-2xl font-black">{iconText}</span>
+        ) : (
+          <span>{icon}</span>
+        )}
+      </div>
 
       <p className="text-sm">{label}</p>
     </button>
   );
 }
 
-function Panel({
+function SidePanel({
   title,
   subtitle,
+  icon,
   children,
 }: {
   title: string;
   subtitle: string;
+  icon: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-[28px] bg-[#061124]/90 border border-white/10 p-4 shadow-2xl">
-      <div className="mb-4">
-        <p className="uppercase tracking-[0.3em] text-[9px] text-[#16d66d] font-black mb-2">
-          {title}
-        </p>
+    <section className="rounded-[24px] bg-[#061124]/95 border border-white/10 p-4 shadow-2xl">
+      <div className="flex items-start gap-3 mb-4">
+        <div className="h-10 w-10 rounded-full border border-white/12 bg-white/[0.045] flex items-center justify-center text-white/80 shrink-0">
+          {icon}
+        </div>
 
-        <p className="text-white/60 text-sm font-bold">{subtitle}</p>
+        <div>
+          <p className="uppercase tracking-[0.28em] text-[9px] text-[#16d66d] font-black mb-1">
+            {title}
+          </p>
+
+          <p className="text-white/62 text-sm font-bold">{subtitle}</p>
+        </div>
       </div>
 
       {children}
     </section>
   );
+}
+
+function ShieldIcon() {
+  return (
+    <IconSvg>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+      <path d="m9 12 2 2 4-5" />
+    </IconSvg>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <IconSvg>
+      <path d="m3 11 9-8 9 8" />
+      <path d="M5 10v10h14V10" />
+      <path d="M9 20v-6h6v6" />
+    </IconSvg>
+  );
+}
+
+function GavelIcon() {
+  return (
+    <IconSvg>
+      <path d="m14 13-7 7" />
+      <path d="m8 8 8 8" />
+      <path d="m9 7 4-4 8 8-4 4z" />
+      <path d="m4 21 5-5" />
+    </IconSvg>
+  );
+}
+
+function LargeGavelIcon() {
+  return (
+    <IconSvg large>
+      <path d="m14 13-7 7" />
+      <path d="m8 8 8 8" />
+      <path d="m9 7 4-4 8 8-4 4z" />
+      <path d="m4 21 5-5" />
+    </IconSvg>
+  );
+}
+
+function PaletteIcon({ large = false }: { large?: boolean }) {
+  return (
+    <IconSvg large={large}>
+      <path d="M12 22a10 10 0 1 1 10-10c0 2.2-1.4 4-3.2 4H17a2 2 0 0 0-2 2c0 2.2-1.8 4-3 4Z" />
+      <circle cx="7.5" cy="10.5" r=".8" />
+      <circle cx="10.5" cy="7.5" r=".8" />
+      <circle cx="14.5" cy="7.5" r=".8" />
+      <circle cx="16.5" cy="11.5" r=".8" />
+    </IconSvg>
+  );
+}
+
+function CardIcon() {
+  return (
+    <IconSvg>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M7 15h4" />
+      <path d="M15 15h2" />
+    </IconSvg>
+  );
+}
+
+function PhoneIcon() {
+  return (
+    <IconSvg>
+      <rect x="7" y="2" width="10" height="20" rx="2" />
+      <path d="M11 18h2" />
+    </IconSvg>
+  );
+}
+
+function PeopleIcon() {
+  return (
+    <IconSvg>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </IconSvg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <IconSvg>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </IconSvg>
+  );
+}
+
+function MoneyIcon() {
+  return (
+    <IconSvg>
+      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <circle cx="12" cy="12" r="3" />
+      <path d="M7 9v.01" />
+      <path d="M17 15v.01" />
+    </IconSvg>
+  );
+}
+
+function ArrowUpIcon() {
+  return (
+    <IconSvg>
+      <path d="M12 19V5" />
+      <path d="m5 12 7-7 7 7" />
+    </IconSvg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <IconSvg>
+      <path d="m8 5 11 7-11 7z" />
+    </IconSvg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <IconSvg>
+      <path d="M10 4H6v16h4z" />
+      <path d="M18 4h-4v16h4z" />
+    </IconSvg>
+  );
+}
+
+function RefreshIcon() {
+  return (
+    <IconSvg>
+      <path d="M21 12a9 9 0 0 1-15.5 6.2" />
+      <path d="M3 12A9 9 0 0 1 18.5 5.8" />
+      <path d="M18 2v4h4" />
+      <path d="M6 22v-4H2" />
+    </IconSvg>
+  );
+}
+
+function ActivityIcon() {
+  return (
+    <IconSvg>
+      <path d="M4 12h4l2-5 4 10 2-5h4" />
+    </IconSvg>
+  );
+}
+
+function ArtworkIcon() {
+  return (
+    <IconSvg>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="8.5" cy="9" r="1.5" />
+      <path d="m21 15-5-5L5 21" />
+      <path d="m12 17 3-3 6 6" />
+    </IconSvg>
+  );
+}
+
+function IconSvg({
+  children,
+  large = false,
+}: {
+  children: ReactNode;
+  large?: boolean;
+}) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.15"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={large ? "h-12 w-12" : "h-[22px] w-[22px]"}
+    >
+      {children}
+    </svg>
+  );
+}
+
+function toneText(tone: Tone) {
+  if (tone === "green") return "text-[#16d66d]";
+  if (tone === "yellow") return "text-[#ffc857]";
+  if (tone === "blue") return "text-[#4b9cff]";
+  if (tone === "purple") return "text-[#d36cff]";
+  if (tone === "red") return "text-[#ef2b20]";
+  return "text-white";
 }

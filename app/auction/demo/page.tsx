@@ -29,7 +29,27 @@ type Bid = {
   created_at?: string | null;
 };
 
-const BID_STEP = 100;
+type SchoolProfile = {
+  auction_code: string;
+  bid_increment?: number | null;
+};
+
+type Artwork = {
+  id: string;
+  auction_code: string;
+  child_name: string;
+  child_surname: string;
+  grade: string;
+  artwork_url: string;
+  enhanced_artwork_url?: string | null;
+  status?: string | null;
+  sort_order?: number | null;
+  sold_amount?: number | null;
+  winning_bidder?: string | null;
+};
+
+const AUCTION_CODE = "demo";
+const DEFAULT_BID_STEP = 100;
 const BID_PAUSE_SECONDS = 5;
 const SILENCE_BEFORE_GOING_ONCE_SECONDS = 8;
 const GOING_ONCE_SECONDS = 3;
@@ -38,8 +58,10 @@ const GOING_TWICE_SECONDS = 3;
 export default function DemoAuctionPage() {
   const [auction, setAuction] = useState<AuctionState | null>(null);
   const [bids, setBids] = useState<Bid[]>([]);
+  const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [bidderName, setBidderName] = useState("");
   const [joined, setJoined] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
   const [pauseRemaining, setPauseRemaining] = useState(0);
   const [biddingNow, setBiddingNow] = useState(false);
@@ -48,15 +70,35 @@ export default function DemoAuctionPage() {
   const [emailSubmittedLocally, setEmailSubmittedLocally] = useState(false);
   const [welcomeVoiceLoading, setWelcomeVoiceLoading] = useState(false);
   const [welcomeVoicePlaying, setWelcomeVoicePlaying] = useState(false);
+  const [bidIncrement, setBidIncrement] = useState(DEFAULT_BID_STEP);
 
   const previousStatusRef = useRef<string | null>(null);
   const audioUnlockedRef = useRef(false);
   const autoActionKeyRef = useRef("");
   const welcomeAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  const uniqueBidderCount = useMemo(() => {
+    const uniqueNames = new Set(
+      bids
+        .map((bid) => bid.bidder_name.trim().toLowerCase())
+        .filter(Boolean)
+    );
+
+    return uniqueNames.size;
+  }, [bids]);
+
+  const bidderCounterLabel =
+    uniqueBidderCount === 1
+      ? "1 active bidder"
+      : `${uniqueBidderCount} active bidders`;
+
   const nextBidAmount = useMemo(() => {
-    return Math.max((auction?.current_bid || 0) + BID_STEP, BID_STEP);
-  }, [auction?.current_bid]);
+    return Math.max(
+      Number(auction?.next_bid_amount || 0),
+      Number(auction?.current_bid || 0) + bidIncrement,
+      bidIncrement
+    );
+  }, [auction?.current_bid, auction?.next_bid_amount, bidIncrement]);
 
   const isSold = auction?.status === "sold";
   const isWaiting = auction?.status === "waiting";
@@ -139,17 +181,19 @@ export default function DemoAuctionPage() {
 
   useEffect(() => {
     fetchAuction();
+    fetchSchoolProfile();
     fetchBids();
+    fetchArtworks();
 
     const auctionChannel = supabase
-      .channel("bw-parent-premium-state")
+      .channel("bw-parent-premium-state-gallery-bidders")
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "live_auction_state",
-          filter: "auction_code=eq.demo",
+          filter: `auction_code=eq.${AUCTION_CODE}`,
         },
         (payload) => {
           const updated = payload.new as AuctionState;
@@ -168,15 +212,47 @@ export default function DemoAuctionPage() {
       )
       .subscribe();
 
-    const bidsChannel = supabase
-      .channel("bw-parent-premium-bids")
+    const schoolProfileChannel = supabase
+      .channel("bw-parent-school-profile-bid-increment-gallery-bidders")
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
+          schema: "public",
+          table: "demo_school_profile",
+          filter: `auction_code=eq.${AUCTION_CODE}`,
+        },
+        () => {
+          fetchSchoolProfile();
+        }
+      )
+      .subscribe();
+
+    const artworksChannel = supabase
+      .channel("bw-parent-gallery-artworks-bidders")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "demo_artworks",
+          filter: `auction_code=eq.${AUCTION_CODE}`,
+        },
+        () => {
+          fetchArtworks();
+        }
+      )
+      .subscribe();
+
+    const bidsChannel = supabase
+      .channel("bw-parent-premium-bids-gallery-bidders")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
           schema: "public",
           table: "live_bids",
-          filter: "auction_code=eq.demo",
+          filter: `auction_code=eq.${AUCTION_CODE}`,
         },
         () => {
           playSound("/sounds/bid-ding.mp3");
@@ -185,26 +261,11 @@ export default function DemoAuctionPage() {
       )
       .subscribe();
 
-    const bidsDeleteChannel = supabase
-      .channel("bw-parent-premium-bids-delete")
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "live_bids",
-          filter: "auction_code=eq.demo",
-        },
-        () => {
-          fetchBids();
-        }
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(auctionChannel);
+      supabase.removeChannel(schoolProfileChannel);
+      supabase.removeChannel(artworksChannel);
       supabase.removeChannel(bidsChannel);
-      supabase.removeChannel(bidsDeleteChannel);
     };
   }, []);
 
@@ -293,7 +354,7 @@ export default function DemoAuctionPage() {
             bid_pause_until: null,
             mc_commentary: `Going once at R${auction.current_bid.toLocaleString()} for ${auction.leading_bidder}. Last chance to beat this bid.`,
           })
-          .eq("auction_code", "demo");
+          .eq("auction_code", AUCTION_CODE);
 
         await addActivity(
           `Going once at R${auction.current_bid.toLocaleString()}`
@@ -324,7 +385,7 @@ export default function DemoAuctionPage() {
             bid_pause_until: null,
             mc_commentary: `Going twice at R${auction.current_bid.toLocaleString()}. ${auction.leading_bidder} is seconds away from serious bragging rights.`,
           })
-          .eq("auction_code", "demo");
+          .eq("auction_code", AUCTION_CODE);
 
         await addActivity(
           `Going twice at R${auction.current_bid.toLocaleString()}`
@@ -350,7 +411,7 @@ export default function DemoAuctionPage() {
             sold_amount: auction.current_bid,
             winning_bidder: auction.leading_bidder,
           })
-          .eq("auction_code", "demo")
+          .eq("auction_code", AUCTION_CODE)
           .eq("status", "live");
 
         await supabase
@@ -361,7 +422,7 @@ export default function DemoAuctionPage() {
             bid_pause_until: null,
             mc_commentary: `Sold to ${auction.leading_bidder} for R${auction.current_bid.toLocaleString()}. A masterpiece has found its forever wall.`,
           })
-          .eq("auction_code", "demo");
+          .eq("auction_code", AUCTION_CODE);
 
         await addActivity(
           `SOLD to ${auction.leading_bidder} for R${auction.current_bid.toLocaleString()}`
@@ -374,7 +435,7 @@ export default function DemoAuctionPage() {
     const { data } = await supabase
       .from("live_auction_state")
       .select("*")
-      .eq("auction_code", "demo")
+      .eq("auction_code", AUCTION_CODE)
       .single();
 
     if (data) {
@@ -383,20 +444,42 @@ export default function DemoAuctionPage() {
     }
   }
 
+  async function fetchSchoolProfile() {
+    const { data } = await supabase
+      .from("demo_school_profile")
+      .select("auction_code,bid_increment")
+      .eq("auction_code", AUCTION_CODE)
+      .maybeSingle();
+
+    const profile = data as SchoolProfile | null;
+
+    setBidIncrement(getSafeBidIncrement(profile?.bid_increment));
+  }
+
   async function fetchBids() {
     const { data } = await supabase
       .from("live_bids")
       .select("*")
-      .eq("auction_code", "demo")
+      .eq("auction_code", AUCTION_CODE)
       .order("amount", { ascending: false })
-      .limit(6);
+      .limit(500);
 
     setBids(data || []);
   }
 
+  async function fetchArtworks() {
+    const { data } = await supabase
+      .from("demo_artworks")
+      .select("*")
+      .eq("auction_code", AUCTION_CODE)
+      .order("sort_order", { ascending: true });
+
+    setArtworks(data || []);
+  }
+
   async function addActivity(message: string) {
     await supabase.from("live_activity_feed").insert({
-      auction_code: "demo",
+      auction_code: AUCTION_CODE,
       message,
     });
   }
@@ -430,10 +513,10 @@ export default function DemoAuctionPage() {
       now.getTime() + BID_PAUSE_SECONDS * 1000
     ).toISOString();
 
-    const nextAsk = amount + BID_STEP;
+    const nextAsk = amount + bidIncrement;
 
     const { error: bidError } = await supabase.from("live_bids").insert({
-      auction_code: "demo",
+      auction_code: AUCTION_CODE,
       bidder_name: bidderName,
       amount,
     });
@@ -460,7 +543,7 @@ export default function DemoAuctionPage() {
         winner_email: null,
         winner_email_submitted_at: null,
       })
-      .eq("auction_code", "demo");
+      .eq("auction_code", AUCTION_CODE);
 
     if (updateError) {
       setBiddingNow(false);
@@ -498,7 +581,7 @@ export default function DemoAuctionPage() {
         winner_email: cleanEmail,
         winner_email_submitted_at: submittedAt,
       })
-      .eq("auction_code", "demo");
+      .eq("auction_code", AUCTION_CODE);
 
     if (stateError) {
       setSubmittingEmail(false);
@@ -513,7 +596,7 @@ export default function DemoAuctionPage() {
         invoice_email_requested_at: submittedAt,
         certificate_email_requested_at: submittedAt,
       })
-      .eq("auction_code", "demo")
+      .eq("auction_code", AUCTION_CODE)
       .eq("status", "sold")
       .eq("winning_bidder", auction.leading_bidder);
 
@@ -535,6 +618,12 @@ export default function DemoAuctionPage() {
     return (
       <main className="min-h-[100svh] bg-[#020b18] text-white overflow-y-auto">
         <div className="fixed inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_80%_15%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_62%,#010712)]" />
+
+        <GalleryModal
+          open={galleryOpen}
+          onClose={() => setGalleryOpen(false)}
+          artworks={artworks}
+        />
 
         <div className="relative max-w-sm mx-auto min-h-[100svh] px-4 py-2.5 flex flex-col">
           <div className="bg-white rounded-[22px] px-4 py-2.5 mb-2.5 flex justify-center shadow-2xl shrink-0">
@@ -561,17 +650,26 @@ export default function DemoAuctionPage() {
               estate.
             </p>
 
-            <button
-              onClick={playWelcomeVoice}
-              disabled={welcomeVoiceLoading}
-              className="w-full bg-[#16d66d] text-[#07152b] rounded-[18px] py-3 font-black text-sm shadow-xl mb-2.5 disabled:opacity-50"
-            >
-              {welcomeVoiceLoading
-                ? "Loading Welcome Voice..."
-                : welcomeVoicePlaying
-                ? "Playing Welcome..."
-                : "▶ Play Welcome Voice"}
-            </button>
+            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
+              <button
+                onClick={playWelcomeVoice}
+                disabled={welcomeVoiceLoading}
+                className="bg-[#16d66d] text-[#07152b] rounded-[18px] py-3 px-3 font-black text-xs shadow-xl disabled:opacity-50"
+              >
+                {welcomeVoiceLoading
+                  ? "Loading..."
+                  : welcomeVoicePlaying
+                  ? "Playing..."
+                  : "▶ Welcome"}
+              </button>
+
+              <button
+                onClick={() => setGalleryOpen(true)}
+                className="bg-[#ffc857] text-[#07152b] rounded-[18px] py-3 px-3 font-black text-xs shadow-xl"
+              >
+                🖼️ Gallery
+              </button>
+            </div>
 
             <div className="bg-[#f7f5f0] rounded-[20px] p-3 mb-2.5">
               <p className="uppercase tracking-[0.3em] text-[7px] text-slate-400 font-black mb-1.5">
@@ -580,8 +678,8 @@ export default function DemoAuctionPage() {
 
               <div className="space-y-1 text-slate-600 text-[11px] font-bold leading-relaxed">
                 <p>1. Enter your bidder name.</p>
-                <p>2. Watch each artwork go live.</p>
-                <p>3. Bid when the next amount appears.</p>
+                <p>2. Browse the gallery before bidding.</p>
+                <p>3. Watch each artwork go live.</p>
                 <p>4. Winners enter email for invoice and certificate.</p>
               </div>
             </div>
@@ -623,6 +721,12 @@ export default function DemoAuctionPage() {
       <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_80%_15%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_62%,#010712)]" />
 
+        <GalleryModal
+          open={galleryOpen}
+          onClose={() => setGalleryOpen(false)}
+          artworks={artworks}
+        />
+
         <div className="relative max-w-md mx-auto min-h-screen px-5 py-6 flex flex-col">
           <div className="bg-white rounded-[28px] p-5 mb-6 flex justify-center shadow-2xl">
             <img
@@ -650,15 +754,25 @@ export default function DemoAuctionPage() {
               when the auction starts.
             </p>
 
-            <div className="bg-[#16d66d] text-[#07152b] rounded-[26px] p-5">
-              <p className="uppercase tracking-[0.3em] text-xs font-black mb-3">
-                Auction Ready
-              </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setGalleryOpen(true)}
+                className="bg-[#ffc857] text-[#07152b] rounded-[24px] p-5 text-left shadow-xl"
+              >
+                <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-2 opacity-70">
+                  Preview
+                </p>
 
-              <p className="text-xl leading-relaxed font-black">
-                Watch the screen. The live artwork will appear when the admin
-                starts the auction.
-              </p>
+                <p className="text-xl font-black">Gallery</p>
+              </button>
+
+              <div className="bg-[#16d66d] text-[#07152b] rounded-[24px] p-5 shadow-xl">
+                <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-2 opacity-70">
+                  Auction
+                </p>
+
+                <p className="text-xl font-black">Ready</p>
+              </div>
             </div>
           </div>
         </div>
@@ -670,12 +784,22 @@ export default function DemoAuctionPage() {
     <main className="h-[100dvh] bg-[#020b18] text-white overflow-hidden flex flex-col">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_5%,rgba(22,214,109,0.14),transparent_28%),radial-gradient(circle_at_80%_5%,rgba(255,200,87,0.13),transparent_30%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
 
+      <GalleryModal
+        open={galleryOpen}
+        onClose={() => setGalleryOpen(false)}
+        artworks={artworks}
+      />
+
       <div className="relative shrink-0 bg-[#061124]/95 backdrop-blur border-b border-white/10">
         <div className="max-w-md mx-auto px-4 py-2.5">
           <div className="flex items-center justify-between gap-3">
-            <div className="w-10 h-10 rounded-2xl border border-white/10 flex items-center justify-center text-2xl shrink-0">
-              ☰
-            </div>
+            <button
+              onClick={() => setGalleryOpen(true)}
+              className="w-10 h-10 rounded-2xl border border-white/10 flex items-center justify-center text-xl shrink-0 bg-white/5"
+              aria-label="Open gallery"
+            >
+              🖼️
+            </button>
 
             <div className="bg-white rounded-xl px-2 py-1">
               <img
@@ -685,7 +809,7 @@ export default function DemoAuctionPage() {
               />
             </div>
 
-            <div className="text-right shrink-0 max-w-[95px]">
+            <div className="text-right shrink-0 max-w-[105px]">
               <p className="text-[9px] text-white/50">Bidding as</p>
 
               <p className="font-black text-xs leading-tight truncate">
@@ -856,12 +980,19 @@ export default function DemoAuctionPage() {
             <p className="text-white/55 text-sm font-bold mt-1 truncate">
               {auction.grade}
             </p>
+
+            <p className="text-[#ffc857] text-xs font-black mt-1">
+              {bidderCounterLabel}
+            </p>
           </div>
 
-          <div className="border border-[#16d66d]/60 text-[#16d66d] rounded-2xl px-3 py-2 text-center shrink-0">
-            <p className="text-[10px] text-white/50">Artwork</p>
-            <p className="font-black text-sm">Live</p>
-          </div>
+          <button
+            onClick={() => setGalleryOpen(true)}
+            className="border border-[#16d66d]/60 text-[#16d66d] rounded-2xl px-3 py-2 text-center shrink-0 bg-white/5"
+          >
+            <p className="text-[10px] text-white/50">View</p>
+            <p className="font-black text-sm">Gallery</p>
+          </button>
         </div>
 
         <div className="shrink-0 rounded-[30px] overflow-hidden border border-white/10 shadow-[0_18px_55px_rgba(0,0,0,0.45)] bg-[#16110b]">
@@ -1001,12 +1132,177 @@ export default function DemoAuctionPage() {
             >
               {isUrgency
                 ? "Last chance — tap to keep the artwork alive."
-                : `Secure bidding • next ask R${nextBidAmount.toLocaleString()}`}
+                : `Secure bidding • ${bidderCounterLabel} • bid step R${bidIncrement.toLocaleString()}`}
             </p>
           </div>
         </div>
       )}
     </main>
+  );
+}
+
+function getSafeBidIncrement(value?: number | null) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_BID_STEP;
+  }
+
+  return Math.round(parsed);
+}
+
+function getArtworkDisplayUrl(artwork: Artwork) {
+  return artwork.enhanced_artwork_url || artwork.artwork_url || "";
+}
+
+function GalleryModal({
+  open,
+  onClose,
+  artworks,
+}: {
+  open: boolean;
+  onClose: () => void;
+  artworks: Artwork[];
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[80] bg-[#020b18] text-white overflow-y-auto"
+        >
+          <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_10%,rgba(22,214,109,0.16),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
+
+          <div className="relative max-w-md mx-auto min-h-screen px-4 py-5">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div>
+                <p className="uppercase tracking-[0.35em] text-[10px] text-[#16d66d] font-black mb-2">
+                  BragWall Gallery
+                </p>
+
+                <h2 className="text-4xl font-black leading-none">
+                  Artwork Preview
+                </h2>
+              </div>
+
+              <button
+                onClick={onClose}
+                className="w-12 h-12 rounded-2xl bg-white text-[#07152b] font-black text-xl shadow-xl"
+                aria-label="Close gallery"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="bg-white/10 border border-white/10 rounded-[28px] p-4 mb-4">
+              <p className="text-white/70 font-bold leading-relaxed">
+                Browse the artworks before and during the auction. The live
+                artwork will still update automatically in the bidding screen.
+              </p>
+            </div>
+
+            <div className="space-y-4 pb-8">
+              {artworks.length === 0 && (
+                <div className="bg-white text-[#07152b] rounded-[28px] p-6 shadow-2xl">
+                  <p className="text-4xl mb-4">🖼️</p>
+                  <h3 className="text-3xl font-black mb-3">
+                    No artwork loaded yet.
+                  </h3>
+                  <p className="text-slate-600 font-bold leading-relaxed">
+                    The gallery will fill up as the school uploads artwork.
+                  </p>
+                </div>
+              )}
+
+              {artworks.map((artwork) => {
+                const imageUrl = getArtworkDisplayUrl(artwork);
+                const isSoldArtwork = artwork.status === "sold";
+                const isLiveArtwork = artwork.status === "live";
+
+                return (
+                  <div
+                    key={artwork.id}
+                    className="rounded-[30px] bg-white text-[#07152b] p-4 shadow-2xl"
+                  >
+                    <div className="rounded-[24px] overflow-hidden bg-[#f8f5ef] border border-black/5 mb-4">
+                      <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2">
+                        <div className="bg-white rounded-[18px] h-[260px] flex items-center justify-center overflow-hidden">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={`${artwork.child_name} ${artwork.child_surname}`}
+                              className="w-full h-full object-contain"
+                            />
+                          ) : (
+                            <div className="text-slate-400 font-black">
+                              Artwork loading...
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="uppercase tracking-[0.25em] text-[9px] text-slate-400 font-black mb-2">
+                          {artwork.grade || "Grade"}
+                        </p>
+
+                        <h3 className="text-2xl font-black leading-tight truncate">
+                          {artwork.child_name} {artwork.child_surname}
+                        </h3>
+                      </div>
+
+                      <div
+                        className={`rounded-2xl px-3 py-2 text-center shrink-0 ${
+                          isSoldArtwork
+                            ? "bg-[#ffc857] text-[#07152b]"
+                            : isLiveArtwork
+                            ? "bg-[#16d66d] text-[#07152b]"
+                            : "bg-[#07152b] text-white"
+                        }`}
+                      >
+                        <p className="text-[10px] uppercase tracking-[0.18em] font-black opacity-70">
+                          Status
+                        </p>
+
+                        <p className="font-black text-sm">
+                          {isSoldArtwork
+                            ? "Sold"
+                            : isLiveArtwork
+                            ? "Live"
+                            : "Upcoming"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isSoldArtwork && (
+                      <div className="mt-4 rounded-[22px] bg-[#07152b] text-white p-4">
+                        <p className="uppercase tracking-[0.25em] text-[9px] text-white/45 font-black mb-2">
+                          Winning Bid
+                        </p>
+
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-black truncate">
+                            {artwork.winning_bidder || "Winner"}
+                          </p>
+
+                          <p className="text-[#16d66d] text-2xl font-black">
+                            R{Number(artwork.sold_amount || 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
