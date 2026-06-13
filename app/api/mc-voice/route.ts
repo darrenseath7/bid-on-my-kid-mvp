@@ -185,9 +185,9 @@ async function generateElevenLabsAudio({
         text,
         model_id: "eleven_multilingual_v2",
         voice_settings: {
-          stability: 0.32,
-          similarity_boost: 0.82,
-          style: 0.75,
+          stability: 0.18,
+          similarity_boost: 0.78,
+          style: 0.92,
           use_speaker_boost: true,
         },
       }),
@@ -263,27 +263,70 @@ function buildMcScript({
   childName: string;
   grade: string;
 }) {
+  const cleanStory = makeStoryMoreSpoken(sourceText);
+
   const introOptions = [
-    `Alright everyone, eyes up and bidding fingers ready, because our next BragWall masterpiece is coming to the stage! This one is by ${childName}, from ${grade}.`,
-    `Ladies and gentlemen, parents, grandparents, aunties, uncles, and serious fridge-door art collectors, get ready! Up next is a very special masterpiece from ${childName}, from ${grade}.`,
-    `Okay BragWall bidders, this is not a drill. Our next artist is ${childName}, from ${grade}, and this masterpiece deserves a proper round of attention.`,
-    `Here we go, BragWall family! The next artwork is stepping into the spotlight, created by ${childName}, from ${grade}.`,
-    `Auction room, get ready. We have another future famous artist on the wall tonight. This masterpiece is by ${childName}, from ${grade}.`,
+    `Okay everyone, quick pause. This next one is from ${childName}, in ${grade}.`,
+    `Alright, have a look at this. Our next artist is ${childName}, from ${grade}.`,
+    `Okay BragWall crew, this one is special. It is by ${childName}, from ${grade}.`,
+    `Right, eyes on the screen for a second. This masterpiece is from ${childName}, in ${grade}.`,
+    `Here we go. Next up, we have something brilliant from ${childName}, from ${grade}.`,
+  ];
+
+  const middleOptions = [
+    `I love this one because`,
+    `The thing that jumps out for me is`,
+    `What makes this one so cool is`,
+    `Now, the best part is`,
+    `This one has real personality because`,
   ];
 
   const outroOptions = [
-    "Take a good look, choose your wall space now, and warm up those bidding fingers. Bidding opens in just a moment.",
-    "If your heart just said, I need this on my wall, then get ready. Bidding opens in just a moment.",
-    "Parents, this is the moment where love, pride, and friendly competition become a fundraising superpower. Bidding opens in just a moment.",
-    "Look closely, smile proudly, and prepare for battle. The bidding opens in just a moment.",
-    "This is your warning: grandparents can be dangerous in an auction. Get ready, because bidding opens in just a moment.",
+    `So, choose your wall now. Bidding opens in a moment.`,
+    `If you want bragging rights, get ready. Bidding opens in a moment.`,
+    `Parents, grandparents, this is your warning. Bidding opens in a moment.`,
+    `Get those bidding fingers ready. Bidding opens in a moment.`,
+    `Okay, deep breath. This could get competitive. Bidding opens in a moment.`,
   ];
 
-  const scriptSeed = `${childName}-${grade}-${sourceText.slice(0, 80)}`;
+  const scriptSeed = `${childName}-${grade}-${cleanStory.slice(0, 80)}`;
   const intro = pickScriptLine(introOptions, `${scriptSeed}-intro`);
+  const middle = pickScriptLine(middleOptions, `${scriptSeed}-middle`);
   const outro = pickScriptLine(outroOptions, `${scriptSeed}-outro`);
 
-  return `${intro} ${sourceText} ${outro}`;
+  return `${intro} ${middle} ${cleanStory} ${outro}`;
+}
+
+function makeStoryMoreSpoken(sourceText: string) {
+  const trimmed = sourceText.trim();
+
+  if (!trimmed) {
+    return "it feels full of colour, imagination, and proper young-artist confidence.";
+  }
+
+  const withoutAnnouncerPhrases = trimmed
+    .replace(/ladies and gentlemen[,!]?/gi, "")
+    .replace(/bidding fingers ready[,!]?/gi, "")
+    .replace(/masterpiece is coming to the stage[,!]?/gi, "")
+    .replace(/take a good look[,!]?/gi, "")
+    .replace(/bidding opens in just a moment\.?/gi, "")
+    .replace(/bidding opens in a moment\.?/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const shortened = withoutAnnouncerPhrases.slice(0, 650).trim();
+
+  if (!shortened) {
+    return "it feels full of colour, imagination, and proper young-artist confidence.";
+  }
+
+  return ensureSentenceEnds(shortened);
+}
+
+function ensureSentenceEnds(value: string) {
+  if (/[.!?]$/.test(value)) return value;
+
+  return `${value}.`;
 }
 
 function pickScriptLine(options: string[], seed: string) {
