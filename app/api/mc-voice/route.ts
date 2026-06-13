@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
 import { createClient } from "@supabase/supabase-js";
 
 export const runtime = "nodejs";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "",
@@ -15,10 +10,7 @@ const supabaseAdmin = createClient(
 
 const AUCTION_CODE = "demo";
 const MC_AUDIO_BUCKET = "mc-audio";
-
-const MC_VOICES = ["nova", "shimmer", "fable", "verse", "coral"] as const;
-
-type McVoice = (typeof MC_VOICES)[number];
+const DEFAULT_ELEVENLABS_VOICE_ID = "0S5oIfi8zOZixuSj8K6n";
 
 type GenerateMcVoiceRequest = {
   artworkId?: string | null;
@@ -26,15 +18,20 @@ type GenerateMcVoiceRequest = {
   text?: string | null;
   childName?: string | null;
   grade?: string | null;
+  forceRegenerate?: boolean | null;
+};
+
+type DemoArtworkAudioLookup = {
+  mc_audio_url?: string | null;
 };
 
 export async function POST(request: NextRequest) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.ELEVENLABS_API_KEY) {
       return NextResponse.json(
         {
           error:
-            "OPENAI_API_KEY is missing. Add it to .env.local before generating MC voice.",
+            "ELEVENLABS_API_KEY is missing. Add it to .env.local and Vercel environment variables.",
         },
         { status: 500 }
       );
@@ -60,6 +57,7 @@ export async function POST(request: NextRequest) {
     const childName = cleanText(body.childName) || "our young artist";
     const grade = cleanText(body.grade) || "the school";
     const sourceText = cleanText(body.text);
+    const forceRegenerate = Boolean(body.forceRegenerate);
 
     if (!sourceText) {
       return NextResponse.json(
@@ -70,12 +68,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const selectedVoice = pickMcVoice({
-      artworkId,
-      childName,
-      grade,
-      sourceText,
-    });
+    const voiceId =
+      cleanText(process.env.ELEVENLABS_MC_VOICE_ID) ||
+      DEFAULT_ELEVENLABS_VOICE_ID;
+
+    if (artworkId && !forceRegenerate) {
+      const existingAudio = await getExistingArtworkAudioUrl({
+        auctionCode,
+        artworkId,
+      });
+
+      if (existingAudio) {
+        return NextResponse.json({
+          ok: true,
+          reused: true,
+          provider: "elevenlabs",
+          voiceId,
+          audioUrl: existingAudio,
+          filePath: null,
+          script: null,
+        });
+      }
+    }
 
     const mcScript = buildMcScript({
       sourceText,
@@ -83,19 +97,14 @@ export async function POST(request: NextRequest) {
       grade,
     });
 
-    const speech = await openai.audio.speech.create({
-      model: "gpt-4o-mini-tts",
-      voice: selectedVoice,
-      response_format: "mp3",
-      input: mcScript,
-      instructions: buildVoiceInstructions(selectedVoice),
+    const audioBuffer = await generateElevenLabsAudio({
+      apiKey: process.env.ELEVENLABS_API_KEY,
+      voiceId,
+      text: mcScript,
     });
 
-    const audioArrayBuffer = await speech.arrayBuffer();
-    const audioBuffer = Buffer.from(audioArrayBuffer);
-
     const safeArtworkPart = makeSafeFilePart(artworkId || childName || "intro");
-    const filePath = `${auctionCode}/${safeArtworkPart}-${Date.now()}-${selectedVoice}.mp3`;
+    const filePath = `${auctionCode}/${safeArtworkPart}-${Date.now()}-elevenlabs.mp3`;
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from(MC_AUDIO_BUCKET)
@@ -132,10 +141,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      reused: false,
+      provider: "elevenlabs",
+      voiceId,
       audioUrl,
       filePath,
       script: mcScript,
-      voice: selectedVoice,
     });
   } catch (error) {
     console.error("MC voice generation failed:", error);
@@ -152,6 +163,76 @@ export async function POST(request: NextRequest) {
   }
 }
 
+async function generateElevenLabsAudio({
+  apiKey,
+  voiceId,
+  text,
+}: {
+  apiKey: string;
+  voiceId: string;
+  text: string;
+}) {
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg",
+      },
+      body: JSON.stringify({
+        text,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: {
+          stability: 0.32,
+          similarity_boost: 0.82,
+          style: 0.75,
+          use_speaker_boost: true,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+
+    throw new Error(
+      `ElevenLabs voice generation failed: ${response.status} ${response.statusText}${
+        errorText ? ` - ${errorText}` : ""
+      }`
+    );
+  }
+
+  const audioArrayBuffer = await response.arrayBuffer();
+
+  return Buffer.from(audioArrayBuffer);
+}
+
+async function getExistingArtworkAudioUrl({
+  auctionCode,
+  artworkId,
+}: {
+  auctionCode: string;
+  artworkId: string;
+}) {
+  const { data, error } = await supabaseAdmin
+    .from("demo_artworks")
+    .select("mc_audio_url")
+    .eq("id", artworkId)
+    .eq("auction_code", auctionCode)
+    .maybeSingle();
+
+  if (error) {
+    console.warn("Could not check existing MC audio URL:", error.message);
+    return "";
+  }
+
+  const artwork = data as DemoArtworkAudioLookup | null;
+
+  return artwork?.mc_audio_url?.trim() || "";
+}
+
 function cleanText(value?: string | null) {
   if (!value) return "";
 
@@ -159,7 +240,7 @@ function cleanText(value?: string | null) {
     .replace(/\s+/g, " ")
     .replace(/[<>]/g, "")
     .trim()
-    .slice(0, 2200);
+    .slice(0, 4500);
 }
 
 function makeSafeFilePart(value: string) {
@@ -171,48 +252,6 @@ function makeSafeFilePart(value: string) {
     .slice(0, 80);
 
   return cleaned || "mc-intro";
-}
-
-function pickMcVoice({
-  artworkId,
-  childName,
-  grade,
-  sourceText,
-}: {
-  artworkId: string;
-  childName: string;
-  grade: string;
-  sourceText: string;
-}): McVoice {
-  const seed = artworkId || `${childName}-${grade}-${sourceText.slice(0, 80)}`;
-
-  let total = 0;
-
-  for (const char of seed) {
-    total += char.charCodeAt(0);
-  }
-
-  return MC_VOICES[total % MC_VOICES.length];
-}
-
-function buildVoiceInstructions(voice: McVoice) {
-  const sharedEnergy =
-    "Perform as a high-energy BragWall school auction MC. The voice must sound natural, excited, funny, warm, playful, and expressive, like a real live host creating excitement in the room. Use smiling delivery, natural pauses, changes in pace, and little bursts of anticipation. Keep it family-friendly and polished for a school fundraising event. Do not sound robotic, flat, corporate, monotone, bored, or like you are reading a script. Do not imitate any real person or any specific real child. Keep the tone safe, cheerful, and full of auction-night energy.";
-
-  const voiceSpecific: Record<McVoice, string> = {
-    nova:
-      "Use bright presenter energy. Make it feel like the room is about to cheer. Keep it lively, confident, and upbeat.",
-    shimmer:
-      "Use sparkling, playful energy. Add a sense of fun and delight, like the artwork is the star of the show.",
-    fable:
-      "Use a storytelling style with excitement. Make the artwork feel magical, special, and worth fighting for in the bidding.",
-    verse:
-      "Use expressive stage-host energy. Build rhythm and anticipation before the final bidding line.",
-    coral:
-      "Use warm, cheeky, friendly energy. Smile through the delivery and make it feel personal and fun.",
-  };
-
-  return `${sharedEnergy} ${voiceSpecific[voice]}`;
 }
 
 function buildMcScript({
