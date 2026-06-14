@@ -205,17 +205,30 @@ function HeroImageCard() {
   return (
     <div className="relative">
       <div className="absolute -inset-5 rounded-[38px] bg-[radial-gradient(circle_at_50%_30%,rgba(22,214,109,0.16),transparent_55%)] blur-xl" />
+
       <div className="relative overflow-hidden rounded-[30px] border border-[#16d66d]/24 bg-[#061124] p-2 shadow-[0_34px_100px_rgba(0,0,0,0.48)] md:rounded-[36px]">
         <div className="relative overflow-hidden rounded-[24px] bg-[#020b18] md:rounded-[30px]">
-          <img
-            src="/bragwall-hero-paint-hands.jpg"
-            alt="Child's hands covered in paint creating artwork"
-            className="h-[430px] w-full object-cover md:h-[560px] lg:h-[610px]"
+          <video
+            src="/bragwall-intro.mp4"
+            poster="/bragwall-hero-paint-hands.jpg"
+            className="h-[430px] w-full bg-[#020b18] object-contain md:h-[560px] lg:h-[610px]"
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls
+            preload="metadata"
+            aria-label="BragWall intro video"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#020b18]/85 via-transparent to-transparent" />
-          <div className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-[#020b18]/65 to-transparent" />
 
-          <div className="absolute bottom-5 left-5 right-5 max-w-[520px] rounded-[24px] border border-white/10 bg-[#061124]/90 p-5 shadow-2xl backdrop-blur-md md:bottom-7 md:left-7 md:p-6">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#020b18]/70 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-[18%] bg-gradient-to-r from-[#020b18]/35 to-transparent" />
+
+          <div className="pointer-events-none absolute left-5 top-5 rounded-full border border-white/12 bg-[#061124]/86 px-4 py-2 text-xs font-black uppercase tracking-[0.25em] text-white/78 shadow-xl backdrop-blur-md md:left-7 md:top-7">
+            BragWall Intro
+          </div>
+
+          <div className="pointer-events-none absolute bottom-5 left-5 right-5 max-w-[520px] rounded-[24px] border border-white/10 bg-[#061124]/90 p-5 shadow-2xl backdrop-blur-md md:bottom-7 md:left-7 md:p-6">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#16d66d]/28 bg-[#16d66d]/10 text-[#16d66d]">
                 <GavelIcon />
