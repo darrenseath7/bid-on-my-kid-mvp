@@ -19,7 +19,7 @@ export default function HomePage() {
         <header className="mx-auto flex max-w-[1480px] items-center justify-between gap-5 px-5 py-6 md:px-8 lg:px-10">
           <Link href="/" className="inline-flex flex-col items-start gap-3">
             <BragWallLogo />
-            <p className="ml-1 text-[10px] font-black uppercase tracking-[0.45em] text-white/80 md:text-xs">
+            <p className="ml-1 text-[11px] font-black uppercase tracking-[0.48em] text-white/84 md:text-sm">
               Young Art - Big Pride
             </p>
           </Link>
@@ -195,7 +195,7 @@ function BragWallLogo() {
       <img
         src="/bragwall-logo.png"
         alt="BragWall"
-        className="h-12 w-auto object-contain md:h-16"
+        className="h-16 w-auto object-contain md:h-24 lg:h-28"
       />
     </div>
   );
