@@ -243,30 +243,45 @@ export default function AdminSetupPage() {
     }));
   }
 
+  async function runSetupAction(payload: Record<string, unknown>) {
+    const response = await fetch("/api/admin/setup-action", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(result?.error || "Admin setup action failed.");
+    }
+
+    return result as { ok: boolean; message?: string };
+  }
   async function saveProfile() {
     setSavingProfile(true);
     setMessage("");
 
-    const { error } = await supabase.from("demo_school_profile").upsert(
-      {
-        ...profile,
-        auction_code: AUCTION_CODE,
-        bid_increment: Number(profile.bid_increment || 100),
-      },
-      {
-        onConflict: "auction_code",
-      }
-    );
+    try {
+      const result = await runSetupAction({
+        action: "save-profile",
+        profile,
+      });
 
-    if (error) {
-      setMessage(error.message);
-    } else {
-      setMessage("School, banking and auction setup saved successfully.");
+      setMessage(
+        result.message || "School, banking and auction setup saved successfully."
+      );
+      fetchProfile();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Could not save school setup."
+      );
     }
 
     setSavingProfile(false);
   }
-
   function handleFileChange(selectedFile: File | null) {
     setFile(selectedFile);
 
@@ -294,139 +309,43 @@ export default function AdminSetupPage() {
         : "Uploading original artwork..."
     );
 
-    const fileExt = file.name.split(".").pop();
-    const safeName = `${childName}-${childSurname}`
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-");
-
-    const fileName = `${Date.now()}-${safeName}.${fileExt}`;
-    const filePath = `${AUCTION_CODE}/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("artworks")
-      .upload(filePath, file);
-
-    if (uploadError) {
-      setUploading(false);
-      setMessage(uploadError.message);
-      return;
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from("artworks")
-      .getPublicUrl(filePath);
-
-    let aiIntro = storyPreview;
-
     try {
-      const introResponse = await fetch("/api/auction-mc", {
+      const formData = new FormData();
+      formData.append("action", "upload-artwork");
+      formData.append("childName", childName);
+      formData.append("childSurname", childSurname);
+      formData.append("grade", grade);
+      formData.append("nextSortOrder", String(nextSortOrder));
+      formData.append("storyPreview", storyPreview);
+      formData.append("enhanceArtwork", String(enhanceArtwork));
+      formData.append("file", file);
+
+      const response = await fetch("/api/admin/setup-action", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mode: "intro",
-          childName,
-          childSurname,
-          grade,
-          sortOrder: nextSortOrder,
-          fallbackPreview: storyPreview,
-        }),
+        body: formData,
       });
 
-      const introData = await introResponse.json();
+      const result = await response.json().catch(() => null);
 
-      if (introData.text && introData.text.trim()) {
-        aiIntro = introData.text.trim();
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not upload artwork.");
       }
-    } catch {
-      aiIntro = storyPreview;
-    }
 
-    const { data: insertedArtwork, error: insertError } = await supabase
-      .from("demo_artworks")
-      .insert({
-        auction_code: AUCTION_CODE,
-        sort_order: nextSortOrder,
-        child_name: childName,
-        child_surname: childSurname,
-        grade,
-        artwork_url: publicUrlData.publicUrl,
-        enhanced_artwork_url: null,
-        enhancement_status: enhanceArtwork ? "processing" : "not_enhanced",
-        enhancement_notes: enhanceArtwork
-          ? "Waiting for AI enhancement."
-          : "Original image only.",
-        ai_intro: aiIntro,
-        status: "pending",
-        sold_amount: 0,
-        winning_bidder: null,
-      })
-      .select("*")
-      .single();
-
-    if (insertError || !insertedArtwork) {
-      setUploading(false);
-      setMessage(insertError?.message || "Could not save artwork.");
-      return;
-    }
-
-    if (enhanceArtwork) {
+      setMessage(result?.message || "Artwork added to the BragWall auction queue.");
+      setChildName("");
+      setChildSurname("");
+      setGrade("Grade 3");
+      setFile(null);
+      setPreviewUrl("");
+      fetchArtworks();
+    } catch (error) {
       setMessage(
-        "Original artwork saved. Creating enhanced framed auction version..."
+        error instanceof Error ? error.message : "Could not upload artwork."
       );
-
-      try {
-        const enhanceResponse = await fetch("/api/enhance-artwork", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            artworkId: insertedArtwork.id,
-            imageUrl: publicUrlData.publicUrl,
-            childName,
-            childSurname,
-            grade,
-          }),
-        });
-
-        const enhanceResult = await enhanceResponse.json().catch(() => null);
-
-        if (!enhanceResponse.ok) {
-          setUploading(false);
-          setMessage(
-            enhanceResult?.details ||
-              enhanceResult?.error ||
-              "Artwork was uploaded, but AI enhancement failed."
-          );
-          fetchArtworks();
-          return;
-        }
-
-        setMessage(
-          "Artwork added. Enhanced framed auction version created successfully."
-        );
-      } catch (error) {
-        setMessage(
-          error instanceof Error
-            ? `Artwork uploaded, but enhancement failed: ${error.message}`
-            : "Artwork uploaded, but enhancement failed."
-        );
-      }
-    } else {
-      setMessage("Artwork added to the BragWall auction queue.");
     }
 
-    setChildName("");
-    setChildSurname("");
-    setGrade("Grade 3");
-    setFile(null);
-    setPreviewUrl("");
     setUploading(false);
-    fetchArtworks();
   }
-
   async function archiveArtwork(artwork: Artwork) {
     const confirmed = window.confirm(
       `Archive ${artwork.child_name} ${artwork.child_surname}'s artwork?`
@@ -436,47 +355,43 @@ export default function AdminSetupPage() {
 
     setMessage("");
 
-    const { error } = await supabase
-      .from("demo_artworks")
-      .update({
-        status: "archived",
-      })
-      .eq("id", artwork.id);
+    try {
+      const result = await runSetupAction({
+        action: "archive-artwork",
+        artworkId: artwork.id,
+      });
 
-    if (error) {
-      setMessage(error.message);
-      return;
+      setMessage(
+        result.message ||
+          `${artwork.child_name} ${artwork.child_surname}'s artwork has been archived.`
+      );
+      fetchArtworks();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Could not archive artwork."
+      );
     }
-
-    setMessage(
-      `${artwork.child_name} ${artwork.child_surname}'s artwork has been archived.`
-    );
-
-    fetchArtworks();
   }
-
   async function restoreArtwork(artwork: Artwork) {
     setMessage("");
 
-    const { error } = await supabase
-      .from("demo_artworks")
-      .update({
-        status: "pending",
-      })
-      .eq("id", artwork.id);
+    try {
+      const result = await runSetupAction({
+        action: "restore-artwork",
+        artworkId: artwork.id,
+      });
 
-    if (error) {
-      setMessage(error.message);
-      return;
+      setMessage(
+        result.message ||
+          `${artwork.child_name} ${artwork.child_surname}'s artwork has been restored to upcoming artworks.`
+      );
+      fetchArtworks();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Could not restore artwork."
+      );
     }
-
-    setMessage(
-      `${artwork.child_name} ${artwork.child_surname}'s artwork has been restored to upcoming artworks.`
-    );
-
-    fetchArtworks();
   }
-
   async function archiveAllUnsoldArtworks() {
     const confirmed = window.confirm(
       "Archive all unsold artworks? Sold artworks will stay in Sold Artworks."
@@ -486,24 +401,21 @@ export default function AdminSetupPage() {
 
     setMessage("");
 
-    const { error } = await supabase
-      .from("demo_artworks")
-      .update({
-        status: "archived",
-      })
-      .eq("auction_code", AUCTION_CODE)
-      .neq("status", "sold");
+    try {
+      const result = await runSetupAction({
+        action: "archive-all-unsold",
+      });
 
-    if (error) {
-      setMessage(error.message);
-      return;
+      setMessage(result.message || "All unsold artworks have been moved to the archive.");
+      fetchArtworks();
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not archive all unsold artworks."
+      );
     }
-
-    setMessage("All unsold artworks have been moved to the archive.");
-
-    fetchArtworks();
   }
-
   return (
     <main className="min-h-screen bg-[#020b18] text-white">
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.15),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.13),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
