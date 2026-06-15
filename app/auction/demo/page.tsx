@@ -856,6 +856,13 @@ export default function DemoAuctionPage() {
       return;
     }
 
+    const cleanBidderName = bidderName.trim();
+
+    if (!cleanBidderName) {
+      alert("Please enter your bidder name first.");
+      return;
+    }
+
     if (amount <= auction.current_bid) {
       alert("This bid is no longer high enough.");
       return;
@@ -863,52 +870,35 @@ export default function DemoAuctionPage() {
 
     setBiddingNow(true);
 
-    const now = new Date();
-    const pauseUntil = new Date(
-      now.getTime() + BID_PAUSE_SECONDS * 1000
-    ).toISOString();
+    try {
+      const response = await fetch("/api/place-bid", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auctionCode: AUCTION_CODE,
+          bidderName: cleanBidderName,
+          amount,
+        }),
+      });
 
-    const nextAsk = amount + bidIncrement;
+      const result = await response.json().catch(() => null);
 
-    const { error: bidError } = await supabase.from("live_bids").insert({
-      auction_code: AUCTION_CODE,
-      bidder_name: bidderName,
-      amount,
-    });
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not place bid.");
+      }
 
-    if (bidError) {
+      if (result?.auction) {
+        setAuction(result.auction);
+      }
+
+      await fetchBids();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Could not place bid.");
+    } finally {
       setBiddingNow(false);
-      alert(bidError.message);
-      return;
     }
-
-    const message = `R${amount.toLocaleString()} received from ${bidderName}. Do I hear R${nextAsk.toLocaleString()}?`;
-
-    const { error: updateError } = await supabase
-      .from("live_auction_state")
-      .update({
-        current_bid: amount,
-        leading_bidder: bidderName,
-        next_bid_amount: nextAsk,
-        bid_pause_until: pauseUntil,
-        last_bid_at: now.toISOString(),
-        status: "open",
-        status_deadline: null,
-        mc_commentary: message,
-        winner_email: null,
-        winner_email_submitted_at: null,
-      })
-      .eq("auction_code", AUCTION_CODE);
-
-    if (updateError) {
-      setBiddingNow(false);
-      alert(updateError.message);
-      return;
-    }
-
-    await addActivity(`R${amount.toLocaleString()} received from ${bidderName}`);
-
-    setBiddingNow(false);
   }
 
   async function submitWinnerEmail() {
