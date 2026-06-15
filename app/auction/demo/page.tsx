@@ -56,11 +56,7 @@ type Artwork = {
 
 const AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
-const BID_PAUSE_SECONDS = 5;
 const MC_INTRO_SECONDS = 120;
-const SILENCE_BEFORE_GOING_ONCE_SECONDS = 8;
-const GOING_ONCE_SECONDS = 3;
-const GOING_TWICE_SECONDS = 3;
 
 export default function DemoAuctionPage() {
   const [auction, setAuction] = useState<AuctionState | null>(null);
@@ -670,115 +666,42 @@ export default function DemoAuctionPage() {
 
     if (auction.current_bid <= 0) return;
     if (auction.status === "sold" || auction.status === "waiting") return;
+    if (!isAuctionOpenForBids) return;
 
-    if (auction.status === "open") {
-      const pauseUntil = auction.bid_pause_until
-        ? new Date(auction.bid_pause_until).getTime()
-        : 0;
+    const rhythmKey = [
+      auction.status,
+      auction.current_bid,
+      auction.last_bid_at || "no-last-bid",
+      auction.status_deadline || "no-deadline",
+      auction.bid_pause_until || "no-pause",
+    ].join("|");
 
-      if (pauseUntil > now) return;
+    try {
+      const response = await fetch("/api/auction-rhythm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auctionCode: AUCTION_CODE,
+        }),
+      });
 
-      const lastBidTime = auction.last_bid_at
-        ? new Date(auction.last_bid_at).getTime()
-        : 0;
+      const result = await response.json().catch(() => null);
 
-      if (!lastBidTime) return;
-
-      const silenceStartsAt = Math.max(lastBidTime, pauseUntil);
-      const silenceSeconds = Math.floor((now - silenceStartsAt) / 1000);
-
-      if (silenceSeconds >= SILENCE_BEFORE_GOING_ONCE_SECONDS) {
-        const actionKey = `going-once-${auction.current_bid}-${auction.last_bid_at}`;
-
-        if (autoActionKeyRef.current === actionKey) return;
-        autoActionKeyRef.current = actionKey;
-
-        const deadline = new Date(
-          Date.now() + GOING_ONCE_SECONDS * 1000
-        ).toISOString();
-
-        await supabase
-          .from("live_auction_state")
-          .update({
-            status: "going once",
-            status_deadline: deadline,
-            bid_pause_until: null,
-            mc_commentary: `Going once at R${auction.current_bid.toLocaleString()} for ${auction.leading_bidder}. Last chance to beat this bid.`,
-          })
-          .eq("auction_code", AUCTION_CODE);
-
-        await addActivity(
-          `Going once at R${auction.current_bid.toLocaleString()}`
-        );
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not run auction rhythm.");
       }
 
-      return;
-    }
-
-    if (auction.status === "going once" && auction.status_deadline) {
-      const deadline = new Date(auction.status_deadline).getTime();
-
-      if (now >= deadline) {
-        const actionKey = `going-twice-${auction.current_bid}-${auction.status_deadline}`;
-
-        if (autoActionKeyRef.current === actionKey) return;
-        autoActionKeyRef.current = actionKey;
-
-        const newDeadline = new Date(
-          Date.now() + GOING_TWICE_SECONDS * 1000
-        ).toISOString();
-
-        await supabase
-          .from("live_auction_state")
-          .update({
-            status: "going twice",
-            status_deadline: newDeadline,
-            bid_pause_until: null,
-            mc_commentary: `Going twice at R${auction.current_bid.toLocaleString()}. ${auction.leading_bidder} is seconds away from serious bragging rights.`,
-          })
-          .eq("auction_code", AUCTION_CODE);
-
-        await addActivity(
-          `Going twice at R${auction.current_bid.toLocaleString()}`
-        );
+      if (result?.auction) {
+        setAuction(result.auction);
       }
 
-      return;
-    }
-
-    if (auction.status === "going twice" && auction.status_deadline) {
-      const deadline = new Date(auction.status_deadline).getTime();
-
-      if (now >= deadline) {
-        const actionKey = `sold-${auction.current_bid}-${auction.status_deadline}`;
-
-        if (autoActionKeyRef.current === actionKey) return;
-        autoActionKeyRef.current = actionKey;
-
-        await supabase
-          .from("demo_artworks")
-          .update({
-            status: "sold",
-            sold_amount: auction.current_bid,
-            winning_bidder: auction.leading_bidder,
-          })
-          .eq("auction_code", AUCTION_CODE)
-          .eq("status", "live");
-
-        await supabase
-          .from("live_auction_state")
-          .update({
-            status: "sold",
-            status_deadline: null,
-            bid_pause_until: null,
-            mc_commentary: `Sold to ${auction.leading_bidder} for R${auction.current_bid.toLocaleString()}. A masterpiece has found its forever wall.`,
-          })
-          .eq("auction_code", AUCTION_CODE);
-
-        await addActivity(
-          `SOLD to ${auction.leading_bidder} for R${auction.current_bid.toLocaleString()}`
-        );
+      if (result?.action && result.action !== "none") {
+        autoActionKeyRef.current = `${rhythmKey}|${result.action}`;
       }
+    } catch (error) {
+      console.error("Could not run secure auction rhythm:", error);
     }
   }
 
@@ -828,12 +751,6 @@ export default function DemoAuctionPage() {
     setArtworks(data || []);
   }
 
-  async function addActivity(message: string) {
-    await supabase.from("live_activity_feed").insert({
-      auction_code: AUCTION_CODE,
-      message,
-    });
-  }
 
   async function placeBid(amount: number) {
     if (!auction) return;
