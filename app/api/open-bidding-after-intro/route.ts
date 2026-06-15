@@ -1,0 +1,146 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
+
+type AuctionState = {
+  auction_code?: string;
+  child_name?: string | null;
+  child_surname?: string | null;
+  current_bid?: number | null;
+  leading_bidder?: string | null;
+  status: string;
+  status_deadline?: string | null;
+  next_bid_amount?: number | null;
+};
+
+type SchoolProfile = {
+  auction_code: string;
+  bid_increment?: number | null;
+};
+
+const AUCTION_CODE = "demo";
+const DEFAULT_BID_STEP = 100;
+
+function getSupabaseAdmin() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Missing Supabase admin environment variables.");
+  }
+
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+function jsonError(message: string, status = 400) {
+  return NextResponse.json({ error: message }, { status });
+}
+
+function getSafeBidIncrement(value?: number | null) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_BID_STEP;
+  }
+
+  return Math.round(parsed);
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => null);
+
+    const auctionCode = String(body?.auctionCode || "").trim();
+    const reason = String(body?.reason || "").trim();
+
+    if (auctionCode !== AUCTION_CODE) {
+      return jsonError("Invalid auction code.", 400);
+    }
+
+    if (reason !== "audio-finished" && reason !== "backup-timer") {
+      return jsonError("Invalid open-bidding reason.", 400);
+    }
+
+    const supabase = getSupabaseAdmin();
+
+    const { data: auction, error: auctionError } = await supabase
+      .from("live_auction_state")
+      .select("*")
+      .eq("auction_code", AUCTION_CODE)
+      .single<AuctionState>();
+
+    if (auctionError || !auction) {
+      return jsonError("Auction is not available.", 404);
+    }
+
+    if (auction.status !== "intro") {
+      return NextResponse.json({ ok: true, alreadyOpen: auction.status === "open", auction });
+    }
+
+    if (reason === "backup-timer") {
+      const deadlineMs = auction.status_deadline
+        ? new Date(auction.status_deadline).getTime()
+        : 0;
+
+      if (!deadlineMs || deadlineMs > Date.now()) {
+        return jsonError("The MC intro timer has not finished yet.", 409);
+      }
+    }
+
+    const { data: profile } = await supabase
+      .from("demo_school_profile")
+      .select("auction_code,bid_increment")
+      .eq("auction_code", AUCTION_CODE)
+      .maybeSingle<SchoolProfile>();
+
+    const bidIncrement = getSafeBidIncrement(profile?.bid_increment);
+    const currentBid = Number(auction.current_bid || 0);
+    const openingBid = Math.max(
+      Number(auction.next_bid_amount || 0),
+      currentBid + bidIncrement,
+      bidIncrement
+    );
+
+    const childName = String(auction.child_name || "this artwork").trim() || "this artwork";
+    const childSurname = String(auction.child_surname || "").trim();
+    const displayName = [childName, childSurname].filter(Boolean).join(" ");
+    const commentary = `Bidding is now open for ${childName}’s masterpiece. Opening bid is R${openingBid.toLocaleString()}.`;
+
+    const { data: updatedAuction, error: updateError } = await supabase
+      .from("live_auction_state")
+      .update({
+        status: "open",
+        status_deadline: null,
+        bid_pause_until: null,
+        next_bid_amount: openingBid,
+        mc_commentary: commentary,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("auction_code", AUCTION_CODE)
+      .eq("status", "intro")
+      .select("*")
+      .maybeSingle<AuctionState>();
+
+    if (updateError || !updatedAuction) {
+      return jsonError(updateError?.message || "Could not open bidding.", 409);
+    }
+
+    await supabase.from("live_activity_feed").insert({
+      auction_code: AUCTION_CODE,
+      message: `Bidding opened for ${displayName}`,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      auction: updatedAuction,
+      nextBidAmount: openingBid,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not open bidding.";
+    return jsonError(message, 500);
+  }
+}

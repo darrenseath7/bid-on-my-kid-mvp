@@ -380,20 +380,31 @@ export default function DemoAuctionPage() {
       stopIntroAudio();
     }
 
-    await supabase
-      .from("live_auction_state")
-      .update({
-        status: "open",
-        status_deadline: null,
-        bid_pause_until: null,
-        mc_commentary: `Bidding is now open for ${auction.child_name}’s masterpiece. Opening bid is R${nextBidAmount.toLocaleString()}.`,
-      })
-      .eq("auction_code", AUCTION_CODE)
-      .eq("status", "intro");
+    try {
+      const response = await fetch("/api/open-bidding-after-intro", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auctionCode: AUCTION_CODE,
+          reason,
+        }),
+      });
 
-    await addActivity(
-      `Bidding opened for ${auction.child_name} ${auction.child_surname}`
-    );
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not open bidding.");
+      }
+
+      if (result?.auction) {
+        setAuction(result.auction);
+      }
+    } catch (error) {
+      autoActionKeyRef.current = "";
+      console.error("Could not open bidding after MC intro:", error);
+    }
   }
 
   async function playIntroAudio({ force = false }: { force?: boolean } = {}) {
