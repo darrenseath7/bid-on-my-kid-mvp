@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
+import AdminAuctionSelector from "@/components/AdminAuctionSelector";
 import { supabase } from "@/lib/supabase";
+import { useAdminAuctionCode } from "@/lib/useAdminAuctionCode";
 
 type AuctionState = {
   child_name: string;
@@ -67,7 +69,7 @@ type SchoolProfile = {
 
 type Tone = "green" | "yellow" | "blue" | "purple" | "white" | "red";
 
-const AUCTION_CODE = "demo";
+const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
 const MIN_MC_INTRO_SECONDS = 28;
 const MAX_MC_INTRO_SECONDS = 120;
@@ -75,6 +77,7 @@ const MC_WORDS_PER_SECOND = 2.2;
 const MC_INTRO_PADDING_SECONDS = 8;
 
 export default function AdminLivePage() {
+  const [auctionCode] = useAdminAuctionCode(DEFAULT_AUCTION_CODE);
   const [auction, setAuction] = useState<AuctionState | null>(null);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [bids, setBids] = useState<Bid[]>([]);
@@ -140,7 +143,7 @@ export default function AdminLivePage() {
           event: "*",
           schema: "public",
           table: "live_auction_state",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
+          filter: `auction_code=eq.${auctionCode}`,
         },
         () => {
           fetchAuction();
@@ -156,7 +159,7 @@ export default function AdminLivePage() {
           event: "*",
           schema: "public",
           table: "demo_school_profile",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
+          filter: `auction_code=eq.${auctionCode}`,
         },
         () => {
           fetchSchoolProfile();
@@ -172,7 +175,7 @@ export default function AdminLivePage() {
           event: "*",
           schema: "public",
           table: "demo_artworks",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
+          filter: `auction_code=eq.${auctionCode}`,
         },
         () => {
           fetchArtworks();
@@ -188,7 +191,7 @@ export default function AdminLivePage() {
           event: "*",
           schema: "public",
           table: "live_bids",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
+          filter: `auction_code=eq.${auctionCode}`,
         },
         () => {
           fetchBids();
@@ -204,7 +207,7 @@ export default function AdminLivePage() {
           event: "*",
           schema: "public",
           table: "live_activity_feed",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
+          filter: `auction_code=eq.${auctionCode}`,
         },
         () => {
           fetchActivity();
@@ -219,7 +222,7 @@ export default function AdminLivePage() {
       supabase.removeChannel(bidsChannel);
       supabase.removeChannel(activityChannel);
     };
-  }, []);
+  }, [auctionCode]);
 
   async function loadEverything() {
     setLoading(true);
@@ -239,7 +242,7 @@ export default function AdminLivePage() {
     const { data, error } = await supabase
       .from("live_auction_state")
       .select("*")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .single();
 
     if (!error && data) {
@@ -251,7 +254,7 @@ export default function AdminLivePage() {
     const { data } = await supabase
       .from("demo_school_profile")
       .select("auction_code,bid_increment")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .maybeSingle();
 
     const profile = data as SchoolProfile | null;
@@ -263,7 +266,7 @@ export default function AdminLivePage() {
     const { data } = await supabase
       .from("demo_artworks")
       .select("*")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .order("sort_order", { ascending: true });
 
     setArtworks(data || []);
@@ -273,7 +276,7 @@ export default function AdminLivePage() {
     const { data } = await supabase
       .from("live_bids")
       .select("*")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .order("amount", { ascending: false })
       .limit(500);
 
@@ -284,7 +287,7 @@ export default function AdminLivePage() {
     const { data } = await supabase
       .from("live_activity_feed")
       .select("*")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .order("created_at", { ascending: false })
       .limit(12);
 
@@ -293,7 +296,7 @@ export default function AdminLivePage() {
 
   async function addActivity(message: string) {
     await supabase.from("live_activity_feed").insert({
-      auction_code: AUCTION_CODE,
+      auction_code: auctionCode,
       message,
     });
   }
@@ -308,7 +311,7 @@ export default function AdminLivePage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ action, ...payload }),
+        body: JSON.stringify({ auctionCode, action, ...payload }),
       });
 
       const result = await response.json().catch(() => ({}));
@@ -509,6 +512,10 @@ export default function AdminLivePage() {
             <aside className="h-full border-r border-white/10 bg-[#061124]/92 backdrop-blur-2xl p-3.5 flex flex-col">
               <DarkLogoBlock />
 
+              <div className="mt-4">
+                <AdminAuctionSelector />
+              </div>
+
               <nav className="space-y-2.5 mt-4">
                 <SidebarLink
                   href="/admin"
@@ -536,7 +543,7 @@ export default function AdminLivePage() {
                   tone="blue"
                 />
                 <SidebarLink
-                  href="/auction/demo"
+                  href={`/auction/${auctionCode}`}
                   label="Parent View"
                   icon={<PhoneIcon />}
                   tone="purple"
@@ -552,11 +559,11 @@ export default function AdminLivePage() {
                 </p>
 
                 <p className="text-[30px] font-black text-[#16d66d] leading-none">
-                  DEMO
+                  {auctionCode.toUpperCase()}
                 </p>
 
                 <p className="text-white/58 text-xs font-bold mt-3 leading-relaxed">
-                  Parent access: /auction/demo
+                  Parent access: /auction/{auctionCode}
                 </p>
                 </div>
               </div>

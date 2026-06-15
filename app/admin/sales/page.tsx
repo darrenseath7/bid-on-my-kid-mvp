@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import BrandHeader from "@/components/BrandHeader";
+import AdminAuctionSelector from "@/components/AdminAuctionSelector";
 import { supabase } from "@/lib/supabase";
+import { useAdminAuctionCode } from "@/lib/useAdminAuctionCode";
 
 type SoldArtwork = {
   id: string;
@@ -19,7 +21,10 @@ type SoldArtwork = {
   certificate_email_requested_at?: string | null;
 };
 
+const DEFAULT_AUCTION_CODE = "demo";
+
 export default function AdminSalesPage() {
+  const [auctionCode] = useAdminAuctionCode(DEFAULT_AUCTION_CODE);
   const [sales, setSales] = useState<SoldArtwork[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,7 +39,7 @@ export default function AdminSalesPage() {
           event: "*",
           schema: "public",
           table: "demo_artworks",
-          filter: "auction_code=eq.demo",
+          filter: `auction_code=eq.${auctionCode}`,
         },
         () => fetchSales()
       )
@@ -43,13 +48,13 @@ export default function AdminSalesPage() {
     return () => {
       supabase.removeChannel(salesChannel);
     };
-  }, []);
+  }, [auctionCode]);
 
   async function fetchSales() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/admin/sales-action", {
+      const response = await fetch(`/api/admin/sales-action?auctionCode=${encodeURIComponent(auctionCode)}`, {
         cache: "no-store",
       });
 
@@ -78,7 +83,11 @@ export default function AdminSalesPage() {
   return (
     <main className="min-h-screen bg-[#07152b] text-white">
       <div className="lg:grid lg:grid-cols-[280px_1fr] min-h-screen">
-        <AdminSidebar />
+        <AdminSidebar auctionCode={auctionCode} />
+
+        <div className="fixed right-5 top-5 z-50 hidden xl:block w-[280px]">
+          <AdminAuctionSelector />
+        </div>
 
         <div className="lg:hidden bg-[#061124] border-b border-white/10 px-4 py-4 sticky top-0 z-40">
           <div className="bg-white rounded-2xl p-3 mb-4 w-fit">
@@ -301,7 +310,7 @@ function SaleCard({ item }: { item: SoldArtwork }) {
   );
 }
 
-function AdminSidebar() {
+function AdminSidebar({ auctionCode }: { auctionCode: string }) {
   return (
     <aside className="hidden lg:flex bg-[#061124] border-r border-white/10 p-6 flex-col">
       <div className="bg-white rounded-2xl p-4 mb-8">
@@ -315,7 +324,7 @@ function AdminSidebar() {
         <SidebarItem href="/admin/artworks" label="Artworks" />
         <SidebarItem href="/admin/school" label="School Profile" />
         <SidebarItem href="/admin/sales" label="Sales / Invoices" active />
-        <SidebarItem href="/auction/demo" label="Parent View" />
+        <SidebarItem href={`/auction/${auctionCode}`} label="Parent View" />
       </nav>
 
       <div className="mt-auto bg-white/5 border border-white/10 rounded-3xl p-5">

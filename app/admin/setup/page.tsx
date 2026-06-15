@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
+import AdminAuctionSelector from "@/components/AdminAuctionSelector";
 import { supabase } from "@/lib/supabase";
+import { useAdminAuctionCode } from "@/lib/useAdminAuctionCode";
 
 type SchoolProfile = {
   id?: string;
@@ -34,7 +36,7 @@ type Artwork = {
   status: string;
 };
 
-const AUCTION_CODE = "demo";
+const DEFAULT_AUCTION_CODE = "demo";
 
 function createHash(value: string) {
   let hash = 0;
@@ -113,8 +115,9 @@ function createStoryPreview({
 }
 
 export default function AdminSetupPage() {
+  const [auctionCode] = useAdminAuctionCode(DEFAULT_AUCTION_CODE);
   const [profile, setProfile] = useState<SchoolProfile>({
-    auction_code: AUCTION_CODE,
+    auction_code: DEFAULT_AUCTION_CODE,
     school_name: "",
     bank_name: "",
     account_name: "",
@@ -176,7 +179,7 @@ export default function AdminSetupPage() {
           event: "*",
           schema: "public",
           table: "demo_artworks",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
+          filter: `auction_code=eq.${auctionCode}`,
         },
         () => fetchArtworks()
       )
@@ -185,7 +188,7 @@ export default function AdminSetupPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [auctionCode]);
 
   useEffect(() => {
     return () => {
@@ -199,12 +202,12 @@ export default function AdminSetupPage() {
     const { data } = await supabase
       .from("demo_school_profile")
       .select("*")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .single();
 
     if (data) {
       setProfile({
-        auction_code: AUCTION_CODE,
+        auction_code: auctionCode,
         school_name: data.school_name || "",
         bank_name: data.bank_name || "",
         account_name: data.account_name || "",
@@ -214,6 +217,19 @@ export default function AdminSetupPage() {
         collection_instructions: data.collection_instructions || "",
         bid_increment: data.bid_increment || 100,
       });
+    } else {
+      setProfile((current) => ({
+        ...current,
+        auction_code: auctionCode,
+        school_name: "",
+        bank_name: "",
+        account_name: "",
+        account_number: "",
+        branch_code: "",
+        payment_reference_prefix: "",
+        collection_instructions: "",
+        bid_increment: current.bid_increment || 100,
+      }));
     }
   }
 
@@ -221,7 +237,7 @@ export default function AdminSetupPage() {
     const { data } = await supabase
       .from("demo_artworks")
       .select("*")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .order("sort_order", { ascending: true });
 
     setArtworks(data || []);
@@ -249,7 +265,7 @@ export default function AdminSetupPage() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ auctionCode, ...payload }),
     });
 
     const result = await response.json().catch(() => null);
@@ -312,6 +328,7 @@ export default function AdminSetupPage() {
     try {
       const formData = new FormData();
       formData.append("action", "upload-artwork");
+      formData.append("auctionCode", auctionCode);
       formData.append("childName", childName);
       formData.append("childSurname", childSurname);
       formData.append("grade", grade);
@@ -449,6 +466,10 @@ export default function AdminSetupPage() {
             </div>
           </div>
 
+          <div className="mb-5">
+            <AdminAuctionSelector />
+          </div>
+
           <nav className="space-y-3 mb-6">
             <AdminNavLink href="/admin" label="Dashboard" icon="⌂" />
             <AdminNavLink
@@ -459,7 +480,7 @@ export default function AdminSetupPage() {
             />
             <AdminNavLink href="/admin/live" label="Live Room" icon="⌁" />
             <AdminNavLink href="/admin/sales" label="Sales Records" icon="▣" />
-            <AdminNavLink href="/auction/demo" label="Parent View" icon="◌" />
+            <AdminNavLink href={`/auction/${auctionCode}`} label="Parent View" icon="◌" />
           </nav>
 
           <div className="rounded-[28px] bg-white/5 border border-white/10 p-4 mb-5">

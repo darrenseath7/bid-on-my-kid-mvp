@@ -49,8 +49,21 @@ type SchoolProfile = {
   bid_increment?: number | null;
 };
 
-const AUCTION_CODE = "demo";
+const DEFAULT_AUCTION_CODE = "demo";
+let AUCTION_CODE = DEFAULT_AUCTION_CODE;
 const DEFAULT_BID_STEP = 100;
+
+function getSafeAuctionCode(value: unknown) {
+  const cleaned = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return cleaned || DEFAULT_AUCTION_CODE;
+}
 const MIN_MC_INTRO_SECONDS = 28;
 const MAX_MC_INTRO_SECONDS = 120;
 const MC_WORDS_PER_SECOND = 2.2;
@@ -429,6 +442,7 @@ export async function POST(request: NextRequest) {
     return jsonError("Invalid JSON body.");
   }
 
+  AUCTION_CODE = getSafeAuctionCode((body as { auctionCode?: unknown }).auctionCode);
   const action = String(body.action || "");
 
   try {

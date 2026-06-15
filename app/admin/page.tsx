@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
+import AdminAuctionSelector from "@/components/AdminAuctionSelector";
 
 export default function AdminDashboardPage() {
   return (
@@ -42,6 +43,10 @@ export default function AdminDashboardPage() {
           <div className="grid h-full grid-cols-[248px_1fr]">
             <aside className="h-full border-r border-white/10 bg-[#061124]/92 backdrop-blur-2xl p-4 flex flex-col">
               <LogoBlock />
+
+              <div className="mt-5">
+                <AdminAuctionSelector />
+              </div>
 
               <nav className="space-y-2.5 mt-5">
                 <SidebarLink

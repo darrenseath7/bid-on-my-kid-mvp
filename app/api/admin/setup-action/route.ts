@@ -17,8 +17,20 @@ type SchoolProfilePayload = {
   bid_increment?: number | string | null;
 };
 
-const AUCTION_CODE = "demo";
+const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
+
+function getSafeAuctionCode(value: unknown) {
+  const cleaned = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return cleaned || DEFAULT_AUCTION_CODE;
+}
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -173,6 +185,7 @@ export async function POST(request: NextRequest) {
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       const action = String(formData.get("action") || "");
+      const auctionCode = getSafeAuctionCode(formData.get("auctionCode"));
 
       if (action !== "upload-artwork") {
         return jsonError("Unknown setup upload action.");
@@ -201,7 +214,7 @@ export async function POST(request: NextRequest) {
       const extension = getExtension(file.name, file.type);
       const safeName = createSafeFilePart(`${childName}-${childSurname}`);
       const fileName = `${Date.now()}-${safeName}.${extension}`;
-      const filePath = `${AUCTION_CODE}/${fileName}`;
+      const filePath = `${auctionCode}/${fileName}`;
       const fileBytes = new Uint8Array(await file.arrayBuffer());
 
       const { error: uploadError } = await supabaseAdmin.storage
@@ -231,7 +244,7 @@ export async function POST(request: NextRequest) {
       const { data: insertedArtwork, error: insertError } = await supabaseAdmin
         .from("demo_artworks")
         .insert({
-          auction_code: AUCTION_CODE,
+          auction_code: auctionCode,
           sort_order: nextSortOrder,
           child_name: childName,
           child_surname: childSurname,
@@ -284,13 +297,14 @@ export async function POST(request: NextRequest) {
     if (!body) return jsonError("Invalid JSON body.");
 
     const action = String(body.action || "");
+    const auctionCode = getSafeAuctionCode((body as { auctionCode?: unknown }).auctionCode || body.profile?.auction_code);
 
     if (action === "save-profile") {
       const profile = body.profile || {};
 
       const { error } = await supabaseAdmin.from("demo_school_profile").upsert(
         {
-          auction_code: AUCTION_CODE,
+          auction_code: auctionCode,
           school_name: cleanText(profile.school_name, 160),
           bank_name: cleanText(profile.bank_name, 120),
           account_name: cleanText(profile.account_name, 160),
@@ -304,6 +318,31 @@ export async function POST(request: NextRequest) {
       );
 
       if (error) throw new Error(error.message);
+
+      const { error: stateError } = await supabaseAdmin.from("live_auction_state").upsert(
+        {
+          auction_code: auctionCode,
+          child_name: "",
+          child_surname: "",
+          grade: "",
+          artwork_url: "",
+          current_bid: 0,
+          leading_bidder: "No bids yet",
+          status: "waiting",
+          status_deadline: null,
+          bid_pause_until: null,
+          next_bid_amount: getSafeBidIncrement(profile.bid_increment),
+          last_bid_at: null,
+          winner_email: null,
+          winner_email_submitted_at: null,
+          mc_commentary: "Welcome to BragWall. The auction is waiting to begin.",
+          mc_audio_url: null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "auction_code", ignoreDuplicates: true }
+      );
+
+      if (stateError) throw new Error(stateError.message);
 
       return NextResponse.json({
         ok: true,
@@ -319,7 +358,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabaseAdmin
         .from("demo_artworks")
         .update({ status: "archived" })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .eq("id", artworkId);
 
       if (error) throw new Error(error.message);
@@ -335,7 +374,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabaseAdmin
         .from("demo_artworks")
         .update({ status: "pending" })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .eq("id", artworkId);
 
       if (error) throw new Error(error.message);
@@ -347,7 +386,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabaseAdmin
         .from("demo_artworks")
         .update({ status: "archived" })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .neq("status", "sold");
 
       if (error) throw new Error(error.message);

@@ -5,7 +5,19 @@ import {
   verifyAdminSessionToken,
 } from "@/lib/adminSession";
 
-const AUCTION_CODE = "demo";
+const DEFAULT_AUCTION_CODE = "demo";
+
+function getSafeAuctionCode(value: unknown) {
+  const cleaned = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return cleaned || DEFAULT_AUCTION_CODE;
+}
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -46,6 +58,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const auctionCode = getSafeAuctionCode(request.nextUrl.searchParams.get("auctionCode"));
     const supabaseAdmin = getSupabaseAdmin();
 
     const { data, error } = await supabaseAdmin
@@ -66,7 +79,7 @@ export async function GET(request: NextRequest) {
           "certificate_email_requested_at",
         ].join(",")
       )
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .eq("status", "sold")
       .order("sort_order", { ascending: true });
 
