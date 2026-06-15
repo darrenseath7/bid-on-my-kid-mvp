@@ -22,6 +22,7 @@ type AuctionState = {
   last_bid_at?: string | null;
   winner_email?: string | null;
   winner_email_submitted_at?: string | null;
+  winner_email_submitted?: boolean | null;
 };
 
 type Bid = {
@@ -183,6 +184,7 @@ export default function DemoAuctionPage() {
       auction?.leading_bidder.trim().toLowerCase();
 
   const winnerEmailAlreadySubmitted =
+    Boolean(auction?.winner_email_submitted) ||
     Boolean(auction?.winner_email) ||
     (Boolean(activeArtworkKey) && emailSubmittedArtworkKey === activeArtworkKey);
 
@@ -478,88 +480,19 @@ export default function DemoAuctionPage() {
     fetchBids();
     fetchArtworks();
 
-    const auctionChannel = supabase
-      .channel("bw-parent-premium-state-gallery-bidders-ai-mc")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "live_auction_state",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
-        },
-        (payload) => {
-          const updated = payload.new as AuctionState;
-
-          if (
-            previousStatusRef.current &&
-            previousStatusRef.current !== "sold" &&
-            updated.status === "sold"
-          ) {
-            playSound("/sounds/gavel.mp3");
-          }
-
-          previousStatusRef.current = updated.status;
-          setAuction(updated);
-        }
-      )
-      .subscribe();
-
-    const schoolProfileChannel = supabase
-      .channel("bw-parent-school-profile-bid-increment-gallery-bidders-ai-mc")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "demo_school_profile",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
-        },
-        () => {
-          fetchSchoolProfile();
-        }
-      )
-      .subscribe();
-
-    const artworksChannel = supabase
-      .channel("bw-parent-gallery-artworks-bidders-ai-mc")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "demo_artworks",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
-        },
-        () => {
-          fetchArtworks();
-        }
-      )
-      .subscribe();
-
-    const bidsChannel = supabase
-      .channel("bw-parent-premium-bids-gallery-bidders-ai-mc")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "live_bids",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
-        },
-        () => {
-          playSound("/sounds/bid-ding.mp3");
-          fetchBids();
-        }
-      )
-      .subscribe();
+    // Public parent page now reads only from safe public views.
+    // We poll the views instead of subscribing directly to raw tables,
+    // so sensitive raw-table fields are not sent to public browsers.
+    const refreshInterval = window.setInterval(() => {
+      fetchAuction();
+      fetchSchoolProfile();
+      fetchBids();
+      fetchArtworks();
+    }, 1500);
 
     return () => {
       stopIntroAudio();
-      supabase.removeChannel(auctionChannel);
-      supabase.removeChannel(schoolProfileChannel);
-      supabase.removeChannel(artworksChannel);
-      supabase.removeChannel(bidsChannel);
+      window.clearInterval(refreshInterval);
     };
   }, []);
 
@@ -721,7 +654,7 @@ export default function DemoAuctionPage() {
   async function fetchSchoolProfile() {
     const { data } = await supabase
       .from("demo_school_profile")
-      .select("auction_code,bid_increment")
+      .select("auction_code")
       .eq("auction_code", AUCTION_CODE)
       .maybeSingle();
 

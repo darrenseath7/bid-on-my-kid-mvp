@@ -1,3 +1,6 @@
 node_modules
 .next
 .env.local
+.security-backups/
+_security-phase-*/
+_phase-2h-rollback-parent-reads/
