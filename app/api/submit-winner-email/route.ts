@@ -1,8 +1,23 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const AUCTION_CODE = "demo";
+const DEFAULT_AUCTION_CODE = "demo";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeAuctionCode(value: unknown) {
+  const normalized = String(value || DEFAULT_AUCTION_CODE)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return normalized || DEFAULT_AUCTION_CODE;
+}
+
+function isValidAuctionCode(value: string) {
+  return /^[a-z0-9][a-z0-9_-]{1,79}$/.test(value);
+}
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -40,12 +55,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid request." }, { status: 400 });
     }
 
-    const auctionCode = String((body as { auctionCode?: unknown }).auctionCode || "").trim();
+    const auctionCode = normalizeAuctionCode((body as { auctionCode?: unknown }).auctionCode);
     const bidderName = normalizeName((body as { bidderName?: unknown }).bidderName);
     const email = normalizeEmail((body as { email?: unknown }).email);
     const artworkId = String((body as { artworkId?: unknown }).artworkId || "").trim();
 
-    if (auctionCode !== AUCTION_CODE) {
+    if (!isValidAuctionCode(auctionCode)) {
       return NextResponse.json({ error: "Invalid auction." }, { status: 400 });
     }
 
@@ -62,7 +77,7 @@ export async function POST(request: Request) {
     const { data: auction, error: auctionError } = await supabaseAdmin
       .from("live_auction_state")
       .select("*")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .single();
 
     if (auctionError || !auction) {
@@ -91,7 +106,7 @@ export async function POST(request: Request) {
         winner_email: email,
         winner_email_submitted_at: submittedAt,
       })
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .eq("status", "sold")
       .eq("leading_bidder", auction.leading_bidder)
       .select("*")
@@ -108,7 +123,7 @@ export async function POST(request: Request) {
         invoice_email_requested_at: submittedAt,
         certificate_email_requested_at: submittedAt,
       })
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .eq("status", "sold")
       .eq("winning_bidder", auction.leading_bidder);
 
@@ -125,7 +140,7 @@ export async function POST(request: Request) {
     }
 
     await supabaseAdmin.from("live_activity_feed").insert({
-      auction_code: AUCTION_CODE,
+      auction_code: auctionCode,
       message: `${auction.leading_bidder} submitted email for invoice and certificate`,
     });
 

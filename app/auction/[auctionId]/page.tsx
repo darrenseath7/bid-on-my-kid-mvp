@@ -1,5 +1,11 @@
-import { redirect } from "next/navigation";
+import AuctionClient from "../AuctionClient";
 
-export default function AuctionPage() {
-  redirect("/auction/demo");
+type AuctionPageProps = {
+  params: Promise<{ auctionId: string }>;
+};
+
+export default async function AuctionPage({ params }: AuctionPageProps) {
+  const { auctionId } = await params;
+
+  return <AuctionClient initialAuctionCode={auctionId} />;
 }

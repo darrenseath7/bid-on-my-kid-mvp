@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const AUCTION_CODE = "demo";
+const DEFAULT_AUCTION_CODE = "demo";
 const SILENCE_BEFORE_GOING_ONCE_SECONDS = 8;
 const GOING_ONCE_SECONDS = 3;
 const GOING_TWICE_SECONDS = 3;
@@ -18,6 +18,21 @@ type AuctionState = {
   bid_pause_until?: string | null;
   last_bid_at?: string | null;
 };
+
+function normalizeAuctionCode(value: unknown) {
+  const normalized = String(value || DEFAULT_AUCTION_CODE)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return normalized || DEFAULT_AUCTION_CODE;
+}
+
+function isValidAuctionCode(value: string) {
+  return /^[a-z0-9][a-z0-9_-]{1,79}$/.test(value);
+}
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -46,10 +61,11 @@ function toNumber(value: unknown) {
 
 async function addActivity(
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  auctionCode: string,
   message: string
 ) {
   await supabaseAdmin.from("live_activity_feed").insert({
-    auction_code: AUCTION_CODE,
+    auction_code: auctionCode,
     message,
   });
 }
@@ -57,9 +73,9 @@ async function addActivity(
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
-    const auctionCode = String(body?.auctionCode || AUCTION_CODE).trim();
+    const auctionCode = normalizeAuctionCode(body?.auctionCode);
 
-    if (auctionCode !== AUCTION_CODE) {
+    if (!isValidAuctionCode(auctionCode)) {
       return jsonError("Invalid auction code.", 400);
     }
 
@@ -68,7 +84,7 @@ export async function POST(request: Request) {
     const { data: auctionData, error: auctionError } = await supabaseAdmin
       .from("live_auction_state")
       .select("*")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .maybeSingle();
 
     if (auctionError) {
@@ -133,7 +149,7 @@ export async function POST(request: Request) {
           bid_pause_until: null,
           mc_commentary: commentary,
         })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .eq("status", "open")
         .eq("current_bid", currentBid)
         .eq("last_bid_at", auction.last_bid_at || "")
@@ -150,6 +166,7 @@ export async function POST(request: Request) {
 
       await addActivity(
         supabaseAdmin,
+        auctionCode,
         `Going once at R${currentBid.toLocaleString()}`
       );
 
@@ -181,7 +198,7 @@ export async function POST(request: Request) {
           bid_pause_until: null,
           mc_commentary: commentary,
         })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .eq("status", "going once")
         .eq("current_bid", currentBid)
         .eq("status_deadline", auction.status_deadline)
@@ -198,6 +215,7 @@ export async function POST(request: Request) {
 
       await addActivity(
         supabaseAdmin,
+        auctionCode,
         `Going twice at R${currentBid.toLocaleString()}`
       );
 
@@ -225,7 +243,7 @@ export async function POST(request: Request) {
           bid_pause_until: null,
           mc_commentary: commentary,
         })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .eq("status", "going twice")
         .eq("current_bid", currentBid)
         .eq("status_deadline", auction.status_deadline)
@@ -247,11 +265,12 @@ export async function POST(request: Request) {
           sold_amount: currentBid,
           winning_bidder: leadingBidder,
         })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .eq("status", "live");
 
       await addActivity(
         supabaseAdmin,
+        auctionCode,
         `SOLD to ${leadingBidder} for R${currentBid.toLocaleString()}`
       );
 

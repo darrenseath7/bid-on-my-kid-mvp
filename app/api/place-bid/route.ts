@@ -25,9 +25,24 @@ type SchoolProfile = {
   bid_increment?: number | null;
 };
 
-const AUCTION_CODE = "demo";
+const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
 const BID_PAUSE_SECONDS = 5;
+
+function normalizeAuctionCode(value: unknown) {
+  const normalized = String(value || DEFAULT_AUCTION_CODE)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return normalized || DEFAULT_AUCTION_CODE;
+}
+
+function isValidAuctionCode(value: string) {
+  return /^[a-z0-9][a-z0-9_-]{1,79}$/.test(value);
+}
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -70,11 +85,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => null);
 
-    const auctionCode = String(body?.auctionCode || "").trim();
+    const auctionCode = normalizeAuctionCode(body?.auctionCode);
     const bidderName = normalizeBidderName(body?.bidderName);
     const amount = Number(body?.amount);
 
-    if (auctionCode !== AUCTION_CODE) {
+    if (!isValidAuctionCode(auctionCode)) {
       return jsonError("Invalid auction code.", 400);
     }
 
@@ -97,7 +112,7 @@ export async function POST(request: NextRequest) {
     const { data: auction, error: auctionError } = await supabase
       .from("live_auction_state")
       .select("*")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .single<AuctionState>();
 
     if (auctionError || !auction) {
@@ -127,7 +142,7 @@ export async function POST(request: NextRequest) {
     const { data: profile } = await supabase
       .from("demo_school_profile")
       .select("auction_code,bid_increment")
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .maybeSingle<SchoolProfile>();
 
     const bidIncrement = getSafeBidIncrement(profile?.bid_increment);
@@ -150,7 +165,7 @@ export async function POST(request: NextRequest) {
     const { data: insertedBid, error: bidError } = await supabase
       .from("live_bids")
       .insert({
-        auction_code: AUCTION_CODE,
+        auction_code: auctionCode,
         bidder_name: bidderName,
         amount: roundedAmount,
       })
@@ -175,7 +190,7 @@ export async function POST(request: NextRequest) {
         winner_email: null,
         winner_email_submitted_at: null,
       })
-      .eq("auction_code", AUCTION_CODE)
+      .eq("auction_code", auctionCode)
       .eq("current_bid", currentBid)
       .in("status", ["open", "going once", "going twice"])
       .select("*")
@@ -187,7 +202,7 @@ export async function POST(request: NextRequest) {
     }
 
     await supabase.from("live_activity_feed").insert({
-      auction_code: AUCTION_CODE,
+      auction_code: auctionCode,
       message: `R${roundedAmount.toLocaleString()} received from ${bidderName}`,
     });
 
