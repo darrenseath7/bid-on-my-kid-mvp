@@ -37,7 +37,7 @@ export default function HomePage() {
             <a href="#live-auction" className="transition hover:text-[#16d66d]">
               Live Auction
             </a>
-            <a href="#about" className="transition hover:text-[#16d66d]">
+            <a href="#about-us" className="transition hover:text-[#16d66d]">
               About Us
             </a>
           </nav>
@@ -96,45 +96,54 @@ export default function HomePage() {
 
         <section
           id="how-it-works"
-          className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-6 md:px-8 lg:px-10"
+          className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-8 md:px-8 lg:px-10"
         >
-          <div className="grid gap-0 overflow-hidden rounded-[28px] border border-[#16d66d]/18 bg-white/[0.045] shadow-[0_28px_90px_rgba(0,0,0,0.35)] md:grid-cols-2 xl:grid-cols-4">
-            <FeatureCard
-              icon={<PictureIcon />}
-              title="Showcase Young Artists"
-              text="Display every child's artwork in a beautiful online gallery."
-              tone="green"
+          <SectionHeader
+            kicker="How it works"
+            title="From classroom artwork to live fundraising night."
+            text="BragWall keeps the whole auction simple: the school controls the event, parents bid from their phones, and every winning bid is recorded clearly."
+          />
+
+          <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <StepCard
+              number="01"
+              title="Upload the artwork"
+              text="Add each child’s name, grade, artwork image, and optional story so every piece is ready for the gallery."
             />
-            <FeatureCard
-              icon={<GavelIcon />}
-              title="Run Live Auctions"
-              text="Easy, exciting, and engaging live auction experience."
-              tone="purple"
+            <StepCard
+              number="02"
+              title="Share the auction link"
+              text="Parents and family members join from their phones with a simple private auction link."
             />
-            <FeatureCard
-              icon={<HandHeartIcon />}
-              title="Raise More Funds"
-              text="More bids. More support. More impact for your school."
-              tone="blue"
+            <StepCard
+              number="03"
+              title="Start the live auction"
+              text="The admin launches each artwork, the MC intro plays, and bidding opens automatically."
             />
-            <FeatureCard
-              icon={<CommunityIcon />}
-              title="Bring Communities Together"
-              text="Parents, families, and supporters all in one place for our kids."
-              tone="yellow"
+            <StepCard
+              number="04"
+              title="Bids update instantly"
+              text="Parents see the current highest bid, next bid amount, and auction status in real time."
+            />
+            <StepCard
+              number="05"
+              title="Going once, twice, sold"
+              text="The auction builds excitement with countdown moments before the winning bid is locked in."
+            />
+            <StepCard
+              number="06"
+              title="Collect winner details"
+              text="The winner submits their email so the school can follow up with invoice, certificate, and collection details."
             />
           </div>
         </section>
 
         <section
-          id="live-auction"
+          id="for-schools"
           className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-8 md:px-8 lg:px-10"
         >
-          <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr]">
-            <div
-              id="for-schools"
-              className="scroll-mt-28 rounded-[34px] border border-white/10 bg-white/[0.045] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:p-9"
-            >
+          <div className="grid gap-8 lg:grid-cols-[0.92fr_1.08fr]">
+            <div className="rounded-[34px] border border-white/10 bg-white/[0.045] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:p-9">
               <p className="mb-4 text-xs font-black uppercase tracking-[0.34em] text-[#16d66d]">
                 For schools
               </p>
@@ -142,16 +151,35 @@ export default function HomePage() {
                 One control room for the whole auction night.
               </h2>
               <p className="mt-6 text-lg font-medium leading-relaxed text-white/68">
-                Upload artwork, start the AI MC intro, open bidding, mark sold,
-                archive unsold pieces, and keep the event moving from one
-                premium admin screen.
+                BragWall gives the school a simple command centre to run the fundraiser without spreadsheets, paper bids, or confusion on the night.
               </p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                <ListItem text="Add schools and artworks" />
+                <ListItem text="Set bid increments" />
+                <ListItem text="Start and pause bidding" />
+                <ListItem text="Launch AI MC intros" />
+                <ListItem text="Mark sold or archive unsold" />
+                <ListItem text="Track winners and totals" />
+              </div>
             </div>
 
-            <div
-              id="for-parents"
-              className="scroll-mt-28 rounded-[34px] border border-white/10 bg-[#fbf8f1] p-7 text-[#07152b] shadow-2xl md:p-9"
-            >
+            <div className="rounded-[34px] border border-[#16d66d]/20 bg-[#07152b] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.30)] md:p-9">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <ImpactCard label="Control" value="Live room" text="Manage every artwork from one admin screen." />
+                <ImpactCard label="Records" value="Clear totals" text="See sold amounts, winners, and auction progress." />
+                <ImpactCard label="Speed" value="Next artwork" text="Move through the queue without losing the room." />
+                <ImpactCard label="Fundraising" value="More energy" text="Create a real event around the children’s creativity." />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="for-parents"
+          className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-8 md:px-8 lg:px-10"
+        >
+          <div className="grid gap-8 lg:grid-cols-[1.08fr_0.92fr]">
+            <div className="rounded-[34px] border border-white/10 bg-[#fbf8f1] p-7 text-[#07152b] shadow-2xl md:p-9">
               <p className="mb-4 text-xs font-black uppercase tracking-[0.34em] text-[#0b63ce]">
                 For parents
               </p>
@@ -159,15 +187,105 @@ export default function HomePage() {
                 Bid from the phone. Celebrate from the heart.
               </h2>
               <p className="mt-6 text-lg font-bold leading-relaxed text-slate-600">
-                Parents join with a simple auction link, hear the artwork intro,
-                place bids live, and submit winner details when they win.
+                Parents do not need an app or complicated login. They join the auction link, enter a bidder name, and take part live from wherever they are.
               </p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                <ParentPoint text="Join with a simple auction link" />
+                <ParentPoint text="Browse the artwork gallery" />
+                <ParentPoint text="Hear the MC intro" />
+                <ParentPoint text="Place live bids instantly" />
+                <ParentPoint text="See going once and going twice" />
+                <ParentPoint text="Submit winner email after SOLD" />
+              </div>
+            </div>
+
+            <div className="rounded-[34px] border border-[#ffc857]/24 bg-[#ffc857]/10 p-7 shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:p-9">
+              <p className="mb-5 text-xs font-black uppercase tracking-[0.34em] text-[#ffc857]">
+                Parent experience
+              </p>
+              <div className="space-y-4">
+                <ExperienceLine title="No app download" text="Everything runs in the browser." />
+                <ExperienceLine title="Mobile first" text="Designed around the phone screen parents already have in their hands." />
+                <ExperienceLine title="Exciting and simple" text="Big bid buttons, clear status, and instant updates." />
+              </div>
             </div>
           </div>
         </section>
 
-        <section id="about" className="scroll-mt-28 mx-auto max-w-[1480px] px-5 pb-14 pt-5 md:px-8 lg:px-10">
-          <p className="text-center text-xs font-black uppercase tracking-[0.55em] text-[#16d66d]">
+        <section
+          id="live-auction"
+          className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-8 md:px-8 lg:px-10"
+        >
+          <div className="overflow-hidden rounded-[38px] border border-[#16d66d]/20 bg-white/[0.045] shadow-[0_28px_90px_rgba(0,0,0,0.35)]">
+            <div className="grid gap-0 lg:grid-cols-[0.9fr_1.1fr]">
+              <div className="p-7 md:p-10">
+                <p className="mb-4 text-xs font-black uppercase tracking-[0.34em] text-[#16d66d]">
+                  Live auction
+                </p>
+                <h2 className="text-4xl font-black leading-[0.95] tracking-[-0.06em] md:text-6xl">
+                  Real-time bidding with show-night energy.
+                </h2>
+                <p className="mt-6 text-lg font-medium leading-relaxed text-white/68">
+                  The live room turns each child’s artwork into a mini event: gallery preview, MC introduction, live bid button, countdown pressure, and a clear SOLD moment.
+                </p>
+                <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+                  <Link
+                    href="/auction/demo"
+                    className="inline-flex items-center justify-center rounded-2xl bg-[#16d66d] px-7 py-4 text-base font-black text-[#07152b] shadow-[0_18px_45px_rgba(22,214,109,0.22)] transition hover:scale-[1.02]"
+                  >
+                    View Demo Auction →
+                  </Link>
+                  <Link
+                    href="/admin/login"
+                    className="inline-flex items-center justify-center rounded-2xl border border-white/12 bg-white/5 px-7 py-4 text-base font-black text-white transition hover:border-[#16d66d]/70 hover:text-[#16d66d]"
+                  >
+                    Admin Login
+                  </Link>
+                </div>
+              </div>
+
+              <div className="border-t border-white/10 bg-[#020b18]/45 p-7 md:p-10 lg:border-l lg:border-t-0">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <AuctionFeature icon="🎙️" title="AI MC intros" text="Give every artwork a special moment before bidding opens." />
+                  <AuctionFeature icon="⚡" title="Live bid updates" text="Parents see the highest bid and next bid amount instantly." />
+                  <AuctionFeature icon="🔨" title="Going once/twice" text="Build natural excitement before the sale closes." />
+                  <AuctionFeature icon="🏆" title="Winner capture" text="Collect the winner’s invoice and certificate email." />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="about-us"
+          className="scroll-mt-28 mx-auto max-w-[1480px] px-5 pb-14 pt-8 md:px-8 lg:px-10"
+        >
+          <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr]">
+            <div className="rounded-[34px] border border-white/10 bg-white/[0.045] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:p-9">
+              <p className="mb-4 text-xs font-black uppercase tracking-[0.34em] text-[#16d66d]">
+                About us
+              </p>
+              <h2 className="text-4xl font-black leading-[0.95] tracking-[-0.06em] md:text-6xl">
+                Built to make school fundraising feel joyful again.
+              </h2>
+              <p className="mt-6 text-lg font-medium leading-relaxed text-white/68">
+                BragWall helps schools turn children’s creativity into meaningful fundraising moments. It is built for schools, parents, and communities who want fundraising to feel more modern, more connected, and more memorable.
+              </p>
+            </div>
+
+            <div className="rounded-[34px] border border-[#ffc857]/24 bg-[#ffc857]/10 p-7 shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:p-9">
+              <p className="mb-5 text-xs font-black uppercase tracking-[0.34em] text-[#ffc857]">
+                What BragWall stands for
+              </p>
+              <div className="space-y-4">
+                <ExperienceLine title="Young art deserves attention" text="Every child gets their moment on the wall." />
+                <ExperienceLine title="Fundraising should feel alive" text="The auction becomes an event, not just a payment request." />
+                <ExperienceLine title="Schools need simple tools" text="Admin screens are built for busy people on busy nights." />
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-14 text-center text-xs font-black uppercase tracking-[0.55em] text-[#16d66d]">
             Trusted by schools. Loved by parents.
           </p>
 
@@ -292,6 +410,98 @@ function FeatureCard({
           <p className="mt-2 text-base font-medium leading-relaxed text-white/72">{text}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+
+function SectionHeader({
+  kicker,
+  title,
+  text,
+}: {
+  kicker: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="max-w-4xl">
+      <p className="mb-4 text-xs font-black uppercase tracking-[0.34em] text-[#16d66d]">
+        {kicker}
+      </p>
+      <h2 className="text-4xl font-black leading-[0.95] tracking-[-0.06em] md:text-6xl">
+        {title}
+      </h2>
+      <p className="mt-6 text-lg font-medium leading-relaxed text-white/68 md:text-xl">
+        {text}
+      </p>
+    </div>
+  );
+}
+
+function StepCard({ number, title, text }: { number: string; title: string; text: string }) {
+  return (
+    <div className="rounded-[28px] border border-white/10 bg-white/[0.045] p-6 shadow-[0_22px_70px_rgba(0,0,0,0.24)]">
+      <div className="mb-5 inline-flex rounded-full border border-[#16d66d]/20 bg-[#16d66d]/12 px-4 py-2 text-sm font-black text-[#16d66d]">
+        {number}
+      </div>
+      <h3 className="text-2xl font-black leading-tight text-white">{title}</h3>
+      <p className="mt-3 text-base font-medium leading-relaxed text-white/68">{text}</p>
+    </div>
+  );
+}
+
+function ListItem({ text }: { text: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#16d66d] text-sm font-black text-[#07152b]">
+        ✓
+      </span>
+      <p className="text-sm font-black text-white/86">{text}</p>
+    </div>
+  );
+}
+
+function ParentPoint({ text }: { text: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#0b63ce] text-sm font-black text-white">
+        ✓
+      </span>
+      <p className="text-sm font-black text-[#07152b]">{text}</p>
+    </div>
+  );
+}
+
+function ImpactCard({ label, value, text }: { label: string; value: string; text: string }) {
+  return (
+    <div className="rounded-[26px] border border-white/10 bg-white/[0.055] p-6">
+      <p className="mb-3 text-xs font-black uppercase tracking-[0.28em] text-[#16d66d]">
+        {label}
+      </p>
+      <h3 className="text-3xl font-black leading-none text-white">{value}</h3>
+      <p className="mt-4 text-base font-medium leading-relaxed text-white/66">{text}</p>
+    </div>
+  );
+}
+
+function ExperienceLine({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-white/[0.055] p-5">
+      <h3 className="text-xl font-black text-white">{title}</h3>
+      <p className="mt-2 text-base font-medium leading-relaxed text-white/68">{text}</p>
+    </div>
+  );
+}
+
+function AuctionFeature({ icon, title, text }: { icon: string; title: string; text: string }) {
+  return (
+    <div className="rounded-[26px] border border-white/10 bg-white/[0.055] p-6">
+      <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#16d66d]/12 text-3xl">
+        {icon}
+      </div>
+      <h3 className="text-2xl font-black text-white">{title}</h3>
+      <p className="mt-3 text-base font-medium leading-relaxed text-white/68">{text}</p>
     </div>
   );
 }
