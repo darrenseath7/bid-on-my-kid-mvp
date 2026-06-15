@@ -298,6 +298,33 @@ export default function AdminLivePage() {
     });
   }
 
+  async function runLiveAction(
+    action: string,
+    payload: Record<string, unknown> = {}
+  ) {
+    try {
+      const response = await fetch("/api/admin/live-action", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action, ...payload }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Admin action failed.");
+      }
+
+      await loadEverything();
+      return true;
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Admin action failed.");
+      return false;
+    }
+  }
+
   async function startAuction() {
     if (!currentArtwork) {
       alert("Upload artwork before starting the auction.");
@@ -309,182 +336,15 @@ export default function AdminLivePage() {
 
   async function moveToArtwork(artwork: Artwork) {
     setBusyAction(`move-${artwork.id}`);
-
-    const displayUrl = getArtworkDisplayUrl(artwork);
-    const commentary = getMcIntroText(artwork);
-
-    await supabase.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
-
-    await supabase
-      .from("demo_artworks")
-      .update({
-        status: "queued",
-      })
-      .eq("auction_code", AUCTION_CODE)
-      .in("status", [
-        "live",
-        "preparing_intro",
-        "intro",
-        "open",
-        "paused",
-        "going once",
-        "going twice",
-      ]);
-
-    await supabase
-      .from("demo_artworks")
-      .update({
-        status: "live",
-        mc_audio_url: null,
-      })
-      .eq("id", artwork.id);
-
-    const preparingResult = await supabase
-      .from("live_auction_state")
-      .update({
-        child_name: artwork.child_name,
-        child_surname: artwork.child_surname,
-        grade: artwork.grade,
-        artwork_url: displayUrl,
-        current_bid: 0,
-        leading_bidder: "No bids yet",
-        status: "preparing_intro",
-        status_deadline: null,
-        bid_pause_until: null,
-        next_bid_amount: bidIncrement,
-        last_bid_at: null,
-        winner_email: null,
-        winner_email_submitted_at: null,
-        mc_commentary:
-          "The AI MC is preparing this artwork intro. Bidding will open after the story.",
-        mc_audio_url: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("auction_code", AUCTION_CODE);
-
-    if (preparingResult.error) {
-      alert(preparingResult.error.message);
-      setBusyAction("");
-      return;
-    }
-
-    await addActivity(
-      `Preparing AI MC intro for ${artwork.child_name} ${artwork.child_surname}`
-    );
-
-    const mcAudioUrl = await generateMcVoiceAudio(artwork, commentary);
-
-    await supabase
-      .from("demo_artworks")
-      .update({
-        status: "live",
-        mc_audio_url: mcAudioUrl,
-      })
-      .eq("id", artwork.id);
-
-    const introSeconds = estimateMcIntroSeconds(commentary);
-
-    const introDeadline = new Date(
-      Date.now() + introSeconds * 1000
-    ).toISOString();
-
-    const { error } = await supabase
-      .from("live_auction_state")
-      .update({
-        child_name: artwork.child_name,
-        child_surname: artwork.child_surname,
-        grade: artwork.grade,
-        artwork_url: displayUrl,
-        current_bid: 0,
-        leading_bidder: "No bids yet",
-        status: "intro",
-        status_deadline: introDeadline,
-        bid_pause_until: null,
-        next_bid_amount: bidIncrement,
-        last_bid_at: null,
-        winner_email: null,
-        winner_email_submitted_at: null,
-        mc_commentary: commentary,
-        mc_audio_url: mcAudioUrl,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("auction_code", AUCTION_CODE);
-
-    if (error) {
-      alert(error.message);
-      setBusyAction("");
-      return;
-    }
-
-    await addActivity(
-      mcAudioUrl
-        ? `AI MC voice generated for ${artwork.child_name} ${artwork.child_surname}`
-        : `MC intro started for ${artwork.child_name} ${artwork.child_surname}`
-    );
-
+    await runLiveAction("move-to-artwork", { artworkId: artwork.id });
     setBusyAction("");
-  }
-
-  async function generateMcVoiceAudio(artwork: Artwork, commentary: string) {
-    try {
-      const response = await fetch("/api/mc-voice", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          auctionCode: AUCTION_CODE,
-          artworkId: artwork.id,
-          text: commentary,
-          childName: [artwork.child_name, artwork.child_surname]
-            .filter(Boolean)
-            .join(" ")
-            .trim(),
-          grade: artwork.grade,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result?.error || "Could not generate MC voice.");
-      }
-
-      return String(result.audioUrl || "");
-    } catch (error) {
-      console.error("Could not generate AI MC voice:", error);
-
-      await addActivity(
-        `MC intro started for ${artwork.child_name} ${artwork.child_surname}, but AI voice could not be generated`
-      );
-
-      return null;
-    }
   }
 
   async function pauseAuction() {
     if (!auction) return;
 
     setBusyAction("pause");
-
-    const { error } = await supabase
-      .from("live_auction_state")
-      .update({
-        status: "paused",
-        status_deadline: null,
-        bid_pause_until: null,
-        mc_commentary:
-          "The auctioneer has paused the action. Hold your bids for just a moment.",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("auction_code", AUCTION_CODE);
-
-    if (error) {
-      alert(error.message);
-    } else {
-      await addActivity("Auction paused");
-    }
-
+    await runLiveAction("pause");
     setBusyAction("");
   }
 
@@ -492,25 +352,7 @@ export default function AdminLivePage() {
     if (!auction) return;
 
     setBusyAction("resume");
-
-    const { error } = await supabase
-      .from("live_auction_state")
-      .update({
-        status: "open",
-        status_deadline: null,
-        bid_pause_until: null,
-        mc_commentary:
-          "We are back live. The next bid is waiting for a brave parent.",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("auction_code", AUCTION_CODE);
-
-    if (error) {
-      alert(error.message);
-    } else {
-      await addActivity("Auction resumed");
-    }
-
+    await runLiveAction("resume");
     setBusyAction("");
   }
 
@@ -521,26 +363,7 @@ export default function AdminLivePage() {
     }
 
     setBusyAction("once");
-
-    const deadline = new Date(Date.now() + 5000).toISOString();
-
-    const { error } = await supabase
-      .from("live_auction_state")
-      .update({
-        status: "going once",
-        status_deadline: deadline,
-        bid_pause_until: null,
-        mc_commentary: `Going once at R${auction.current_bid.toLocaleString()} for ${auction.leading_bidder}. Last chance to beat this bid.`,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("auction_code", AUCTION_CODE);
-
-    if (error) {
-      alert(error.message);
-    } else {
-      await addActivity(`Going once at R${auction.current_bid.toLocaleString()}`);
-    }
-
+    await runLiveAction("going-once");
     setBusyAction("");
   }
 
@@ -551,28 +374,7 @@ export default function AdminLivePage() {
     }
 
     setBusyAction("twice");
-
-    const deadline = new Date(Date.now() + 5000).toISOString();
-
-    const { error } = await supabase
-      .from("live_auction_state")
-      .update({
-        status: "going twice",
-        status_deadline: deadline,
-        bid_pause_until: null,
-        mc_commentary: `Going twice at R${auction.current_bid.toLocaleString()}. ${auction.leading_bidder} is seconds away from serious bragging rights.`,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("auction_code", AUCTION_CODE);
-
-    if (error) {
-      alert(error.message);
-    } else {
-      await addActivity(
-        `Going twice at R${auction.current_bid.toLocaleString()}`
-      );
-    }
-
+    await runLiveAction("going-twice");
     setBusyAction("");
   }
 
@@ -585,37 +387,7 @@ export default function AdminLivePage() {
     }
 
     setBusyAction("sold");
-
-    await supabase
-      .from("demo_artworks")
-      .update({
-        status: "sold",
-        sold_amount: auction.current_bid,
-        winning_bidder: auction.leading_bidder,
-      })
-      .eq("id", currentArtwork.id);
-
-    const { error } = await supabase
-      .from("live_auction_state")
-      .update({
-        status: "sold",
-        status_deadline: null,
-        bid_pause_until: null,
-        mc_commentary: `Sold to ${auction.leading_bidder} for R${auction.current_bid.toLocaleString()}. A masterpiece has found its forever wall.`,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("auction_code", AUCTION_CODE);
-
-    if (error) {
-      alert(error.message);
-    } else {
-      await addActivity(
-        `SOLD to ${
-          auction.leading_bidder
-        } for R${auction.current_bid.toLocaleString()}`
-      );
-    }
-
+    await runLiveAction("mark-sold");
     setBusyAction("");
   }
 
@@ -640,56 +412,7 @@ export default function AdminLivePage() {
     if (!confirmed) return;
 
     setBusyAction("archive");
-
-    await supabase.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
-
-    const { error: artworkError } = await supabase
-      .from("demo_artworks")
-      .update({
-        status: "archived",
-        sold_amount: null,
-        winning_bidder: null,
-        winner_email: null,
-        mc_audio_url: null,
-      })
-      .eq("id", currentArtwork.id);
-
-    if (artworkError) {
-      alert(artworkError.message);
-      setBusyAction("");
-      return;
-    }
-
-    const { error: stateError } = await supabase
-      .from("live_auction_state")
-      .update({
-        child_name: "",
-        child_surname: "",
-        grade: "",
-        artwork_url: "",
-        current_bid: 0,
-        leading_bidder: "No bids yet",
-        status: "waiting",
-        status_deadline: null,
-        bid_pause_until: null,
-        next_bid_amount: bidIncrement,
-        last_bid_at: null,
-        winner_email: null,
-        winner_email_submitted_at: null,
-        mc_commentary: `${currentArtwork.child_name} ${currentArtwork.child_surname} has been archived as unsold. The next artwork will begin shortly.`,
-        mc_audio_url: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("auction_code", AUCTION_CODE);
-
-    if (stateError) {
-      alert(stateError.message);
-    } else {
-      await addActivity(
-        `Archived unsold artwork: ${currentArtwork.child_name} ${currentArtwork.child_surname}`
-      );
-    }
-
+    await runLiveAction("archive-unsold");
     setBusyAction("");
   }
 
@@ -707,7 +430,9 @@ export default function AdminLivePage() {
       if (!confirmed) return;
     }
 
-    await moveToArtwork(nextArtwork);
+    setBusyAction(`move-${nextArtwork.id}`);
+    await runLiveAction("next-artwork");
+    setBusyAction("");
   }
 
   async function resetAuction() {
@@ -718,46 +443,7 @@ export default function AdminLivePage() {
     if (!confirmed) return;
 
     setBusyAction("reset");
-
-    await supabase.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
-
-    await supabase
-      .from("demo_artworks")
-      .update({
-        status: "queued",
-      })
-      .eq("auction_code", AUCTION_CODE)
-      .neq("status", "sold")
-      .neq("status", "archived");
-
-    const { error } = await supabase
-      .from("live_auction_state")
-      .update({
-        child_name: "",
-        child_surname: "",
-        grade: "",
-        artwork_url: "",
-        current_bid: 0,
-        leading_bidder: "No bids yet",
-        status: "waiting",
-        status_deadline: null,
-        bid_pause_until: null,
-        next_bid_amount: bidIncrement,
-        last_bid_at: null,
-        winner_email: null,
-        winner_email_submitted_at: null,
-        mc_commentary: "Welcome to BragWall. The auction is waiting to begin.",
-        mc_audio_url: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("auction_code", AUCTION_CODE);
-
-    if (error) {
-      alert(error.message);
-    } else {
-      await addActivity("Auction reset to waiting");
-    }
-
+    await runLiveAction("reset");
     setBusyAction("");
   }
 
@@ -767,38 +453,10 @@ export default function AdminLivePage() {
     if (!confirmed) return;
 
     setBusyAction("clear-bids");
-
-    const { error } = await supabase
-      .from("live_bids")
-      .delete()
-      .eq("auction_code", AUCTION_CODE);
-
-    if (error) {
-      alert(error.message);
-    } else {
-      await supabase
-        .from("live_auction_state")
-        .update({
-          current_bid: 0,
-          leading_bidder: "No bids yet",
-          next_bid_amount: bidIncrement,
-          last_bid_at: null,
-          bid_pause_until: null,
-          status_deadline: null,
-          status: "open",
-          winner_email: null,
-          winner_email_submitted_at: null,
-          mc_commentary: "Bids have been cleared. The auction is open again.",
-          mc_audio_url: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("auction_code", AUCTION_CODE);
-
-      await addActivity("Bids cleared");
-    }
-
+    await runLiveAction("clear-bids");
     setBusyAction("");
   }
+
 
   if (loading) {
     return (
