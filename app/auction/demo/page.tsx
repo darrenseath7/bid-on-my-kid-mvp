@@ -916,6 +916,7 @@ export default function DemoAuctionPage() {
     if (!auction) return;
 
     const cleanEmail = winnerEmail.trim().toLowerCase();
+    const cleanBidderName = bidderName.trim();
 
     if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
       alert("Please enter a valid email address.");
@@ -929,45 +930,36 @@ export default function DemoAuctionPage() {
 
     setSubmittingEmail(true);
 
-    const submittedAt = new Date().toISOString();
+    try {
+      const response = await fetch("/api/submit-winner-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auctionCode: AUCTION_CODE,
+          bidderName: cleanBidderName,
+          email: cleanEmail,
+          artworkId: auction.artwork_id || activeArtwork?.id || null,
+        }),
+      });
 
-    const { error: stateError } = await supabase
-      .from("live_auction_state")
-      .update({
-        winner_email: cleanEmail,
-        winner_email_submitted_at: submittedAt,
-      })
-      .eq("auction_code", AUCTION_CODE);
+      const result = await response.json().catch(() => null);
 
-    if (stateError) {
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not save email.");
+      }
+
+      if (result?.auction) {
+        setAuction(result.auction);
+      }
+
+      setEmailSubmittedArtworkKey(activeArtworkKey);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Could not save email.");
+    } finally {
       setSubmittingEmail(false);
-      alert(stateError.message);
-      return;
     }
-
-    const { error: artworkError } = await supabase
-      .from("demo_artworks")
-      .update({
-        winner_email: cleanEmail,
-        invoice_email_requested_at: submittedAt,
-        certificate_email_requested_at: submittedAt,
-      })
-      .eq("auction_code", AUCTION_CODE)
-      .eq("status", "sold")
-      .eq("winning_bidder", auction.leading_bidder);
-
-    if (artworkError) {
-      setSubmittingEmail(false);
-      alert(artworkError.message);
-      return;
-    }
-
-    await addActivity(
-      `${auction.leading_bidder} submitted email for invoice and certificate`
-    );
-
-    setEmailSubmittedArtworkKey(activeArtworkKey);
-    setSubmittingEmail(false);
   }
 
   if (!joined) {
