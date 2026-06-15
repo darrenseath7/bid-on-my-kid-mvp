@@ -93,6 +93,7 @@ export default function DemoAuctionPage() {
   const playedIntroAudioKeyRef = useRef("");
   const previousArtworkKeyRef = useRef("");
   const lastManualIntroTapRef = useRef(0);
+  const lastManualWelcomeTapRef = useRef(0);
 
   const uniqueBidderCount = useMemo(() => {
     const uniqueNames = new Set(
@@ -282,7 +283,8 @@ export default function DemoAuctionPage() {
   async function playWelcomeVoice() {
     if (welcomeVoiceLoading) return;
 
-    await unlockBrowserAudio();
+    audioUnlockedRef.current = true;
+    setSoundEnabled(true);
     setWelcomeVoiceLoading(true);
 
     try {
@@ -295,6 +297,8 @@ export default function DemoAuctionPage() {
       const audio = new Audio("/sounds/welcome-mc.wav");
 
       welcomeAudioRef.current = audio;
+      audio.preload = "auto";
+      (audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
       audio.volume = 0.95;
 
       audio.onplay = () => {
@@ -309,22 +313,32 @@ export default function DemoAuctionPage() {
       audio.onerror = () => {
         setWelcomeVoiceLoading(false);
         setWelcomeVoicePlaying(false);
-        alert("Could not play welcome voice.");
+        alert("Could not play welcome voice. Please check that /sounds/welcome-mc.wav exists.");
       };
 
-      await audio.play();
-    } catch (error) {
+      // Important for iPhone and mobile browsers: call audio.play() directly
+      // from the user's tap. Do not await audio unlocking before this.
+      const playPromise = audio.play();
+      void unlockBrowserAudio();
+
+      await playPromise;
+    } catch {
       setWelcomeVoiceLoading(false);
       setWelcomeVoicePlaying(false);
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Could not play welcome voice."
-      );
+      alert("Phone browser blocked the welcome message. Tap Play Welcome Message again.");
     }
   }
 
+  function handleWelcomeVoiceTap(event?: { preventDefault: () => void }) {
+    event?.preventDefault();
 
+    const now = Date.now();
+
+    if (now - lastManualWelcomeTapRef.current < 700) return;
+
+    lastManualWelcomeTapRef.current = now;
+    void playWelcomeVoice();
+  }
 
   function handleJoinAuction() {
     const cleanBidderName = bidderName.trim();
@@ -993,15 +1007,17 @@ export default function DemoAuctionPage() {
 
             <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <button
-                onClick={playWelcomeVoice}
+                type="button"
+                onClick={handleWelcomeVoiceTap}
+                onTouchEnd={handleWelcomeVoiceTap}
                 disabled={welcomeVoiceLoading}
-                className="bg-[#16d66d] text-[#07152b] rounded-[18px] py-3 px-3 font-black text-xs shadow-xl disabled:opacity-50"
+                className="bg-[#16d66d] text-[#07152b] rounded-[18px] py-3 px-3 font-black text-xs shadow-xl disabled:opacity-50 active:scale-[0.98] transition touch-manipulation"
               >
                 {welcomeVoiceLoading
                   ? "Loading..."
                   : welcomeVoicePlaying
-                  ? "Playing..."
-                  : "▶ Welcome"}
+                  ? "🔊 Playing"
+                  : "🔊 Play Welcome"}
               </button>
 
               <button
