@@ -48,15 +48,24 @@ export default function AdminSalesPage() {
   async function fetchSales() {
     setLoading(true);
 
-    const { data } = await supabase
-      .from("demo_artworks")
-      .select("*")
-      .eq("auction_code", "demo")
-      .eq("status", "sold")
-      .order("sort_order", { ascending: true });
+    try {
+      const response = await fetch("/api/admin/sales-action", {
+        cache: "no-store",
+      });
 
-    setSales(data || []);
-    setLoading(false);
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not load sales records.");
+      }
+
+      setSales(result?.sales || []);
+    } catch (error) {
+      console.error("Could not load secure sales records:", error);
+      setSales([]);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const totalRaised = useMemo(() => {
