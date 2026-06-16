@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { supabase } from "@/lib/supabase";
 
 type AuctionState = {
   artwork_id?: string | null;
@@ -504,19 +503,12 @@ export default function DemoAuctionPage({
     setBids([]);
     setArtworks([]);
 
-    fetchAuction();
-    fetchSchoolProfile();
-    fetchBids();
-    fetchArtworks();
+    fetchPublicAuctionState();
 
-    // Public parent page now reads only from safe public views.
-    // We poll the views instead of subscribing directly to raw tables,
-    // so sensitive raw-table fields are not sent to public browsers.
+    // Public parent page now reads only from our safe Next.js API.
+    // The browser no longer selects raw Supabase auction tables directly.
     const refreshInterval = window.setInterval(() => {
-      fetchAuction();
-      fetchSchoolProfile();
-      fetchBids();
-      fetchArtworks();
+      fetchPublicAuctionState();
     }, 1500);
 
     return () => {
@@ -667,50 +659,35 @@ export default function DemoAuctionPage({
     }
   }
 
-  async function fetchAuction() {
-    const { data } = await supabase
-      .from("live_auction_state")
-      .select("*")
-      .eq("auction_code", auctionCode)
-      .single();
+  async function fetchPublicAuctionState() {
+    try {
+      const response = await fetch(
+        `/api/public-auction-state?auctionCode=${encodeURIComponent(auctionCode)}`,
+        {
+          cache: "no-store",
+        }
+      );
 
-    if (data) {
-      setAuction(data);
-      previousStatusRef.current = data.status;
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not load auction.");
+      }
+
+      const nextAuction = (result?.auction || null) as AuctionState | null;
+      const nextProfile = (result?.profile || null) as SchoolProfile | null;
+
+      setAuction(nextAuction);
+      setBids(Array.isArray(result?.bids) ? result.bids : []);
+      setArtworks(Array.isArray(result?.artworks) ? result.artworks : []);
+      setBidIncrement(getSafeBidIncrement(nextProfile?.bid_increment));
+
+      if (nextAuction) {
+        previousStatusRef.current = nextAuction.status;
+      }
+    } catch (error) {
+      console.error("Could not load public auction state:", error);
     }
-  }
-
-  async function fetchSchoolProfile() {
-    const { data } = await supabase
-      .from("demo_school_profile")
-      .select("auction_code,bid_increment")
-      .eq("auction_code", auctionCode)
-      .maybeSingle();
-
-    const profile = data as SchoolProfile | null;
-
-    setBidIncrement(getSafeBidIncrement(profile?.bid_increment));
-  }
-
-  async function fetchBids() {
-    const { data } = await supabase
-      .from("live_bids")
-      .select("*")
-      .eq("auction_code", auctionCode)
-      .order("amount", { ascending: false })
-      .limit(500);
-
-    setBids(data || []);
-  }
-
-  async function fetchArtworks() {
-    const { data } = await supabase
-      .from("demo_artworks")
-      .select("*")
-      .eq("auction_code", auctionCode)
-      .order("sort_order", { ascending: true });
-
-    setArtworks(data || []);
   }
 
 
@@ -783,7 +760,7 @@ export default function DemoAuctionPage({
         setAuction(result.auction);
       }
 
-      await fetchBids();
+      await fetchPublicAuctionState();
     } catch (error) {
       alert(error instanceof Error ? error.message : "Could not place bid.");
     } finally {
