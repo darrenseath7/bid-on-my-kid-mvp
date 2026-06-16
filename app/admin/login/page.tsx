@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import BrandHeader from "@/components/BrandHeader";
 import { supabase } from "@/lib/supabase";
@@ -11,27 +11,14 @@ export default function AdminLoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [checkingSession, setCheckingSession] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-
-  useEffect(() => {
-    const safeNextPath = new URLSearchParams(window.location.search).get("next") || "/admin";
-    setNextPath(safeNextPath);
-
-    async function checkExistingSession() {
-      const { data } = await supabase.auth.getSession();
-
-      if (data.session) {
-        router.replace(nextPath);
-        return;
-      }
-
-      setCheckingSession(false);
+  useState(() => {
+    if (typeof window !== "undefined") {
+      const safeNextPath = new URLSearchParams(window.location.search).get("next") || "/admin";
+      setNextPath(safeNextPath);
     }
-
-    checkExistingSession();
-  }, [router]);
+  });
 
   async function login(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,24 +67,6 @@ export default function AdminLoginPage() {
     }
 
     router.replace(nextPath);
-  }
-
-  if (checkingSession) {
-    return (
-      <main className="min-h-screen bg-[#020b18] text-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-white rounded-[28px] p-5 mb-5 shadow-2xl">
-            <img
-              src="/bragwall-logo.png"
-              alt="BragWall"
-              className="h-24 w-auto object-contain"
-            />
-          </div>
-
-          <p className="text-white/60 font-black">Checking admin access...</p>
-        </div>
-      </main>
-    );
   }
 
   return (
