@@ -13,9 +13,11 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [signingIn, setSigningIn] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
   useState(() => {
     if (typeof window !== "undefined") {
-      const safeNextPath = new URLSearchParams(window.location.search).get("next") || "/admin";
+      const safeNextPath =
+        new URLSearchParams(window.location.search).get("next") || "/admin";
       setNextPath(safeNextPath);
     }
   });
@@ -70,60 +72,88 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
+    <main className="min-h-screen overflow-hidden bg-[#020b18] text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.16),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
       <div className="absolute inset-0 opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
-      <section className="relative min-h-screen max-w-7xl mx-auto px-5 md:px-8 py-6 md:py-8 grid lg:grid-cols-[0.9fr_1.1fr] gap-8 lg:gap-14 items-center">
+      <section className="relative mx-auto grid min-h-screen max-w-7xl items-center gap-8 px-5 py-6 md:px-8 md:py-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
         <div>
-          <div className="inline-flex items-center gap-3 rounded-full bg-white/10 border border-white/10 px-4 py-3 mb-6">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#16d66d] shadow-[0_0_16px_rgba(22,214,109,0.9)]" />
-            <span className="uppercase tracking-[0.32em] text-[10px] font-black text-white/60">
+          <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-3">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#16d66d] shadow-[0_0_16px_rgba(22,214,109,0.9)]" />
+            <span className="text-[10px] font-black uppercase tracking-[0.32em] text-white/60">
               Admin Access
             </span>
           </div>
 
-          <h1 className="text-6xl md:text-8xl font-black leading-[0.86] tracking-tight mb-6">
+          <h1 className="mb-6 text-6xl font-black leading-[0.86] tracking-tight md:text-8xl">
             Enter the BragWall{" "}
             <span className="text-[#16d66d]">control room.</span>
           </h1>
 
-          <div className="w-24 h-1.5 bg-[#ffc857] rounded-full mb-6" />
+          <div className="mb-6 h-1.5 w-24 rounded-full bg-[#ffc857]" />
 
-          <p className="text-xl text-white/65 leading-relaxed max-w-xl mb-8">
+          <p className="mb-8 max-w-xl text-xl leading-relaxed text-white/65">
             Sign in to upload artwork, run the live auction, control SOLD
             moments, and manage winner follow-up.
           </p>
 
-          <div className="grid sm:grid-cols-3 gap-3 max-w-xl">
+          <div className="grid max-w-xl gap-3 sm:grid-cols-3">
             <MiniMetric label="Studio" value="Upload" />
             <MiniMetric label="Auction" value="Live" />
             <MiniMetric label="Winners" value="Track" />
           </div>
+
+          <div className="mt-6 max-w-xl overflow-hidden rounded-[30px] border border-[#16d66d]/20 bg-white/[0.045] p-2 shadow-[0_24px_80px_rgba(0,0,0,0.34)]">
+            <div className="relative overflow-hidden rounded-[24px] bg-[#020b18]">
+              <video
+                src="/bragwall-intro.mp4"
+                poster="/bragwall-hero-paint-hands.jpg"
+                className="h-[220px] w-full bg-[#020b18] object-contain"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                aria-label="BragWall intro video"
+              />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#020b18]/80 to-transparent" />
+              <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-[#061124]/80 px-3 py-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/70 backdrop-blur-md">
+                BragWall Intro
+              </div>
+              <div className="pointer-events-none absolute bottom-4 left-4 right-4 rounded-[20px] border border-white/10 bg-[#061124]/88 p-4 backdrop-blur-md">
+                <p className="text-sm font-black text-[#16d66d]">
+                  Live Auctions. Real Impact.
+                </p>
+                <p className="mt-1 text-sm font-bold text-white/78">
+                  Turn young creativity into opportunities.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="relative">
-          <div className="absolute -inset-8 bg-[#16d66d]/10 blur-3xl rounded-full" />
-          <div className="absolute left-1/2 top-8 -translate-x-1/2 w-[420px] h-[420px] bg-[#ffc857]/10 blur-3xl rounded-full" />
+          <div className="absolute -inset-8 rounded-full bg-[#16d66d]/10 blur-3xl" />
+          <div className="absolute left-1/2 top-8 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-[#ffc857]/10 blur-3xl" />
 
-          <div className="relative rounded-[44px] bg-white/5 border border-white/10 p-4 shadow-[0_35px_100px_rgba(0,0,0,0.45)] max-w-xl mx-auto">
-            <div className="rounded-[38px] bg-white text-[#07152b] p-6 md:p-8 shadow-2xl">
-              <div className="flex justify-center mb-7">
-                <div className="bg-white rounded-[28px] px-4 py-3 shadow-xl border border-black/5">
+          <div className="relative mx-auto max-w-xl rounded-[44px] border border-white/10 bg-white/5 p-4 shadow-[0_35px_100px_rgba(0,0,0,0.45)]">
+            <div className="rounded-[38px] bg-white p-6 text-[#07152b] shadow-2xl md:p-8">
+              <div className="mb-7 flex justify-center">
+                <div className="rounded-[28px] border border-black/5 bg-white px-4 py-3 shadow-xl">
                   <BrandHeader center />
                 </div>
               </div>
 
-              <div className="text-center mb-7">
-                <p className="uppercase tracking-[0.32em] text-xs text-slate-400 font-black mb-3">
+              <div className="mb-7 text-center">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.32em] text-slate-400">
                   Secure Login
                 </p>
 
-                <h2 className="text-4xl md:text-5xl font-black leading-none mb-3">
+                <h2 className="mb-3 text-4xl font-black leading-none md:text-5xl">
                   Welcome back.
                 </h2>
 
-                <p className="text-slate-500 font-bold leading-relaxed">
+                <p className="font-bold leading-relaxed text-slate-500">
                   Use your Supabase admin account to access the BragWall event
                   tools.
                 </p>
@@ -131,7 +161,7 @@ export default function AdminLoginPage() {
 
               <form onSubmit={login} className="space-y-5">
                 <div>
-                  <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+                  <label className="mb-3 block text-sm font-black uppercase tracking-[0.2em] text-slate-400">
                     Admin Email
                   </label>
 
@@ -145,7 +175,7 @@ export default function AdminLoginPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+                  <label className="mb-3 block text-sm font-black uppercase tracking-[0.2em] text-slate-400">
                     Password
                   </label>
 
@@ -159,7 +189,7 @@ export default function AdminLoginPage() {
                 </div>
 
                 {errorMessage && (
-                  <div className="rounded-[24px] bg-[#fff1ef] border border-[#ffc6c1] text-[#b42318] p-5 font-black leading-relaxed">
+                  <div className="rounded-[24px] border border-[#ffc6c1] bg-[#fff1ef] p-5 font-black leading-relaxed text-[#b42318]">
                     {errorMessage}
                   </div>
                 )}
@@ -167,7 +197,7 @@ export default function AdminLoginPage() {
                 <button
                   type="submit"
                   disabled={signingIn}
-                  className="w-full rounded-[24px] bg-[#16d66d] text-[#07152b] px-8 py-5 font-black text-xl shadow-[0_18px_45px_rgba(22,214,109,0.25)] hover:scale-[1.01] transition disabled:opacity-50 disabled:hover:scale-100"
+                  className="w-full rounded-[24px] bg-[#16d66d] px-8 py-5 text-xl font-black text-[#07152b] shadow-[0_18px_45px_rgba(22,214,109,0.25)] transition hover:scale-[1.01] disabled:opacity-50 disabled:hover:scale-100"
                 >
                   {signingIn ? "Signing In..." : "Sign In to Admin"}
                 </button>
@@ -182,7 +212,7 @@ export default function AdminLoginPage() {
               <div className="mt-6 text-center">
                 <a
                   href="/"
-                  className="text-slate-500 font-black hover:text-[#07152b] transition"
+                  className="font-black text-slate-500 transition hover:text-[#07152b]"
                 >
                   Back to homepage
                 </a>
@@ -197,20 +227,20 @@ export default function AdminLoginPage() {
 
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[22px] bg-white/10 border border-white/10 p-4">
-      <p className="uppercase tracking-[0.25em] text-[9px] text-white/40 font-black mb-2">
+    <div className="rounded-[22px] border border-white/10 bg-white/10 p-4">
+      <p className="mb-2 text-[9px] font-black uppercase tracking-[0.25em] text-white/40">
         {label}
       </p>
 
-      <p className="text-lg font-black text-white leading-tight">{value}</p>
+      <p className="text-lg font-black leading-tight text-white">{value}</p>
     </div>
   );
 }
 
 function TrustItem({ icon, label }: { icon: string; label: string }) {
   return (
-    <div className="rounded-[22px] bg-[#fbf8f1] border border-black/5 p-4 text-center">
-      <div className="text-3xl mb-2">{icon}</div>
+    <div className="rounded-[22px] border border-black/5 bg-[#fbf8f1] p-4 text-center">
+      <div className="mb-2 text-3xl">{icon}</div>
       <p className="text-xs font-black text-slate-600">{label}</p>
     </div>
   );
