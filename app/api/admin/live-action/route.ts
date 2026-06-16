@@ -268,14 +268,28 @@ async function fetchArtworkById(
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
   artworkId: string
 ) {
+  const safeArtworkId = String(artworkId || "").trim();
+
+  if (!safeArtworkId) {
+    throw new Error("Missing artworkId.");
+  }
+
   const { data, error } = await supabaseAdmin
     .from("demo_artworks")
     .select("*")
     .eq("auction_code", AUCTION_CODE)
-    .eq("id", artworkId)
-    .single();
+    .eq("id", safeArtworkId)
+    .maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error(
+      `Artwork not found for auction "${AUCTION_CODE}". Please refresh Admin Live and select an active artwork again.`
+    );
+  }
 
   return data as Artwork;
 }
@@ -721,3 +735,4 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
