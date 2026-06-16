@@ -338,3 +338,4 @@ function pickScriptLine(options: string[], seed: string) {
 
   return options[total % options.length];
 }
+
