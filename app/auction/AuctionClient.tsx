@@ -820,8 +820,12 @@ export default function DemoAuctionPage({
 
   if (!joined) {
     return (
-      <main className="min-h-[100svh] bg-[#020b18] text-white overflow-y-auto">
-        <div className="fixed inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_80%_15%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_62%,#010712)]" />
+      <main className="min-h-[100svh] overflow-y-auto bg-[#07152b] text-[#07152b]">
+        <div className="fixed inset-0 bg-[url('/paintbrush.jpg')] bg-cover bg-center" />
+        <div className="fixed inset-0 bg-[linear-gradient(180deg,rgba(7,21,43,0.14),rgba(85,214,255,0.34)_38%,rgba(255,245,214,0.92))]" />
+        <div className="fixed inset-0 opacity-45 bg-[radial-gradient(circle,#ffffff_1.5px,transparent_1.5px)] bg-[size:24px_24px]" />
+        <div className="fixed -left-14 top-16 h-36 w-36 rounded-full bg-[#16d66d]/55 blur-3xl" />
+        <div className="fixed -right-14 top-56 h-36 w-36 rounded-full bg-[#ff6b8a]/50 blur-3xl" />
 
         <GalleryModal
           open={galleryOpen}
@@ -829,93 +833,104 @@ export default function DemoAuctionPage({
           artworks={artworks}
         />
 
-        <div className="relative max-w-sm mx-auto min-h-[100svh] px-4 py-2.5 flex flex-col">
-          <div className="bg-white rounded-[22px] px-4 py-2.5 mb-2.5 flex justify-center shadow-2xl shrink-0">
-            <img
-              src="/bragwall-logo.png"
-              alt="BragWall"
-              className="h-12 w-auto object-contain"
-            />
+        <div className="relative mx-auto flex min-h-[100svh] w-full max-w-md flex-col px-4 pb-[calc(18px+env(safe-area-inset-bottom))] pt-3">
+          <div className="mb-3 flex justify-center">
+            <div className="rounded-[26px] border-4 border-white bg-white/95 px-9 py-3 shadow-[0_18px_45px_rgba(7,21,43,0.18)]">
+              <img
+                src="/bragwall-logo.png"
+                alt="BragWall"
+                className="h-11 w-auto object-contain"
+              />
+            </div>
           </div>
 
-          <div className="bg-white text-[#07152b] rounded-[28px] p-3.5 shadow-2xl border border-black/5">
-            <p className="uppercase tracking-[0.35em] text-[8px] text-[#0b63ce] font-black mb-1.5">
-              Welcome Parents
-            </p>
-
-            <h1 className="text-3xl font-black leading-[0.9] mb-2.5">
-              Welcome to BragWall.
-            </h1>
-
-            <p className="text-slate-600 text-[12px] leading-relaxed mb-2.5 font-bold">
-              Tonight we are turning school artwork into a live fundraising
-              event — with proud parents, dangerous grandparents, competitive
-              uncles, and masterpieces that deserve prime fridge-door real
-              estate.
-            </p>
-
-            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
-              <button
-                type="button"
-                onClick={handleWelcomeVoiceTap}
-                onTouchEnd={handleWelcomeVoiceTap}
-                disabled={welcomeVoiceLoading}
-                className="bg-[#16d66d] text-[#07152b] rounded-[18px] py-3 px-3 font-black text-xs shadow-xl disabled:opacity-50 active:scale-[0.98] transition touch-manipulation"
-              >
-                {welcomeVoiceLoading
-                  ? "Loading..."
-                  : welcomeVoicePlaying
-                  ? "🔊 Playing"
-                  : "🔊 Play Welcome"}
-              </button>
-
-              <button
-                onClick={() => setGalleryOpen(true)}
-                className="bg-[#ffc857] text-[#07152b] rounded-[18px] py-3 px-3 font-black text-xs shadow-xl"
-              >
-                🖼️ Gallery
-              </button>
-            </div>
-
-            <div className="bg-[#f7f5f0] rounded-[20px] p-3 mb-2.5">
-              <p className="uppercase tracking-[0.3em] text-[7px] text-slate-400 font-black mb-1.5">
-                How Tonight Works
-              </p>
-
-              <div className="space-y-1 text-slate-600 text-[11px] font-bold leading-relaxed">
-                <p>1. Enter your bidder name.</p>
-                <p>2. Browse the gallery before bidding.</p>
-                <p>3. Watch each artwork go live.</p>
-                <p>4. Winners enter email for invoice and certificate.</p>
+          <section className="overflow-hidden rounded-[38px] border-4 border-white bg-white shadow-[0_28px_70px_rgba(7,21,43,0.25)]">
+            <div className="relative h-48 overflow-hidden bg-[#fff5d6]">
+              <img
+                src="/paintbrush.jpg"
+                alt="Colourful paint and brush"
+                className="h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,21,43,0.02),rgba(7,21,43,0.62))]" />
+              <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+                <span className="rotate-[-5deg] rounded-full bg-[#ffc857] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#07152b] shadow-lg">Bid</span>
+                <span className="rotate-[4deg] rounded-full bg-[#16d66d] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#07152b] shadow-lg">Win</span>
+                <span className="rotate-[-3deg] rounded-full bg-[#ff4f7b] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-lg">Brag!</span>
+              </div>
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.32em] text-[#ffc857] drop-shadow">Welcome Parents</p>
+                <h1 className="text-[46px] font-black leading-[0.86] text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.45)]">
+                  Bid. Win.<br />Brag!
+                </h1>
               </div>
             </div>
 
-            <input
-              value={bidderName}
-              onChange={(event) => setBidderName(event.target.value)}
-              placeholder="Your bidder name"
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm mb-2.5 outline-none"
-            />
+            <div className="space-y-3 p-4">
+              <p className="rounded-[24px] bg-[#eaf8ff] p-4 text-[13px] font-extrabold leading-relaxed text-slate-700">
+                Tonight we turn school artwork into a live fundraising event — with proud parents, competitive grandparents, and masterpieces that deserve prime fridge-door real estate.
+              </p>
 
-            <button
-              type="button"
-              onTouchStart={() => {
-                audioUnlockedRef.current = true;
-              }}
-              onMouseDown={() => {
-                audioUnlockedRef.current = true;
-              }}
-              onClick={handleJoinAuction}
-              className="relative z-10 w-full touch-manipulation select-none bg-[#07152b] text-white rounded-2xl py-4 font-black text-base shadow-xl active:scale-[0.98]"
-            >
-              JOIN AUCTION & ENABLE SOUND
-            </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={handleWelcomeVoiceTap}
+                  onTouchEnd={handleWelcomeVoiceTap}
+                  disabled={welcomeVoiceLoading}
+                  className="touch-manipulation rounded-[24px] bg-[#16d66d] px-3 py-4 text-sm font-black text-[#07152b] shadow-[0_12px_25px_rgba(22,214,109,0.28)] transition active:scale-[0.98] disabled:opacity-50"
+                >
+                  {welcomeVoiceLoading
+                    ? "Loading..."
+                    : welcomeVoicePlaying
+                    ? "🔊 Playing"
+                    : "🔊 Play Welcome"}
+                </button>
 
-            <p className="text-center text-[10px] text-slate-500 font-black mt-2 leading-relaxed">
-              On iPhone, make sure Silent Mode is off and volume is up. If iOS
-              blocks audio, tap the MC voice button when it appears.
-            </p>
-          </div>
+                <button
+                  onClick={() => setGalleryOpen(true)}
+                  className="rounded-[24px] bg-[#ffc857] px-3 py-4 text-sm font-black text-[#07152b] shadow-[0_12px_25px_rgba(255,200,87,0.32)] active:scale-[0.98]"
+                >
+                  🖼️ Gallery
+                </button>
+              </div>
+
+              <div className="rounded-[26px] border-2 border-[#07152b]/8 bg-[#fff8e6] p-4 shadow-inner">
+                <p className="mb-2 text-[9px] font-black uppercase tracking-[0.28em] text-[#0b63ce]">
+                  How tonight works
+                </p>
+                <div className="grid gap-2 text-[12px] font-black leading-snug text-slate-700">
+                  <p><span className="mr-2 rounded-full bg-[#16d66d] px-2 py-1 text-[10px] text-[#07152b]">1</span> Enter your bidder name.</p>
+                  <p><span className="mr-2 rounded-full bg-[#ffc857] px-2 py-1 text-[10px] text-[#07152b]">2</span> Browse the gallery before bidding.</p>
+                  <p><span className="mr-2 rounded-full bg-[#ff6b8a] px-2 py-1 text-[10px] text-white">3</span> Watch each artwork go live.</p>
+                  <p><span className="mr-2 rounded-full bg-[#55d6ff] px-2 py-1 text-[10px] text-[#07152b]">4</span> Winners enter email for invoice.</p>
+                </div>
+              </div>
+
+              <input
+                value={bidderName}
+                onChange={(event) => setBidderName(event.target.value)}
+                placeholder="Your bidder name"
+                className="w-full rounded-[22px] border-2 border-slate-200 bg-white px-5 py-4 text-base font-bold outline-none focus:border-[#16d66d]"
+              />
+
+              <button
+                type="button"
+                onTouchStart={() => {
+                  audioUnlockedRef.current = true;
+                }}
+                onMouseDown={() => {
+                  audioUnlockedRef.current = true;
+                }}
+                onClick={handleJoinAuction}
+                className="relative z-10 w-full touch-manipulation select-none rounded-[28px] bg-[#07152b] py-5 text-lg font-black text-white shadow-[0_18px_35px_rgba(7,21,43,0.28)] active:scale-[0.98]"
+              >
+                JOIN AUCTION & ENABLE SOUND
+              </button>
+
+              <p className="px-2 pb-1 text-center text-[10px] font-black leading-relaxed text-slate-500">
+                On iPhone, make sure Silent Mode is off and volume is up. If iOS blocks audio, tap the MC voice button when it appears.
+              </p>
+            </div>
+          </section>
         </div>
       </main>
     );
@@ -931,8 +946,10 @@ export default function DemoAuctionPage({
 
   if (isWaiting) {
     return (
-      <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(22,214,109,0.18),transparent_30%),radial-gradient(circle_at_80%_15%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_62%,#010712)]" />
+      <main className="min-h-[100svh] overflow-y-auto bg-[#07152b] text-[#07152b]">
+        <div className="fixed inset-0 bg-[url('/paintbrush.jpg')] bg-cover bg-center" />
+        <div className="fixed inset-0 bg-[linear-gradient(180deg,rgba(85,214,255,0.62),rgba(255,255,255,0.72)_48%,rgba(255,245,214,0.96))]" />
+        <div className="fixed inset-0 opacity-35 bg-[radial-gradient(circle,#ffffff_1.5px,transparent_1.5px)] bg-[size:24px_24px]" />
 
         <GalleryModal
           open={galleryOpen}
@@ -940,71 +957,74 @@ export default function DemoAuctionPage({
           artworks={artworks}
         />
 
-        <div className="relative max-w-md mx-auto min-h-screen px-5 py-6 flex flex-col">
-          <div className="bg-white rounded-[28px] p-5 mb-6 flex justify-center shadow-2xl">
+        <div className="relative mx-auto flex min-h-[100svh] w-full max-w-md flex-col px-4 pb-[calc(18px+env(safe-area-inset-bottom))] pt-4">
+          <div className="mb-4 rounded-[28px] border-4 border-white bg-white/95 px-5 py-3 text-center shadow-[0_18px_45px_rgba(7,21,43,0.18)]">
             <img
               src="/bragwall-logo.png"
               alt="BragWall"
-              className="h-20 w-auto object-contain"
+              className="mx-auto h-14 w-auto object-contain"
             />
           </div>
 
-          <div className="flex-1 bg-white/10 border border-white/10 rounded-[36px] p-7 shadow-2xl flex flex-col justify-center">
-            <div className="w-20 h-20 rounded-[28px] bg-[#16d66d] text-[#07152b] flex items-center justify-center text-5xl mb-6 shadow-2xl">
-              🎨
-            </div>
-
-            <p className="uppercase tracking-[0.35em] text-xs text-[#16d66d] font-black mb-4">
-              Parent Waiting Room
-            </p>
-
-            <h1 className="text-6xl font-black leading-none mb-5">
-              You’re in.
-            </h1>
-
-            <p className="text-white/70 text-lg leading-relaxed mb-4 font-bold">
-              Keep this page open. The first artwork will appear automatically
-              when the auction starts.
-            </p>
-
-            <div className="bg-[#16d66d] text-[#07152b] rounded-[22px] p-4 mb-6 shadow-xl">
-              <p className="uppercase tracking-[0.25em] text-[9px] font-black mb-1 opacity-70">
-                Sound
-              </p>
-              <p className="font-black">
-                {soundEnabled ? "Sound enabled ✅" : "Tap Join Auction to enable sound"}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setGalleryOpen(true)}
-                className="bg-[#ffc857] text-[#07152b] rounded-[24px] p-5 text-left shadow-xl"
-              >
-                <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-2 opacity-70">
-                  Preview
-                </p>
-
-                <p className="text-xl font-black">Gallery</p>
-              </button>
-
-              <div className="bg-[#16d66d] text-[#07152b] rounded-[24px] p-5 shadow-xl">
-                <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-2 opacity-70">
-                  Auction
-                </p>
-
-                <p className="text-xl font-black">Ready</p>
+          <section className="flex flex-1 flex-col overflow-hidden rounded-[38px] border-4 border-white bg-white shadow-[0_28px_70px_rgba(7,21,43,0.24)]">
+            <div className="relative h-56 overflow-hidden">
+              <img src="/paintbrush.jpg" alt="Paint and brush" className="h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,21,43,0.08),rgba(7,21,43,0.64))]" />
+              <div className="absolute bottom-5 left-5 right-5">
+                <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-[30px] bg-[#16d66d] text-5xl shadow-2xl">
+                  🎨
+                </div>
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.34em] text-[#ffc857]">Parent Waiting Room</p>
+                <h1 className="text-[58px] font-black leading-none text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.45)]">
+                  You’re in.
+                </h1>
               </div>
             </div>
-          </div>
+
+            <div className="flex flex-1 flex-col gap-4 p-5">
+              <p className="text-lg font-extrabold leading-relaxed text-slate-700">
+                Keep this page open. The first artwork will appear automatically when the auction starts.
+              </p>
+
+              <div className="rounded-[26px] bg-[#16d66d] p-4 text-[#07152b] shadow-[0_14px_30px_rgba(22,214,109,0.26)]">
+                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.25em] opacity-70">Sound</p>
+                <p className="text-lg font-black">
+                  {soundEnabled ? "Sound enabled ✅" : "Tap Join Auction to enable sound"}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setGalleryOpen(true)}
+                  className="rounded-[28px] bg-[#ffc857] p-5 text-left text-[#07152b] shadow-xl active:scale-[0.98]"
+                >
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] opacity-70">Preview</p>
+                  <p className="text-2xl font-black">Gallery</p>
+                </button>
+
+                <div className="rounded-[28px] bg-[#55d6ff] p-5 text-[#07152b] shadow-xl">
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] opacity-70">Auction</p>
+                  <p className="text-2xl font-black">Ready</p>
+                </div>
+              </div>
+
+              <div className="mt-auto rounded-[26px] bg-[#07152b] p-5 text-white">
+                <p className="text-center text-sm font-black leading-relaxed">
+                  The next masterpiece is almost ready. Stay close — bidding moves fast.
+                </p>
+              </div>
+            </div>
+          </section>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="h-[100dvh] bg-[#020b18] text-white overflow-hidden flex flex-col">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_5%,rgba(22,214,109,0.14),transparent_28%),radial-gradient(circle_at_80%_5%,rgba(255,200,87,0.13),transparent_30%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
+    <main className="relative h-[100dvh] overflow-hidden text-[#07152b] flex flex-col">
+      <div className="absolute inset-0 bg-[url('/paintbrush.jpg')] bg-cover bg-center" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.62),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,245,214,0.40))]" />
+      <div className="absolute inset-0 opacity-45 bg-[radial-gradient(circle,#ffffff_1.4px,transparent_1.4px)] bg-[size:28px_28px]" />
 
       <GalleryModal
         open={galleryOpen}
@@ -1012,18 +1032,18 @@ export default function DemoAuctionPage({
         artworks={artworks}
       />
 
-      <div className="relative shrink-0 bg-[#061124]/95 backdrop-blur border-b border-white/10">
+      <div className="relative shrink-0 bg-white/90 backdrop-blur border-b-4 border-[#07152b]/10 shadow-[0_10px_30px_rgba(7,21,43,0.12)]">
         <div className="max-w-md mx-auto px-4 py-2.5">
           <div className="flex items-center justify-between gap-3">
             <button
               onClick={() => setGalleryOpen(true)}
-              className="w-10 h-10 rounded-2xl border border-white/10 flex items-center justify-center text-xl shrink-0 bg-white/5"
+              className="w-11 h-11 rounded-[20px] border-2 border-[#07152b]/10 flex items-center justify-center text-xl shrink-0 bg-[#ffc857] shadow-lg"
               aria-label="Open gallery"
             >
               🖼️
             </button>
 
-            <div className="bg-white rounded-xl px-2 py-1">
+            <div className="bg-white rounded-2xl px-3 py-1.5 border-2 border-[#07152b]/5 shadow-lg">
               <img
                 src="/bragwall-logo.png"
                 alt="BragWall"
@@ -1032,9 +1052,9 @@ export default function DemoAuctionPage({
             </div>
 
             <div className="text-right shrink-0 max-w-[105px]">
-              <p className="text-[9px] text-white/50">Bidding as</p>
+              <p className="text-[9px] text-slate-500 font-black">Bidding as</p>
 
-              <p className="font-black text-xs leading-tight truncate">
+              <p className="font-black text-xs leading-tight truncate text-[#07152b]">
                 {bidderName}
                 <span className="inline-block w-2 h-2 bg-[#16d66d] rounded-full ml-1 shadow-[0_0_12px_rgba(22,214,109,0.9)]" />
               </p>
@@ -1108,8 +1128,7 @@ export default function DemoAuctionPage({
                       </h2>
 
                       <p className="text-slate-600 font-bold leading-relaxed">
-                        Enter your email to receive your invoice, certificate,
-                        and payment details.
+                        Enter your email to receive your invoice. Your certificate will be released once payment is confirmed.
                       </p>
                     </div>
                   </div>
@@ -1129,7 +1148,7 @@ export default function DemoAuctionPage({
                   >
                     {submittingEmail
                       ? "Saving Email..."
-                      : "Send Invoice & Certificate"}
+                      : "Send Invoice"}
                   </button>
 
                   <p className="text-center text-slate-500 text-sm font-bold mt-4">
@@ -1175,7 +1194,7 @@ export default function DemoAuctionPage({
         )}
       </AnimatePresence>
 
-      <div className="relative flex-1 min-h-0 max-w-md mx-auto w-full px-4 py-3 flex flex-col gap-2.5 overflow-y-auto overscroll-contain pb-6">
+      <div className="relative flex-1 min-h-0 max-w-md mx-auto w-full px-4 py-4 flex flex-col gap-3 overflow-y-auto overscroll-contain pb-6">
         {isSold && isWinningBidder && winnerEmailAlreadySubmitted && (
           <div className="shrink-0 bg-[#16d66d] text-[#07152b] rounded-[20px] p-3 shadow-xl">
             <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-1">
@@ -1183,8 +1202,7 @@ export default function DemoAuctionPage({
             </p>
 
             <p className="font-black text-sm leading-snug">
-              Thanks, {bidderName}. Your invoice and certificate will be
-              emailed to you.
+              Thanks, {bidderName}. Your invoice will be emailed to you.
             </p>
           </div>
         )}
@@ -1277,39 +1295,39 @@ export default function DemoAuctionPage({
           </motion.div>
         )}
 
-        <div className="shrink-0 flex items-start justify-between gap-3">
+        <div className="shrink-0 flex items-start justify-between gap-3 rounded-[28px] border-2 border-white/70 bg-white/82 p-4 shadow-[0_18px_45px_rgba(7,21,43,0.18)] backdrop-blur-md">
           <div className="min-w-0">
             <p className="uppercase tracking-[0.25em] text-[10px] text-[#16d66d] font-black mb-1">
               Live Auction
             </p>
 
-            <h1 className="text-3xl font-black leading-none truncate">
+            <h1 className="text-3xl font-black leading-none truncate text-[#07152b]">
               {auction.child_name} {auction.child_surname}
             </h1>
 
-            <p className="text-white/55 text-sm font-bold mt-1 truncate">
+            <p className="text-slate-600 text-sm font-black mt-1 truncate">
               {auction.grade}
             </p>
 
-            <p className="text-[#ffc857] text-xs font-black mt-1">
+            <p className="text-[#0b63ce] text-xs font-black mt-1">
               {bidderCounterLabel}
             </p>
           </div>
 
           <button
             onClick={() => setGalleryOpen(true)}
-            className="border border-[#16d66d]/60 text-[#16d66d] rounded-2xl px-3 py-2 text-center shrink-0 bg-white/5"
+            className="border-2 border-white text-[#07152b] rounded-[22px] px-3 py-2 text-center shrink-0 bg-[#ffc857] shadow-lg"
           >
-            <p className="text-[10px] text-white/50">View</p>
+            <p className="text-[10px] text-[#07152b]/55 font-black">View</p>
             <p className="font-black text-sm">Gallery</p>
           </button>
         </div>
 
-        <div className="shrink-0 rounded-[30px] overflow-hidden border border-white/10 shadow-[0_18px_55px_rgba(0,0,0,0.45)] bg-[#16110b]">
-          <div className="bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.18),transparent_38%),linear-gradient(180deg,#241b13,#090909)] p-3">
+        <div className="shrink-0 rounded-[34px] overflow-hidden border-4 border-white shadow-[0_18px_55px_rgba(7,21,43,0.25)] bg-white">
+          <div className="bg-[#fff5d6] p-3">
             <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2 rounded-[20px] shadow-[0_0_35px_rgba(255,200,87,0.18)]">
               <div className="bg-[#f8f5ef] rounded-[14px] p-2.5">
-                <div className="rounded-[10px] overflow-hidden bg-white h-[27dvh] min-h-[180px] max-h-[255px] flex items-center justify-center">
+                <div className="rounded-[14px] overflow-hidden bg-white h-[32dvh] min-h-[220px] max-h-[330px] flex items-center justify-center">
                   {auction.artwork_url ? (
                     <img
                       src={auction.artwork_url}
@@ -1326,7 +1344,7 @@ export default function DemoAuctionPage({
             </div>
           </div>
 
-          <div className="h-6 bg-gradient-to-b from-[#5b3312] to-[#1b1008]" />
+          <div className="h-5 bg-gradient-to-b from-[#ffc857] to-[#f59e0b]" />
         </div>
 
         <motion.div
@@ -1337,7 +1355,7 @@ export default function DemoAuctionPage({
           transition={{
             duration: 0.35,
           }}
-          className="shrink-0 bg-white text-[#07152b] rounded-[24px] p-4 shadow-xl border border-black/5"
+          className="shrink-0 bg-white text-[#07152b] rounded-[28px] p-5 shadow-[0_18px_40px_rgba(7,21,43,0.18)] border-4 border-white"
         >
           <div className="grid grid-cols-2 gap-3 items-end">
             <div>
@@ -1415,7 +1433,7 @@ export default function DemoAuctionPage({
       </div>
 
       {!isSold && !isPreparingIntro && !isIntro && (
-        <div className="relative shrink-0 bg-[#020b18]/95 backdrop-blur border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.4)]">
+        <div className="relative shrink-0 bg-white/92 backdrop-blur border-t-4 border-[#07152b]/10 shadow-[0_-10px_40px_rgba(7,21,43,0.16)]">
           <div className="max-w-md mx-auto p-3">
             <motion.button
               whileTap={{ scale: canBid ? 0.97 : 1 }}
@@ -1443,7 +1461,7 @@ export default function DemoAuctionPage({
 
             <p
               className={`text-center font-bold mt-1 text-xs ${
-                isUrgency ? "text-[#ff8d86]" : "text-white/40"
+                isUrgency ? "text-[#ef2b20]" : "text-slate-500"
               }`}
             >
               {isPreparingIntro
