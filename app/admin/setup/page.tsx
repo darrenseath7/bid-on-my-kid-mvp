@@ -1160,16 +1160,22 @@ function ArtworkRow({
     <div className="rounded-[26px] bg-white/5 border border-white/10 p-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <div className="w-20 h-20 rounded-[22px] overflow-hidden bg-white shrink-0">
+          <div className="relative w-20 h-20 rounded-[22px] overflow-hidden bg-white shrink-0">
             {displayUrl ? (
               <img
                 src={displayUrl}
                 alt=""
-                className="w-full h-full object-cover"
+                className={`w-full h-full object-cover ${artwork.status === "sold" ? "opacity-60" : ""}`}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-400">
                 🎨
+              </div>
+            )}
+
+            {artwork.status === "sold" && (
+              <div className="absolute inset-x-[-10px] top-1/2 -translate-y-1/2 rotate-[-14deg] bg-[#ef2b20] py-1 text-center text-[10px] font-black text-white shadow-lg">
+                SOLD
               </div>
             )}
           </div>

@@ -941,6 +941,59 @@ export default function AdminLivePage() {
                       </div>
                     </SidePanel>
 
+                    {soldArtworks.length > 0 && (
+                      <SidePanel
+                        title="Sold Artworks"
+                        subtitle={`${soldArtworks.length} completed with SOLD overlay`}
+                        icon={<GavelIcon />}
+                      >
+                        <div className="space-y-3 max-h-[210px] overflow-auto pr-1 bragwall-live-scroll">
+                          {soldArtworks.map((artwork) => {
+                            const displayUrl = getArtworkDisplayUrl(artwork);
+
+                            return (
+                              <div
+                                key={artwork.id}
+                                className="rounded-[18px] bg-white/[0.055] border border-[#ffc857]/25 p-3"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="relative w-14 h-14 rounded-[16px] overflow-hidden bg-white shrink-0">
+                                    {displayUrl ? (
+                                      <img
+                                        src={displayUrl}
+                                        alt="Sold artwork thumbnail"
+                                        className="w-full h-full object-cover opacity-70"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                        <PaletteIcon />
+                                      </div>
+                                    )}
+                                    <div className="absolute inset-x-[-8px] top-1/2 -translate-y-1/2 rotate-[-14deg] bg-[#ef2b20] py-0.5 text-center text-[9px] font-black text-white shadow-lg">
+                                      SOLD
+                                    </div>
+                                  </div>
+
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-black truncate">
+                                      {artwork.child_name} {artwork.child_surname}
+                                    </p>
+                                    <p className="text-xs text-white/55 font-bold truncate">
+                                      {artwork.grade} • {artwork.winning_bidder || "winner recorded"}
+                                    </p>
+                                  </div>
+
+                                  <p className="text-[#16d66d] font-black shrink-0">
+                                    R{Number(artwork.sold_amount || 0).toLocaleString()}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </SidePanel>
+                    )}
+
                     {archivedArtworks.length > 0 && (
                       <SidePanel
                         title="Archived / Unsold"

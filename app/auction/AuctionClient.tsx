@@ -1589,14 +1589,14 @@ function GalleryModal({
                     key={artwork.id}
                     className="rounded-[30px] bg-white text-[#07152b] p-4 shadow-2xl"
                   >
-                    <div className="rounded-[24px] overflow-hidden bg-[#f8f5ef] border border-black/5 mb-4">
+                    <div className="relative rounded-[24px] overflow-hidden bg-[#f8f5ef] border border-black/5 mb-4">
                       <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2">
                         <div className="bg-white rounded-[18px] h-[260px] flex items-center justify-center overflow-hidden">
                           {imageUrl ? (
                             <img
                               src={imageUrl}
                               alt={`${artwork.child_name} ${artwork.child_surname}`}
-                              className="w-full h-full object-contain"
+                              className={`w-full h-full object-contain ${isSoldArtwork ? "opacity-55 grayscale-[0.2]" : ""}`}
                             />
                           ) : (
                             <div className="text-slate-400 font-black">
@@ -1605,6 +1605,17 @@ function GalleryModal({
                           )}
                         </div>
                       </div>
+
+                      {isSoldArtwork && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-[#07152b]/28 backdrop-blur-[1px]">
+                          <div className="rotate-[-10deg] rounded-[26px] border-4 border-[#ffc857] bg-[#ef2b20] px-8 py-4 text-center shadow-[0_20px_45px_rgba(239,43,32,0.35)]">
+                            <p className="text-5xl font-black tracking-[-0.06em] text-white drop-shadow-lg">SOLD</p>
+                            <p className="mt-1 text-xs font-black uppercase tracking-[0.24em] text-white/82">
+                              R{Number(artwork.sold_amount || 0).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-start justify-between gap-4">
