@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import BrandHeader from "@/components/BrandHeader";
 import AdminAuctionSelector from "@/components/AdminAuctionSelector";
 import { supabase } from "@/lib/supabase";
@@ -52,6 +53,7 @@ export default function AdminSalesPage() {
 
   async function fetchSales() {
     setLoading(true);
+    setSales([]);
 
     try {
       const response = await fetch(`/api/admin/sales-action?auctionCode=${encodeURIComponent(auctionCode)}`, {
@@ -114,7 +116,7 @@ export default function AdminSalesPage() {
 
               <p className="text-white/55 text-xl max-w-3xl leading-relaxed">
                 Revisit sold artworks, winner emails, invoice requests,
-                certificate requests, and payment follow-ups.
+                payment follow-ups, and certificate release status.
               </p>
             </div>
 
@@ -188,7 +190,12 @@ export default function AdminSalesPage() {
             ) : (
               <div className="divide-y divide-white/10">
                 {sales.map((item) => (
-                  <SaleCard key={item.id} item={item} />
+                  <SaleCard
+                    key={item.id}
+                    item={item}
+                    auctionCode={auctionCode}
+                    onRefresh={fetchSales}
+                  />
                 ))}
               </div>
             )}
@@ -199,10 +206,59 @@ export default function AdminSalesPage() {
   );
 }
 
-function SaleCard({ item }: { item: SoldArtwork }) {
+function SaleCard({
+  item,
+  auctionCode,
+  onRefresh,
+}: {
+  item: SoldArtwork;
+  auctionCode: string;
+  onRefresh: () => Promise<void>;
+}) {
   const invoiceRequested = Boolean(item.invoice_email_requested_at);
-  const certificateRequested = Boolean(item.certificate_email_requested_at);
+  const certificateReleased = Boolean(item.certificate_email_requested_at);
   const emailCaptured = Boolean(item.winner_email);
+  const [releasingCertificate, setReleasingCertificate] = useState(false);
+
+  async function releaseCertificate() {
+    if (!emailCaptured || certificateReleased || releasingCertificate) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Confirm payment received and release this winner certificate?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setReleasingCertificate(true);
+
+    try {
+      const response = await fetch("/api/admin/sales-action", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "release-certificate",
+          auctionCode,
+          artworkId: item.id,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not release certificate.");
+      }
+
+      await onRefresh();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Could not release certificate.");
+    } finally {
+      setReleasingCertificate(false);
+    }
+  }
 
   return (
     <div className="p-5 lg:p-6">
@@ -264,8 +320,8 @@ function SaleCard({ item }: { item: SoldArtwork }) {
 
             <InfoBox
               label="Certificate"
-              value={certificateRequested ? "Requested" : "Not requested"}
-              highlight={certificateRequested ? "green" : "yellow"}
+              value={certificateReleased ? "Released" : "Locked until paid"}
+              highlight={certificateReleased ? "green" : "yellow"}
             />
           </div>
 
@@ -295,14 +351,31 @@ function SaleCard({ item }: { item: SoldArtwork }) {
 
               <ActionBadge
                 label={
-                  certificateRequested
-                    ? "Certificate email requested"
-                    : "Certificate not requested"
+                  certificateReleased
+                    ? "Certificate released after payment"
+                    : "Certificate locked until payment confirmed"
                 }
-                good={certificateRequested}
+                good={certificateReleased}
               />
 
-              <ActionBadge label="Payment status coming next" good={false} />
+              <button
+                type="button"
+                onClick={releaseCertificate}
+                disabled={!emailCaptured || certificateReleased || releasingCertificate}
+                className={`rounded-full px-4 py-2 text-sm font-black transition ${
+                  certificateReleased
+                    ? "bg-[#16d66d]/20 text-[#16d66d] border border-[#16d66d]/30"
+                    : emailCaptured
+                    ? "bg-[#ffc857] text-[#07152b] hover:scale-[1.02]"
+                    : "bg-white/10 text-white/35 cursor-not-allowed"
+                }`}
+              >
+                {certificateReleased
+                  ? "Certificate Released"
+                  : releasingCertificate
+                  ? "Releasing..."
+                  : "Confirm Payment & Release Certificate"}
+              </button>
             </div>
           </div>
         </div>
@@ -456,3 +529,5 @@ function ActionBadge({ label, good }: { label: string; good: boolean }) {
     </span>
   );
 }
+
+

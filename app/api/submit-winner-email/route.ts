@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       .update({
         winner_email: email,
         invoice_email_requested_at: submittedAt,
-        certificate_email_requested_at: submittedAt,
+        certificate_email_requested_at: null,
       })
       .eq("auction_code", auctionCode)
       .eq("status", "sold")
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
 
     await supabaseAdmin.from("live_activity_feed").insert({
       auction_code: auctionCode,
-      message: `${auction.leading_bidder} submitted email for invoice and certificate`,
+      message: `${auction.leading_bidder} submitted email for invoice`,
     });
 
     return NextResponse.json({

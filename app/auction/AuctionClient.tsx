@@ -901,7 +901,7 @@ export default function DemoAuctionPage({
                   <p><span className="mr-2 rounded-full bg-[#16d66d] px-2 py-1 text-[10px] text-[#07152b]">1</span> Enter your bidder name.</p>
                   <p><span className="mr-2 rounded-full bg-[#ffc857] px-2 py-1 text-[10px] text-[#07152b]">2</span> Browse the gallery before bidding.</p>
                   <p><span className="mr-2 rounded-full bg-[#ff6b8a] px-2 py-1 text-[10px] text-white">3</span> Watch each artwork go live.</p>
-                  <p><span className="mr-2 rounded-full bg-[#55d6ff] px-2 py-1 text-[10px] text-[#07152b]">4</span> Winners enter email for invoice.</p>
+                  <p><span className="mr-2 rounded-full bg-[#55d6ff] px-2 py-1 text-[10px] text-[#07152b]">4</span> Winners enter email for invoice only.</p>
                 </div>
               </div>
 
@@ -1162,8 +1162,8 @@ export default function DemoAuctionPage({
                   </h3>
 
                   <p className="text-white/70 text-lg font-bold leading-relaxed">
-                    The winning parent will enter their email for invoice and
-                    certificate details.
+                    The winning parent will enter their email for the invoice.
+                    Certificates are released after payment confirmation.
                   </p>
                 </div>
               )}

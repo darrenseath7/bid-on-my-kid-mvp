@@ -35,6 +35,11 @@ function getSupabaseAdmin() {
   });
 }
 
+
+function normalizeId(value: unknown) {
+  return String(value || "").trim();
+}
+
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
@@ -95,3 +100,81 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+
+export async function POST(request: NextRequest) {
+  const adminSession = await requireAdmin(request);
+
+  if (!adminSession) {
+    return jsonError("Admin login required.", 401);
+  }
+
+  try {
+    const body = await request.json().catch(() => null);
+
+    if (!body || typeof body !== "object") {
+      return jsonError("Invalid request.", 400);
+    }
+
+    const auctionCode = getSafeAuctionCode((body as { auctionCode?: unknown }).auctionCode);
+    const artworkId = normalizeId((body as { artworkId?: unknown }).artworkId);
+    const action = String((body as { action?: unknown }).action || "").trim();
+
+    if (!artworkId) {
+      return jsonError("Missing artwork id.", 400);
+    }
+
+    if (action !== "release-certificate") {
+      return jsonError("Unsupported sales action.", 400);
+    }
+
+    const supabaseAdmin = getSupabaseAdmin();
+    const releasedAt = new Date().toISOString();
+
+    const { data, error } = await supabaseAdmin
+      .from("demo_artworks")
+      .update({ certificate_email_requested_at: releasedAt })
+      .eq("auction_code", auctionCode)
+      .eq("id", artworkId)
+      .eq("status", "sold")
+      .not("winner_email", "is", null)
+      .select(
+        [
+          "id",
+          "sort_order",
+          "child_name",
+          "child_surname",
+          "grade",
+          "artwork_url",
+          "status",
+          "sold_amount",
+          "winning_bidder",
+          "winner_email",
+          "invoice_email_requested_at",
+          "certificate_email_requested_at",
+        ].join(",")
+      )
+      .maybeSingle();
+
+    if (error) {
+      return jsonError(error.message, 500);
+    }
+
+    if (!data) {
+      return jsonError("Could not release certificate. Make sure the artwork is sold and a winner email has been captured.", 409);
+    }
+
+    await supabaseAdmin.from("live_activity_feed").insert({
+      auction_code: auctionCode,
+      message: "Certificate released for winning bidder",
+    });
+
+    return NextResponse.json({ ok: true, sale: data });
+  } catch (error) {
+    return jsonError(
+      error instanceof Error ? error.message : "Could not update sales record.",
+      500
+    );
+  }
+}
+
