@@ -85,9 +85,6 @@ export default function AdminSalesPage() {
       <div className="lg:grid lg:grid-cols-[280px_1fr] min-h-screen">
         <AdminSidebar auctionCode={auctionCode} />
 
-        <div className="fixed right-5 top-5 z-50 hidden xl:block w-[280px]">
-          <AdminAuctionSelector />
-        </div>
 
         <div className="lg:hidden bg-[#061124] border-b border-white/10 px-4 py-4 sticky top-0 z-40">
           <div className="bg-white rounded-2xl p-3 mb-4 w-fit">
@@ -121,12 +118,16 @@ export default function AdminSalesPage() {
               </p>
             </div>
 
-            <button
-              onClick={fetchSales}
-              className="rounded-2xl bg-white text-[#07152b] px-6 py-4 font-black shadow-xl w-fit"
-            >
-              Refresh
-            </button>
+            <div className="w-full xl:w-[320px] space-y-3">
+              <AdminAuctionSelector />
+
+              <button
+                onClick={fetchSales}
+                className="rounded-2xl bg-white text-[#07152b] px-6 py-4 font-black shadow-xl w-full"
+              >
+                Refresh
+              </button>
+            </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4 mb-8">
