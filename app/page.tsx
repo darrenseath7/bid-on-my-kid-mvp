@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, type FormEvent, type ReactNode } from "react";
 
+
 const schoolLogos = [
   { name: "MAPLEWOOD", type: "PRIMARY SCHOOL", icon: "shield" },
   { name: "RIVERSIDE", type: "COLLEGE", icon: "wave" },
@@ -93,6 +94,11 @@ export default function HomePage() {
                 BragWall helps schools run exciting art auctions that bring communities together and raise more funds for our kids.
               </p>
 
+              <div className="mt-6 flex flex-wrap gap-3">                <span className="rounded-full border border-white/10 bg-white/[0.06] px-5 py-3 text-sm font-black text-white/72">
+                  Live school art auctions made simple
+                </span>
+              </div>
+
               <div className="mt-10 flex flex-col gap-4 sm:flex-row">
                 <button
                   type="button"
@@ -112,12 +118,64 @@ export default function HomePage() {
 
               <div className="mt-10 grid max-w-3xl gap-4 sm:grid-cols-3">
                 <HeroPoint icon={<PeopleIcon />} title="Trusted by" text="Schools" />
-                <HeroPoint icon={<ChartIcon />} title="More Funds" text="for Our Kids" />
+                <HeroPoint icon={<ChartIcon />} title="R50k" text="raised to date" />
                 <HeroPoint icon={<HeartIcon />} title="Stronger" text="Communities" />
               </div>
             </div>
 
             <HeroImageCard />
+          </div>
+        </section>
+
+        <section id="workflow-demo" className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-8 md:px-8 lg:px-10">
+          <div className="grid items-center gap-8 rounded-[36px] border border-[#16d66d]/24 bg-[radial-gradient(circle_at_12%_20%,rgba(22,214,109,0.16),transparent_32%),linear-gradient(135deg,rgba(255,200,87,0.12),rgba(255,255,255,0.045)_34%,rgba(11,99,206,0.10))] p-5 shadow-[0_26px_90px_rgba(0,0,0,0.34)] md:p-8 lg:grid-cols-[0.86fr_1.14fr] lg:p-10">
+            <div>
+              <SectionKicker>30 second demo</SectionKicker>
+              <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
+                From first bid to SOLD in half a minute.
+              </h2>
+              <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-white/70 md:text-xl">
+                Show parents and school leaders the full BragWall flow: admin starts the auction, parents join from any device, bids climb live, and the winning artwork gets its big SOLD moment.
+              </p>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                <MiniWorkflowStep number="1" title="Start" text="Admin opens the artwork." />
+                <MiniWorkflowStep number="2" title="Bid" text="Parents bid live." />
+                <MiniWorkflowStep number="3" title="SOLD" text="Winner captured instantly." />
+              </div>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <PrimaryButton onClick={openDemoForm}>Request a demo</PrimaryButton>
+                <SecondaryAnchor href="#how-it-works">How it works</SecondaryAnchor>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[#020b18] p-2 shadow-[0_30px_90px_rgba(0,0,0,0.42)]">
+              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#ffc857]/20 blur-2xl" />
+              <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[#16d66d]/20 blur-2xl" />
+              <div className="relative overflow-hidden rounded-[24px] bg-black">
+                <video
+                  src="/bragwall-app-demo.mp4"
+                  poster="/bragwall-hero-paint-hands.jpg"
+                  className="aspect-video w-full bg-[#020b18] object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  controls
+                  preload="metadata"
+                  aria-label="30 second BragWall workflow demo video"
+                />
+                <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/15 bg-[#061124]/88 px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em] text-white/78 backdrop-blur-md">
+                  BragWall workflow
+                </div>
+                <div className="pointer-events-none absolute bottom-4 left-4 right-4 rounded-[22px] border border-white/10 bg-[#061124]/88 p-4 backdrop-blur-md">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-black text-[#16d66d]">Upload. Share. Auction. SOLD.</p>
+                      <p className="mt-1 text-sm font-bold text-white/72">Replace this placeholder with your recorded 30-second app demo.</p>
+                    </div>                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -248,6 +306,10 @@ export default function HomePage() {
               <ValueLine title="Real results, zero overheads" text="Every rand raised goes straight back to your school." />
             </div>
 
+            <div className="mt-10 grid max-w-sm gap-4">
+              <HeroPoint icon={<ChartIcon />} title="R50k" text="raised to date" />
+            </div>
+
             <QuoteBlock>
               When kids see their work celebrated, they stand a little taller. That is worth every rand.
             </QuoteBlock>
@@ -273,6 +335,7 @@ export default function HomePage() {
             <p className="text-xs font-black uppercase tracking-[0.34em] text-[#16d66d]">
               Ready to see it live?
             </p>
+            <div className="mt-4 flex justify-center">            </div>
             <h2 className="mx-auto mt-4 max-w-3xl text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
               Turn your next school fundraiser into a moment everyone remembers.
             </h2>
@@ -411,6 +474,20 @@ function BragWallLogo() {
   );
 }
 
+
+function MiniWorkflowStep({ number, title, text }: { number: string; title: string; text: string }) {
+  return (
+    <div className="rounded-[22px] border border-white/10 bg-white/[0.055] p-4">
+      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full bg-[#16d66d] text-sm font-black text-[#07152b]">
+        {number}
+      </div>
+      <p className="text-lg font-black text-white">{title}</p>
+      <p className="mt-1 text-sm font-bold leading-relaxed text-white/58">{text}</p>
+    </div>
+  );
+}
+
+
 function HeroImageCard() {
   return (
     <div className="relative">
@@ -460,7 +537,10 @@ function ContentPanel({ children }: { children: ReactNode }) {
 }
 
 function SectionKicker({ children }: { children: ReactNode }) {
-  return <p className="mb-4 text-xs font-black uppercase tracking-[0.34em] text-[#16d66d]">{children}</p>;
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-3">
+      <p className="text-xs font-black uppercase tracking-[0.34em] text-[#16d66d]">{children}</p>    </div>
+  );
 }
 
 function QuoteBlock({ children }: { children: ReactNode }) {
@@ -714,6 +794,12 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
+
+
+
+
+
 
 
 
