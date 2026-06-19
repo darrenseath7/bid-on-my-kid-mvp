@@ -121,7 +121,12 @@ function getMcIntroText(artwork: Artwork) {
 function estimateMcIntroSeconds(text: string) {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
   const estimated = Math.ceil(wordCount / MC_WORDS_PER_SECOND) + MC_INTRO_PADDING_SECONDS;
-  return Math.min(MAX_MC_INTRO_SECONDS, Math.max(MIN_MC_INTRO_SECONDS, estimated));
+
+  // Use the long end of the range for generated MC audio. The parent screen
+  // waits for the actual audio ended event before the 20-second countdown, and
+  // this fallback deadline is only there in case the browser blocks audio.
+  // Keeping it near 60s prevents cutting the voice off near the end.
+  return Math.min(MAX_MC_INTRO_SECONDS, Math.max(55, estimated, MIN_MC_INTRO_SECONDS));
 }
 
 async function addActivity(
@@ -334,6 +339,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
     const auctionCode = normalizeAuctionCode(body?.auctionCode);
+    const autoStartFromParent = Boolean(body?.autoStartFromParent);
 
     if (!isValidAuctionCode(auctionCode)) return jsonError("Invalid auction code.", 400);
 
@@ -352,6 +358,26 @@ export async function POST(request: Request) {
     const currentBid = toNumber(auction.current_bid);
     const leadingBidder = String(auction.leading_bidder || "").trim();
     const now = Date.now();
+
+    if (autoStartFromParent) {
+      const canAutoStartIntro =
+        status === "waiting" ||
+        (status === "open" && currentBid <= 0 && !(auction as AuctionState & { mc_audio_url?: string | null }).mc_audio_url);
+
+      if (canAutoStartIntro) {
+        const artworks = await fetchArtworks(supabaseAdmin, auctionCode);
+        const currentArtwork = getCurrentArtwork(auction, artworks);
+        const nextArtwork = currentArtwork || getNextArtwork(null, artworks);
+
+        if (nextArtwork) {
+          const updatedAuction = await moveToArtwork(request, supabaseAdmin, auctionCode, nextArtwork);
+          return NextResponse.json({
+            action: "parent_auto_intro_started",
+            auction: updatedAuction || auction,
+          });
+        }
+      }
+    }
 
     if (status === "starting_soon") {
       const deadline = auction.status_deadline ? new Date(auction.status_deadline).getTime() : 0;
@@ -517,3 +543,6 @@ export async function POST(request: Request) {
     return jsonError(message, 500);
   }
 }
+
+
+

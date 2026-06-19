@@ -263,30 +263,27 @@ function buildMcScript({
   childName: string;
   grade: string;
 }) {
-  const cleanStory = makeStoryMoreSpoken(sourceText);
+  const cleanStory = makeStoryMoreSpoken(sourceText, childName, grade);
 
   const introOptions = [
     `Welcome to ${childName} from ${grade}.`,
-    `Next up is ${childName} from ${grade}.`,
+    `Next up, ${childName} from ${grade}.`,
     `Eyes on the screen for ${childName} from ${grade}.`,
     `Here we go with ${childName} from ${grade}.`,
-    `This next artwork is from ${childName} from ${grade}.`,
   ];
 
   const middleOptions = [
-    `I love this one because`,
-    `The thing that jumps out for me is`,
-    `What makes this one so cool is`,
-    `Now, the best part is`,
-    `This one has real personality because`,
+    `Look at the colour and imagination here:`,
+    `This artwork has real personality:`,
+    `What makes this one special is`,
+    `The magic in this piece is`,
   ];
 
   const outroOptions = [
-    `So, choose your wall now. Bidding opens in a moment.`,
-    `If you want bragging rights, get ready. Bidding opens in a moment.`,
-    `Parents, grandparents, this is your warning. Bidding opens in a moment.`,
-    `Get those bidding fingers ready. Bidding opens in a moment.`,
-    `Okay, deep breath. This could get competitive. Bidding opens in a moment.`,
+    `Get ready, bidding opens after the countdown.`,
+    `Choose your wall, bidding opens after the countdown.`,
+    `Parents, get ready, bidding opens after the countdown.`,
+    `Bragging rights are coming, bidding opens after the countdown.`,
   ];
 
   const scriptSeed = `${childName}-${grade}-${cleanStory.slice(0, 80)}`;
@@ -294,33 +291,56 @@ function buildMcScript({
   const middle = pickScriptLine(middleOptions, `${scriptSeed}-middle`);
   const outro = pickScriptLine(outroOptions, `${scriptSeed}-outro`);
 
-  return limitWords(`${intro} ${middle} ${cleanStory} ${outro}`, 90);
+  return limitWords(`${intro} ${middle} ${cleanStory} ${outro}`, 84);
 }
 
-function makeStoryMoreSpoken(sourceText: string) {
+function makeStoryMoreSpoken(sourceText: string, childName: string, grade: string) {
   const trimmed = sourceText.trim();
 
   if (!trimmed) {
     return "it feels full of colour, imagination, and proper young-artist confidence.";
   }
 
-  const withoutAnnouncerPhrases = trimmed
+  const nameParts = childName
+    .split(/\s+/)
+    .map((part) => part.replace(/[^a-z0-9]/gi, ""))
+    .filter((part) => part.length > 1);
+
+  const withoutRepeatedStudent = nameParts.reduce((text, part) => {
+    return text.replace(new RegExp(`\b${escapeRegExp(part)}\b`, "gi"), "");
+  }, trimmed);
+
+  const gradePattern = grade ? new RegExp(`\b${escapeRegExp(grade)}\b`, "gi") : null;
+
+  const withoutAnnouncerPhrases = withoutRepeatedStudent
+    .replace(gradePattern || /$a/, "")
     .replace(/ladies and gentlemen[,!]?/gi, "")
     .replace(/bidding fingers ready[,!]?/gi, "")
     .replace(/masterpiece is coming to the stage[,!]?/gi, "")
     .replace(/take a good look[,!]?/gi, "")
     .replace(/bidding opens in just a moment\.?/gi, "")
     .replace(/bidding opens in a moment\.?/gi, "")
+    .replace(/welcome to\s+from\s*\.?/gi, "")
+    .replace(/from\s+from/gi, "from")
     .replace(/\s+/g, " ")
     .trim();
 
-  const shortened = withoutAnnouncerPhrases.split(/\s+/).slice(0, 72).join(" ").slice(0, 520).trim();
+  const shortened = withoutAnnouncerPhrases
+    .split(/\s+/)
+    .slice(0, 64)
+    .join(" ")
+    .slice(0, 460)
+    .trim();
 
   if (!shortened) {
     return "it feels full of colour, imagination, and proper young-artist confidence.";
   }
 
   return ensureSentenceEnds(shortened);
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function ensureSentenceEnds(value: string) {

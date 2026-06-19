@@ -119,9 +119,11 @@ function estimateMcIntroSeconds(text: string) {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
   const estimated = Math.ceil(wordCount / MC_WORDS_PER_SECOND) + MC_INTRO_PADDING_SECONDS;
 
+  // Fallback only. The parent should advance when the real audio ends, not
+  // before. Use a safer near-60s deadline to avoid cutting the MC voice short.
   return Math.min(
     MAX_MC_INTRO_SECONDS,
-    Math.max(MIN_MC_INTRO_SECONDS, estimated)
+    Math.max(55, MIN_MC_INTRO_SECONDS, estimated)
   );
 }
 

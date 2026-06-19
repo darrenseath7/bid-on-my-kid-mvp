@@ -361,6 +361,29 @@ export default function DemoAuctionPage({
     void playWelcomeVoice();
   }
 
+  async function triggerParentAutoStart() {
+    try {
+      const response = await fetch("/api/auction-rhythm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auctionCode,
+          autoStartFromParent: true,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (response.ok && result?.auction) {
+        setAuction(result.auction);
+      }
+    } catch (error) {
+      console.error("Could not auto-start AI MC intro from parent join:", error);
+    }
+  }
+
   function handleJoinAuction() {
     const cleanBidderName = bidderName.trim();
 
@@ -385,6 +408,11 @@ export default function DemoAuctionPage({
     // Do not await this on iPhone. Some iOS browsers delay or reject the
     // audio unlock promise, and awaiting it can stop the parent from joining.
     void unlockBrowserAudio();
+
+    // Parent join should start the automated rhythm. If an artwork is staged
+    // but the MC intro has not started yet, the public rhythm endpoint moves
+    // it into AI MC intro mode. Admin Start Intro remains as the fallback.
+    void triggerParentAutoStart();
   }
 
   async function openBiddingAfterIntro(reason: "audio-finished" | "backup-timer") {
@@ -524,7 +552,12 @@ export default function DemoAuctionPage({
     if (!joined) return;
 
     if (!isIntro) {
-      stopIntroAudio();
+      // Do not abruptly cut off the MC voice if another device/server has just
+      // moved the auction into the 20-second countdown. Let any already-playing
+      // audio finish naturally; the bid button remains locked during countdown.
+      if (introAudioStatus !== "playing" || !isStartingSoon) {
+        stopIntroAudio();
+      }
       setIntroAudioStatus("idle");
       return;
     }
@@ -642,11 +675,16 @@ export default function DemoAuctionPage({
 
       if (now >= deadline) {
         if (auction.status === "intro") {
-          const audioCanStillFinish =
+          const audioStillNeedsTime =
             Boolean(mcAudioUrl) &&
-            (introAudioStatus === "playing" || introAudioStatus === "loading");
+            (introAudioStatus === "idle" ||
+              introAudioStatus === "loading" ||
+              introAudioStatus === "playing");
 
-          if (!audioCanStillFinish) {
+          // Only use the backup timer when there is no audio or the phone has
+          // definitely blocked/failed it. This prevents the MC voice being cut
+          // off just before the end on slower mobile browsers.
+          if (!audioStillNeedsTime) {
             await openBiddingAfterIntro("backup-timer");
           }
         } else {
