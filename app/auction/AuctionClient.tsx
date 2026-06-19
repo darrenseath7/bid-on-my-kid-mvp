@@ -1536,7 +1536,9 @@ function GalleryModal({
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[80] bg-[#020b18] text-white overflow-y-auto"
         >
-          <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_10%,rgba(22,214,109,0.16),transparent_30%),radial-gradient(circle_at_80%_10%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
+          <div className="fixed inset-0 pointer-events-none bg-[url('/paintbrush.jpg')] bg-cover bg-center" />
+          <div className="fixed inset-0 pointer-events-none bg-[linear-gradient(180deg,rgba(7,21,43,0.20),rgba(85,214,255,0.28)_38%,rgba(255,245,214,0.82))]" />
+          <div className="fixed inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle,#ffffff_1.5px,transparent_1.5px)] bg-[size:24px_24px]" />
 
           <div className="relative max-w-md mx-auto min-h-screen px-4 py-5">
             <div className="flex items-center justify-between gap-3 mb-4">
@@ -1691,5 +1693,7 @@ function NextStep({ icon, title }: { icon: string; title: string }) {
     </div>
   );
 }
+
+
 
 
