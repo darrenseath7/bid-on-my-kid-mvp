@@ -214,6 +214,8 @@ export default function DemoAuctionPage({
   const shouldShowSoldOverlay =
     isSold && !(isWinningBidder && winnerEmailAlreadySubmitted);
 
+  const shouldShowArtworkSoldBanner = isSold && winnerEmailAlreadySubmitted;
+
   const canBid = Boolean(
     auction &&
       joined &&
@@ -1427,16 +1429,29 @@ export default function DemoAuctionPage({
           <div className="bg-[#fff5d6] p-3">
             <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2 rounded-[20px] shadow-[0_0_35px_rgba(255,200,87,0.18)]">
               <div className="bg-[#f8f5ef] rounded-[14px] p-2.5">
-                <div className="rounded-[14px] overflow-hidden bg-white h-[32dvh] min-h-[220px] max-h-[330px] flex items-center justify-center">
+                <div className="relative rounded-[14px] overflow-hidden bg-white h-[32dvh] min-h-[220px] max-h-[330px] flex items-center justify-center">
                   {auction.artwork_url ? (
                     <img
                       src={auction.artwork_url}
                       alt="Artwork"
-                      className="w-full h-full object-contain"
+                      className={`w-full h-full object-contain ${shouldShowArtworkSoldBanner ? "opacity-55 grayscale-[0.2]" : ""}`}
                     />
                   ) : (
                     <div className="h-full flex items-center justify-center text-slate-400 font-black">
                       Artwork loading...
+                    </div>
+                  )}
+
+                  {shouldShowArtworkSoldBanner && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#020b18]/36 p-5">
+                      <div className="rotate-[-8deg] rounded-[22px] border-4 border-[#ffc857] bg-[#07152b]/92 px-8 py-5 text-center shadow-[0_0_45px_rgba(255,200,87,0.35)]">
+                        <p className="text-[64px] font-black leading-none tracking-[-0.06em] text-[#ffc857] drop-shadow-[0_6px_0_rgba(0,0,0,0.25)]">
+                          SOLD
+                        </p>
+                        <p className="mt-2 text-sm font-black uppercase tracking-[0.24em] text-white/80">
+                          Next artwork soon
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
