@@ -124,7 +124,8 @@ export async function POST(request: NextRequest) {
 
     if (!biddingAllowed) {
       if (status === "waiting") return jsonError("Auction has not started yet.", 409);
-      if (status === "intro") return jsonError("The MC is introducing this artwork. Bidding will open in a moment.", 409);
+      if (status === "intro") return jsonError("The MC is introducing this artwork. Bidding opens after the intro and countdown.", 409);
+      if (status === "starting_soon") return jsonError("Bidding starts when the countdown reaches zero.", 409);
       if (status === "preparing_intro" || status === "preparing intro") return jsonError("The MC intro is being prepared. Bidding will open after the intro.", 409);
       if (status === "sold") return jsonError("This artwork has already been sold.", 409);
 

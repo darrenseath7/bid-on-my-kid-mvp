@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const DEFAULT_AUCTION_CODE = "demo";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const NEXT_ARTWORK_COUNTDOWN_SECONDS = 20;
 
 function normalizeAuctionCode(value: unknown) {
   const normalized = String(value || DEFAULT_AUCTION_CODE)
@@ -99,12 +100,15 @@ export async function POST(request: Request) {
     }
 
     const submittedAt = new Date().toISOString();
+    const nextArtworkDeadline = new Date(Date.now() + NEXT_ARTWORK_COUNTDOWN_SECONDS * 1000).toISOString();
 
     const { data: updatedAuction, error: stateError } = await supabaseAdmin
       .from("live_auction_state")
       .update({
         winner_email: email,
         winner_email_submitted_at: submittedAt,
+        status_deadline: nextArtworkDeadline,
+        mc_commentary: `Winner email received. Next artwork starts in ${NEXT_ARTWORK_COUNTDOWN_SECONDS} seconds.`,
       })
       .eq("auction_code", auctionCode)
       .eq("status", "sold")
@@ -141,7 +145,7 @@ export async function POST(request: Request) {
 
     await supabaseAdmin.from("live_activity_feed").insert({
       auction_code: auctionCode,
-      message: `${auction.leading_bidder} submitted email for invoice`,
+      message: `${auction.leading_bidder} submitted email. Next artwork starts in ${NEXT_ARTWORK_COUNTDOWN_SECONDS} seconds.`,
     });
 
     return NextResponse.json({
