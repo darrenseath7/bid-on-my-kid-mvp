@@ -186,7 +186,7 @@ export default function AdminDashboardPage() {
                           <WorkflowCard
                             number="01"
                             title="Setup"
-                            text="Add school details, banking, payment reference, bid increment, and artworks."
+                            text="Add school details, payment reference, bid increment, and artworks."
                             icon={<PaletteIcon />}
                             tone="purple"
                           />
@@ -254,7 +254,7 @@ export default function AdminDashboardPage() {
                     href="/admin/setup"
                     icon={<PaletteIcon />}
                     title="Add School & Artwork"
-                    text="Set up school details, banking, payment reference, bid increments, and artwork uploads."
+                    text="Set up school details, payment reference, bid increments, and artwork uploads."
                     action="Open Setup"
                     tone="green"
                   />

@@ -95,10 +95,8 @@ export default function AdminSalesPage() {
 
           <div className="flex gap-2 overflow-x-auto pb-1">
             <MobileNavItem href="/admin" label="Dashboard" />
-            <MobileNavItem href="/admin/events/new" label="New Event" />
             <MobileNavItem href="/admin/live" label="Live" />
-            <MobileNavItem href="/admin/artworks" label="Artworks" />
-            <MobileNavItem href="/admin/school" label="School" />
+            <MobileNavItem href="/admin/setup" label="Artworks / Setup" />
             <MobileNavItem href="/admin/sales" label="Sales" active />
           </div>
         </div>
@@ -393,10 +391,8 @@ function AdminSidebar({ auctionCode }: { auctionCode: string }) {
 
       <nav className="space-y-2 text-sm font-bold">
         <SidebarItem href="/admin" label="Dashboard" />
-        <SidebarItem href="/admin/events/new" label="Create Event" />
         <SidebarItem href="/admin/live" label="Live Auction" />
-        <SidebarItem href="/admin/artworks" label="Artworks" />
-        <SidebarItem href="/admin/school" label="School Profile" />
+        <SidebarItem href="/admin/setup" label="Artworks / Setup" />
         <SidebarItem href="/admin/sales" label="Sales / Invoices" active />
         <SidebarItem href={`/auction/${auctionCode}`} label="Parent View" />
       </nav>
@@ -529,5 +525,6 @@ function ActionBadge({ label, good }: { label: string; good: boolean }) {
     </span>
   );
 }
+
 
 

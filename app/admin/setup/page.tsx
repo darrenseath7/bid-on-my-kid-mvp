@@ -10,9 +10,6 @@ type SchoolProfile = {
   id?: string;
   auction_code: string;
   school_name: string;
-  bank_name: string;
-  account_name: string;
-  account_number: string;
   branch_code: string;
   payment_reference_prefix: string;
   collection_instructions: string;
@@ -119,9 +116,6 @@ export default function AdminSetupPage() {
   const [profile, setProfile] = useState<SchoolProfile>({
     auction_code: DEFAULT_AUCTION_CODE,
     school_name: "",
-    bank_name: "",
-    account_name: "",
-    account_number: "",
     branch_code: "",
     payment_reference_prefix: "",
     collection_instructions: "",
@@ -209,9 +203,6 @@ export default function AdminSetupPage() {
       setProfile({
         auction_code: auctionCode,
         school_name: data.school_name || "",
-        bank_name: data.bank_name || "",
-        account_name: data.account_name || "",
-        account_number: data.account_number || "",
         branch_code: data.branch_code || "",
         payment_reference_prefix: data.payment_reference_prefix || "",
         collection_instructions: data.collection_instructions || "",
@@ -222,9 +213,6 @@ export default function AdminSetupPage() {
         ...current,
         auction_code: auctionCode,
         school_name: "",
-        bank_name: "",
-        account_name: "",
-        account_number: "",
         branch_code: "",
         payment_reference_prefix: "",
         collection_instructions: "",
@@ -287,7 +275,7 @@ export default function AdminSetupPage() {
       });
 
       setMessage(
-        result.message || "School, banking and auction setup saved successfully."
+        result.message || "School and auction setup saved successfully."
       );
       fetchProfile();
     } catch (error) {
@@ -568,46 +556,6 @@ export default function AdminSetupPage() {
 
                   <div className="grid md:grid-cols-2 gap-5">
                     <Field
-                      label="Bank Name"
-                      value={profile.bank_name}
-                      onChange={(value) =>
-                        updateProfileField("bank_name", value)
-                      }
-                      placeholder="FNB"
-                    />
-
-                    <Field
-                      label="Account Name"
-                      value={profile.account_name}
-                      onChange={(value) =>
-                        updateProfileField("account_name", value)
-                      }
-                      placeholder="St John's Preparatory"
-                    />
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-5">
-                    <Field
-                      label="Account Number"
-                      value={profile.account_number}
-                      onChange={(value) =>
-                        updateProfileField("account_number", value)
-                      }
-                      placeholder="1234567890"
-                    />
-
-                    <Field
-                      label="Branch Code"
-                      value={profile.branch_code}
-                      onChange={(value) =>
-                        updateProfileField("branch_code", value)
-                      }
-                      placeholder="250655"
-                    />
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-5">
-                    <Field
                       label="Reference Code"
                       value={profile.payment_reference_prefix}
                       onChange={(value) =>
@@ -786,16 +734,14 @@ export default function AdminSetupPage() {
                 </h2>
 
                 <div className="grid md:grid-cols-2 gap-4">
-                  <PreviewCard label="Bank" value={profile.bank_name} />
                   <PreviewCard
-                    label="Account Name"
-                    value={profile.account_name}
+                    label="Bid Increment"
+                    value={`R${Number(profile.bid_increment || 100).toLocaleString()}`}
                   />
                   <PreviewCard
-                    label="Account Number"
-                    value={profile.account_number}
+                    label="Payment Reference"
+                    value={profile.payment_reference_prefix || "BRAG"}
                   />
-                  <PreviewCard label="Branch Code" value={profile.branch_code} />
                 </div>
 
                 <div className="mt-5 bg-[#07152b] text-white rounded-[28px] p-6">

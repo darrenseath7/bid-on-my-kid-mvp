@@ -8,9 +8,6 @@ import {
 type SchoolProfilePayload = {
   auction_code?: string;
   school_name?: string;
-  bank_name?: string;
-  account_name?: string;
-  account_number?: string;
   branch_code?: string;
   payment_reference_prefix?: string;
   collection_instructions?: string;
@@ -306,9 +303,6 @@ export async function POST(request: NextRequest) {
         {
           auction_code: auctionCode,
           school_name: cleanText(profile.school_name, 160),
-          bank_name: cleanText(profile.bank_name, 120),
-          account_name: cleanText(profile.account_name, 160),
-          account_number: cleanText(profile.account_number, 80),
           branch_code: cleanText(profile.branch_code, 80),
           payment_reference_prefix: cleanText(profile.payment_reference_prefix, 80),
           collection_instructions: cleanText(profile.collection_instructions, 1000),
@@ -346,7 +340,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         ok: true,
-        message: "School, banking and auction setup saved successfully.",
+        message: "School and auction setup saved successfully.",
       });
     }
 

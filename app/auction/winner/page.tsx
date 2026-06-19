@@ -16,10 +16,6 @@ type AuctionState = {
 
 type SchoolProfile = {
   school_name: string;
-  bank_name: string;
-  account_name: string;
-  account_number: string;
-  branch_code: string;
   payment_reference_prefix: string;
   collection_instructions: string;
 };
@@ -55,13 +51,9 @@ export default function WinnerPage() {
     } else {
       setSchool({
         school_name: "Demo Primary School",
-        bank_name: "FNB",
-        account_name: "Demo Primary School",
-        account_number: "1234567890",
-        branch_code: "250655",
         payment_reference_prefix: "BRAG",
         collection_instructions:
-          "Please make payment using the reference shown on this certificate. Artwork may be collected from the school office after payment confirmation.",
+          "Artwork may be collected from the school office after payment confirmation.",
       });
     }
   }
@@ -162,19 +154,16 @@ export default function WinnerPage() {
               <div className="space-y-6">
                 <div className="bg-[#fbf8f1] rounded-[32px] p-8 border border-black/5">
                   <p className="uppercase tracking-[0.3em] text-xs text-slate-400 font-black mb-6">
-                    Payment Instructions
+                    Invoice Reference
                   </p>
 
                   <div className="space-y-5">
                     <DetailRow label="School" value={school.school_name} />
-                    <DetailRow label="Bank" value={school.bank_name} />
-                    <DetailRow label="Account Name" value={school.account_name} />
-                    <DetailRow
-                      label="Account Number"
-                      value={school.account_number}
-                    />
-                    <DetailRow label="Branch Code" value={school.branch_code} />
                     <DetailRow label="Reference" value={paymentReference} />
+                    <DetailRow
+                      label="Payment"
+                      value="Invoice details are sent separately by the school."
+                    />
                   </div>
                 </div>
 
