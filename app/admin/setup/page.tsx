@@ -556,12 +556,22 @@ export default function AdminSetupPage() {
                       placeholder="BRAG-STJOHNS"
                     />
 
-                    <NumberField
-                      label="Bid Increment"
-                      value={String(profile.bid_increment || 100)}
-                      onChange={updateBidIncrement}
-                      placeholder="100"
-                    />
+                    <div>
+                      <label className="text-sm font-black text-white/70 uppercase tracking-[0.18em]">
+                        Bid Increment
+                      </label>
+                      <select
+                        value={String(profile.bid_increment || 100)}
+                        onChange={(event) => updateBidIncrement(event.target.value)}
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-base font-black text-white outline-none focus:border-[#16d66d]/60"
+                      >
+                        <option value="25">R25</option>
+                        <option value="50">R50</option>
+                        <option value="100">R100</option>
+                        <option value="250">R250</option>
+                        <option value="500">R500</option>
+                      </select>
+                    </div>
                   </div>
 
                   <div>
@@ -1227,3 +1237,4 @@ function EnhancementBadge({
     </span>
   );
 }
+
