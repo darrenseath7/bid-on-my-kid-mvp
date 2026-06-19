@@ -1260,12 +1260,12 @@ function DarkLogoBlock({ compact = false }: { compact?: boolean }) {
           <img
             src="/bragwall-logo.png"
             alt="BragWall"
-            className={`${compact ? "h-10" : "h-[46px]"} w-auto object-contain`}
+            className={`${compact ? "h-12" : "h-14"} w-auto object-contain`}
           />
         </div>
 
         <p className="mt-4 uppercase tracking-[0.28em] text-[9px] text-white/62 font-black">
-          Young Art - Big Pride
+          Young Art • Big Pride
         </p>
       </div>
     </div>

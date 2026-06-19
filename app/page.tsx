@@ -42,7 +42,7 @@ export default function HomePage() {
           <Link href="/" className="inline-flex flex-col items-start gap-3">
             <BragWallLogo />
             <p className="ml-1 text-[11px] font-black uppercase tracking-[0.48em] text-white/84 md:text-sm">
-              Young Art - Big Pride
+              Young Art • Big Pride
             </p>
           </Link>
 

@@ -432,23 +432,15 @@ export default function AdminSetupPage() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(22,214,109,0.12),transparent_45%)]" />
 
             <div className="relative text-center">
-              <div className="flex items-center justify-center">
-                <span className="font-black text-[34px] leading-none tracking-[-0.08em] text-white">
-                  Brag
-                </span>
-
-                <span className="mx-[-2px] rotate-[-8deg] inline-flex h-[36px] w-[32px] items-center justify-center border-[3px] border-[#ef2b20] bg-[#0b63ce] text-white shadow-[0_0_18px_rgba(11,99,206,0.4)]">
-                  <span className="font-black text-[24px] leading-none">
-                    W
-                  </span>
-                </span>
-
-                <span className="font-black text-[34px] leading-none tracking-[-0.08em] text-white">
-                  all
-                </span>
+              <div className="mx-auto flex items-center justify-center rounded-[18px] bg-white px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.32)]">
+                <img
+                  src="/bragwall-logo.png"
+                  alt="BragWall"
+                  className="h-14 w-auto object-contain"
+                />
               </div>
 
-              <p className="mt-3 uppercase tracking-[0.32em] text-[8px] text-white/58 font-black">
+              <p className="mt-4 uppercase tracking-[0.28em] text-[9px] text-white/62 font-black">
                 Young Art • Big Pride
               </p>
             </div>

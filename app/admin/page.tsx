@@ -297,15 +297,15 @@ export default function AdminDashboardPage() {
 
 function LogoBlock() {
   return (
-    <div className="rounded-[22px] bg-white p-3.5 shadow-2xl border border-white/15">
+    <div className="rounded-[26px] bg-white px-5 py-4 shadow-2xl border border-white/20">
       <img
         src="/bragwall-logo.png"
         alt="BragWall"
-        className="w-full h-auto object-contain"
+        className="mx-auto h-20 w-auto object-contain md:h-24"
       />
 
-      <p className="mt-2.5 text-center uppercase tracking-[0.36em] text-[8px] text-[#07152b]/55 font-black">
-        Young Art - Big Pride
+      <p className="mt-3 text-center uppercase tracking-[0.42em] text-[9px] text-[#07152b]/55 font-black">
+        Young Art • Big Pride
       </p>
     </div>
   );
