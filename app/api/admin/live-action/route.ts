@@ -65,7 +65,7 @@ function getSafeAuctionCode(value: unknown) {
   return cleaned || DEFAULT_AUCTION_CODE;
 }
 const MIN_MC_INTRO_SECONDS = 28;
-const MAX_MC_INTRO_SECONDS = 120;
+const MAX_MC_INTRO_SECONDS = 60;
 const MC_WORDS_PER_SECOND = 2.2;
 const MC_INTRO_PADDING_SECONDS = 8;
 
@@ -112,16 +112,7 @@ function getMcIntroText(artwork: Artwork) {
 
   if (story) return story;
 
-  const childName = [artwork.child_name, artwork.child_surname]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-
-  return `Ladies and gentlemen, our next BragWall masterpiece is by ${
-    childName || "one of our young artists"
-  } from ${
-    artwork.grade || "the school"
-  }. Take a good look — bidding opens in a moment.`;
+  return "full of colour, imagination, and proper young-artist confidence.";
 }
 
 function estimateMcIntroSeconds(text: string) {
@@ -370,6 +361,7 @@ async function moveToArtwork(
   const { error: preparingError } = await supabaseAdmin
     .from("live_auction_state")
     .update({
+      artwork_id: artwork.id,
       child_name: artwork.child_name,
       child_surname: artwork.child_surname,
       grade: artwork.grade,
@@ -412,6 +404,7 @@ async function moveToArtwork(
   const { error: stateError } = await supabaseAdmin
     .from("live_auction_state")
     .update({
+      artwork_id: artwork.id,
       child_name: artwork.child_name,
       child_surname: artwork.child_surname,
       grade: artwork.grade,

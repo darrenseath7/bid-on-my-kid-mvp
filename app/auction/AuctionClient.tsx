@@ -56,7 +56,8 @@ type Artwork = {
 
 const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
-const MC_INTRO_SECONDS = 120;
+const MC_INTRO_SECONDS = 60;
+const BIDDING_START_BUFFER_SECONDS = 20;
 
 function normalizeAuctionCode(value?: string) {
   const normalized = String(value || DEFAULT_AUCTION_CODE)
@@ -145,6 +146,8 @@ export default function DemoAuctionPage({
     auction?.status === "generating intro";
   const isUrgency =
     auction?.status === "going once" || auction?.status === "going twice";
+  const isStartingSoon = auction?.status === "starting_soon";
+  const isAuctionComplete = auction?.status === "complete";
   const isAuctionOpenForBids = auction?.status === "open" || isUrgency;
   const isBidPaused = pauseRemaining > 0 && auction?.status === "open";
 
@@ -597,38 +600,8 @@ export default function DemoAuctionPage({
     return () => clearInterval(interval);
   }, [auction, introAudioStatus, mcAudioUrl, nextBidAmount, auctionCode]);
 
-  async function runAutoAuctionRhythm() {
+  async function runSecureAuctionRhythmOnce() {
     if (!auction) return;
-
-    const now = Date.now();
-
-    if (auction.status === "intro" && auction.status_deadline) {
-      const deadline = new Date(auction.status_deadline).getTime();
-
-      if (now >= deadline) {
-        const audioCanStillFinish =
-          Boolean(mcAudioUrl) &&
-          (introAudioStatus === "playing" || introAudioStatus === "loading");
-
-        if (!audioCanStillFinish) {
-          await openBiddingAfterIntro("backup-timer");
-        }
-      }
-
-      return;
-    }
-
-    if (auction.current_bid <= 0) return;
-    if (auction.status === "sold" || auction.status === "waiting") return;
-    if (!isAuctionOpenForBids) return;
-
-    const rhythmKey = [
-      auction.status,
-      auction.current_bid,
-      auction.last_bid_at || "no-last-bid",
-      auction.status_deadline || "no-deadline",
-      auction.bid_pause_until || "no-pause",
-    ].join("|");
 
     try {
       const response = await fetch("/api/auction-rhythm", {
@@ -652,11 +625,58 @@ export default function DemoAuctionPage({
       }
 
       if (result?.action && result.action !== "none") {
-        autoActionKeyRef.current = `${rhythmKey}|${result.action}`;
+        autoActionKeyRef.current = `${auction.status}|${result.action}|${Date.now()}`;
       }
     } catch (error) {
       console.error("Could not run secure auction rhythm:", error);
     }
+  }
+
+  async function runAutoAuctionRhythm() {
+    if (!auction) return;
+
+    const now = Date.now();
+
+    if ((auction.status === "intro" || auction.status === "starting_soon") && auction.status_deadline) {
+      const deadline = new Date(auction.status_deadline).getTime();
+
+      if (now >= deadline) {
+        if (auction.status === "intro") {
+          const audioCanStillFinish =
+            Boolean(mcAudioUrl) &&
+            (introAudioStatus === "playing" || introAudioStatus === "loading");
+
+          if (!audioCanStillFinish) {
+            await openBiddingAfterIntro("backup-timer");
+          }
+        } else {
+          await runSecureAuctionRhythmOnce();
+        }
+      }
+
+      return;
+    }
+
+    if (auction.status === "sold") {
+      if (auction.winner_email_submitted && auction.status_deadline) {
+        await runSecureAuctionRhythmOnce();
+      }
+      return;
+    }
+
+    if (auction.current_bid <= 0) return;
+    if (auction.status === "waiting" || auction.status === "complete") return;
+    if (!isAuctionOpenForBids) return;
+
+    const rhythmKey = [
+      auction.status,
+      auction.current_bid,
+      auction.last_bid_at || "no-last-bid",
+      auction.status_deadline || "no-deadline",
+      auction.bid_pause_until || "no-pause",
+    ].join("|");
+
+    await runSecureAuctionRhythmOnce();
   }
 
   async function fetchPublicAuctionState() {
@@ -705,7 +725,12 @@ export default function DemoAuctionPage({
     }
 
     if (auction.status === "intro") {
-      alert("The MC is introducing this artwork. Bidding will open in a moment.");
+      alert("The MC is introducing this artwork. Bidding opens after the intro and countdown.");
+      return;
+    }
+
+    if (auction.status === "starting_soon") {
+      alert("Bidding starts when the countdown reaches zero.");
       return;
     }
 
@@ -944,6 +969,20 @@ export default function DemoAuctionPage({
     );
   }
 
+  if (isAuctionComplete) {
+    return (
+      <main className="min-h-[100svh] bg-[#020b18] text-white flex items-center justify-center p-6">
+        <div className="max-w-md text-center rounded-[34px] border border-white/10 bg-white/[0.06] p-8 shadow-2xl">
+          <div className="text-7xl mb-4">🎉</div>
+          <h1 className="text-5xl font-black text-[#ffc857] mb-4">Auction complete</h1>
+          <p className="text-xl font-bold text-white/80 leading-relaxed">Thank you for supporting the young artists and the school fundraiser.</p>
+          <button onClick={() => setGalleryOpen(true)} className="mt-6 rounded-[24px] bg-[#16d66d] px-6 py-4 font-black text-[#07152b]">View Gallery</button>
+          <GalleryModal open={galleryOpen} onClose={() => setGalleryOpen(false)} artworks={artworks} />
+        </div>
+      </main>
+    );
+  }
+
   if (isWaiting) {
     return (
       <main className="min-h-[100svh] overflow-y-auto bg-[#07152b] text-[#07152b]">
@@ -1128,7 +1167,7 @@ export default function DemoAuctionPage({
                       </h2>
 
                       <p className="text-slate-600 font-bold leading-relaxed">
-                        Enter your email to receive your invoice. Your certificate will be released once payment is confirmed.
+                        Enter your email so admin can follow up with your invoice and artwork certificate.
                       </p>
                     </div>
                   </div>
@@ -1148,7 +1187,7 @@ export default function DemoAuctionPage({
                   >
                     {submittingEmail
                       ? "Saving Email..."
-                      : "Send Invoice"}
+                      : "Receive invoice and artwork certificate"}
                   </button>
 
                   <p className="text-center text-slate-500 text-sm font-bold mt-4">
@@ -1185,9 +1224,15 @@ export default function DemoAuctionPage({
                   Stay here for the next artwork 🎉
                 </p>
 
-                <p className="text-slate-500 font-bold">
-                  The auction continues shortly...
-                </p>
+                {auction.winner_email_submitted ? (
+                  <p className="text-slate-500 font-bold">
+                    Next artwork starts in {secondsRemaining}s.
+                  </p>
+                ) : (
+                  <p className="text-slate-500 font-bold">
+                    The next artwork starts after the winner enters their email.
+                  </p>
+                )}
               </div>
             </div>
           </motion.div>
@@ -1202,7 +1247,11 @@ export default function DemoAuctionPage({
             </p>
 
             <p className="font-black text-sm leading-snug">
-              Thanks, {bidderName}. Your invoice will be emailed to you.
+              Thanks, {bidderName}. Admin will follow up with your invoice and artwork certificate.
+            </p>
+
+            <p className="mt-2 text-sm font-black">
+              Next artwork starts in {secondsRemaining}s.
             </p>
           </div>
         )}
@@ -1282,7 +1331,7 @@ export default function DemoAuctionPage({
                 )}
 
                 <p className="text-sm font-black leading-snug opacity-75">
-                  Bidding opens when the MC voice intro finishes.
+                  After the MC voice intro, bidding starts in 20 seconds.
                 </p>
 
                 {(introAudioStatus === "blocked" || introAudioStatus === "error") && (
@@ -1292,6 +1341,19 @@ export default function DemoAuctionPage({
                 )}
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {isStartingSoon && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="shrink-0 rounded-[28px] border-4 border-white bg-[#07152b] p-5 text-center text-white shadow-2xl"
+          >
+            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.28em] text-[#ffc857]">MC intro complete</p>
+            <h2 className="text-3xl font-black leading-tight">Bidding starts in</h2>
+            <div className="my-3 text-[76px] font-black leading-none text-[#16d66d]">{secondsRemaining}s</div>
+            <p className="text-sm font-bold text-white/70">Get ready. The bid button unlocks when the countdown reaches zero.</p>
           </motion.div>
         )}
 
@@ -1450,6 +1512,8 @@ export default function DemoAuctionPage({
                 ? "Waiting for MC"
                 : isIntro
                 ? `MC Intro • ${introSecondsRemaining}s`
+                : isStartingSoon
+                ? `Starts in ${secondsRemaining}s`
                 : isBidPaused
                 ? `Paused • ${pauseRemaining}s`
                 : biddingNow
@@ -1470,6 +1534,8 @@ export default function DemoAuctionPage({
                 ? introAudioStatus === "playing"
                   ? "The AI MC is presenting the artwork. Bidding opens when the full intro finishes."
                   : "If sound does not start automatically on iPhone, tap the MC voice button above."
+                : isStartingSoon
+                ? "Bidding opens automatically after the countdown."
                 : isUrgency
                 ? "Last chance — tap to keep the artwork alive."
                 : canBid
@@ -1537,7 +1603,7 @@ function GalleryModal({
           className="fixed inset-0 z-[80] bg-[#020b18] text-white overflow-y-auto"
         >
           <div className="fixed inset-0 pointer-events-none bg-[url('/paintbrush.jpg')] bg-cover bg-center" />
-          <div className="fixed inset-0 pointer-events-none bg-[linear-gradient(180deg,rgba(7,21,43,0.20),rgba(85,214,255,0.28)_38%,rgba(255,245,214,0.82))]" />
+          <div className="fixed inset-0 pointer-events-none bg-[linear-gradient(180deg,rgba(2,11,24,0.82),rgba(7,21,43,0.88)_45%,rgba(2,11,24,0.94))]" />
           <div className="fixed inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle,#ffffff_1.5px,transparent_1.5px)] bg-[size:24px_24px]" />
 
           <div className="relative max-w-md mx-auto min-h-screen px-4 py-5">

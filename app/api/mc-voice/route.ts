@@ -266,11 +266,11 @@ function buildMcScript({
   const cleanStory = makeStoryMoreSpoken(sourceText);
 
   const introOptions = [
-    `Okay everyone, quick pause. This next one is from ${childName}, in ${grade}.`,
-    `Alright, have a look at this. Our next artist is ${childName}, from ${grade}.`,
-    `Okay BragWall crew, this one is special. It is by ${childName}, from ${grade}.`,
-    `Right, eyes on the screen for a second. This masterpiece is from ${childName}, in ${grade}.`,
-    `Here we go. Next up, we have something brilliant from ${childName}, from ${grade}.`,
+    `Welcome to ${childName} from ${grade}.`,
+    `Next up is ${childName} from ${grade}.`,
+    `Eyes on the screen for ${childName} from ${grade}.`,
+    `Here we go with ${childName} from ${grade}.`,
+    `This next artwork is from ${childName} from ${grade}.`,
   ];
 
   const middleOptions = [
@@ -294,7 +294,7 @@ function buildMcScript({
   const middle = pickScriptLine(middleOptions, `${scriptSeed}-middle`);
   const outro = pickScriptLine(outroOptions, `${scriptSeed}-outro`);
 
-  return `${intro} ${middle} ${cleanStory} ${outro}`;
+  return limitWords(`${intro} ${middle} ${cleanStory} ${outro}`, 90);
 }
 
 function makeStoryMoreSpoken(sourceText: string) {
@@ -314,7 +314,7 @@ function makeStoryMoreSpoken(sourceText: string) {
     .replace(/\s+/g, " ")
     .trim();
 
-  const shortened = withoutAnnouncerPhrases.slice(0, 650).trim();
+  const shortened = withoutAnnouncerPhrases.split(/\s+/).slice(0, 72).join(" ").slice(0, 520).trim();
 
   if (!shortened) {
     return "it feels full of colour, imagination, and proper young-artist confidence.";
@@ -339,3 +339,11 @@ function pickScriptLine(options: string[], seed: string) {
   return options[total % options.length];
 }
 
+
+function limitWords(value: string, maxWords: number) {
+  const words = value.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+
+  if (words.length <= maxWords) return value.replace(/\s+/g, " ").trim();
+
+  return ensureSentenceEnds(words.slice(0, maxWords).join(" "));
+}

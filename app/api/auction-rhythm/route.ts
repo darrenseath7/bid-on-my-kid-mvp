@@ -2,21 +2,58 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const DEFAULT_AUCTION_CODE = "demo";
-const SILENCE_BEFORE_GOING_ONCE_SECONDS = 8;
+const DEFAULT_BID_STEP = 100;
+const SILENCE_BEFORE_GOING_ONCE_SECONDS = 5;
 const GOING_ONCE_SECONDS = 3;
 const GOING_TWICE_SECONDS = 3;
+const NEXT_ARTWORK_COUNTDOWN_SECONDS = 20;
+const BIDDING_START_BUFFER_SECONDS = 20;
+const MIN_MC_INTRO_SECONDS = 28;
+const MAX_MC_INTRO_SECONDS = 60;
+const MC_WORDS_PER_SECOND = 2.2;
+const MC_INTRO_PADDING_SECONDS = 8;
 
 type AuctionState = {
   auction_code: string;
   artwork_id?: string | null;
   child_name?: string | null;
   child_surname?: string | null;
+  grade?: string | null;
+  artwork_url?: string | null;
   current_bid?: number | null;
   leading_bidder?: string | null;
   status?: string | null;
   status_deadline?: string | null;
   bid_pause_until?: string | null;
   last_bid_at?: string | null;
+  next_bid_amount?: number | null;
+  winner_email?: string | null;
+  winner_email_submitted_at?: string | null;
+};
+
+type Artwork = {
+  id: string;
+  auction_code: string;
+  child_name: string;
+  child_surname: string;
+  grade: string;
+  artwork_url: string;
+  enhanced_artwork_url?: string | null;
+  ai_story?: string | null;
+  ai_intro?: string | null;
+  description?: string | null;
+  status?: string | null;
+  sort_order?: number | null;
+  sold_amount?: number | null;
+  winning_bidder?: string | null;
+  winner_email?: string | null;
+  mc_audio_url?: string | null;
+  created_at?: string | null;
+};
+
+type SchoolProfile = {
+  auction_code: string;
+  bid_increment?: number | null;
 };
 
 function normalizeAuctionCode(value: unknown) {
@@ -59,6 +96,34 @@ function toNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function getSafeBidIncrement(value?: number | null) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_BID_STEP;
+  return Math.round(parsed);
+}
+
+function getArtworkDisplayUrl(artwork: Artwork | null) {
+  if (!artwork) return "";
+  return artwork.enhanced_artwork_url || artwork.artwork_url || "";
+}
+
+function getMcIntroText(artwork: Artwork) {
+  const story =
+    artwork.ai_story?.trim() ||
+    artwork.ai_intro?.trim() ||
+    artwork.description?.trim();
+
+  if (story) return story;
+
+  return "full of colour, imagination, and proper young-artist confidence.";
+}
+
+function estimateMcIntroSeconds(text: string) {
+  const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+  const estimated = Math.ceil(wordCount / MC_WORDS_PER_SECOND) + MC_INTRO_PADDING_SECONDS;
+  return Math.min(MAX_MC_INTRO_SECONDS, Math.max(MIN_MC_INTRO_SECONDS, estimated));
+}
+
 async function addActivity(
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
   auctionCode: string,
@@ -70,85 +135,311 @@ async function addActivity(
   });
 }
 
+async function fetchBidIncrement(
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  auctionCode: string
+) {
+  const { data } = await supabaseAdmin
+    .from("demo_school_profile")
+    .select("auction_code,bid_increment")
+    .eq("auction_code", auctionCode)
+    .maybeSingle<SchoolProfile>();
+
+  return getSafeBidIncrement(data?.bid_increment);
+}
+
+async function fetchArtworks(
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  auctionCode: string
+) {
+  const { data, error } = await supabaseAdmin
+    .from("demo_artworks")
+    .select("*")
+    .eq("auction_code", auctionCode)
+    .order("sort_order", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data || []) as Artwork[];
+}
+
+function getCurrentArtwork(auction: AuctionState | null, artworks: Artwork[]) {
+  if (!auction) return null;
+
+  return (
+    artworks.find((item) => auction.artwork_id && item.id === auction.artwork_id) ||
+    artworks.find((item) => {
+      const displayUrl = getArtworkDisplayUrl(item);
+      return (
+        item.child_name === auction.child_name &&
+        item.child_surname === auction.child_surname &&
+        (item.artwork_url === auction.artwork_url || displayUrl === auction.artwork_url)
+      );
+    }) ||
+    null
+  );
+}
+
+function getNextArtwork(currentArtwork: Artwork | null, artworks: Artwork[]) {
+  const activeQueue = artworks.filter((item) => item.status !== "sold" && item.status !== "archived");
+  const sorted = [...activeQueue].sort((a, b) => {
+    const aOrder = Number(a.sort_order || 0);
+    const bOrder = Number(b.sort_order || 0);
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return String(a.created_at || "").localeCompare(String(b.created_at || ""));
+  });
+
+  if (!currentArtwork) return sorted.find((item) => item.status !== "live") || sorted[0] || null;
+
+  const currentIndex = sorted.findIndex((item) => item.id === currentArtwork.id);
+  if (currentIndex >= 0) {
+    return sorted.slice(currentIndex + 1).find((item) => item.id !== currentArtwork.id) || null;
+  }
+
+  return sorted.find((item) => item.id !== currentArtwork.id) || null;
+}
+
+async function generateMcVoiceAudio(
+  request: Request,
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  auctionCode: string,
+  artwork: Artwork,
+  commentary: string
+) {
+  try {
+    const origin = new URL(request.url).origin;
+    const response = await fetch(`${origin}/api/mc-voice`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        auctionCode,
+        artworkId: artwork.id,
+        text: commentary,
+        childName: [artwork.child_name, artwork.child_surname].filter(Boolean).join(" ").trim(),
+        grade: artwork.grade,
+      }),
+    });
+
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result?.error || "Could not generate MC voice.");
+    return String(result.audioUrl || "");
+  } catch (error) {
+    console.error("Could not generate AI MC voice:", error);
+    await supabaseAdmin.from("live_activity_feed").insert({
+      auction_code: auctionCode,
+      message: "AI MC voice failed to generate. Admin can still continue with fallback controls.",
+    });
+    return null;
+  }
+}
+
+async function moveToArtwork(
+  request: Request,
+  supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
+  auctionCode: string,
+  artwork: Artwork
+) {
+  const bidIncrement = await fetchBidIncrement(supabaseAdmin, auctionCode);
+  const displayUrl = getArtworkDisplayUrl(artwork);
+  const commentary = getMcIntroText(artwork);
+
+  await supabaseAdmin.from("live_bids").delete().eq("auction_code", auctionCode);
+
+  const { error: queueError } = await supabaseAdmin
+    .from("demo_artworks")
+    .update({ status: "queued" })
+    .eq("auction_code", auctionCode)
+    .in("status", ["live", "preparing_intro", "intro", "starting_soon", "open", "paused", "going once", "going twice"]);
+
+  if (queueError) throw new Error(queueError.message);
+
+  await supabaseAdmin
+    .from("demo_artworks")
+    .update({ status: "live", mc_audio_url: null })
+    .eq("id", artwork.id);
+
+  await supabaseAdmin
+    .from("live_auction_state")
+    .update({
+      artwork_id: artwork.id,
+      child_name: artwork.child_name,
+      child_surname: artwork.child_surname,
+      grade: artwork.grade,
+      artwork_url: displayUrl,
+      current_bid: 0,
+      leading_bidder: "No bids yet",
+      status: "preparing_intro",
+      status_deadline: null,
+      bid_pause_until: null,
+      next_bid_amount: bidIncrement,
+      last_bid_at: null,
+      winner_email: null,
+      winner_email_submitted_at: null,
+      mc_commentary: "The AI MC is preparing this artwork intro. Bidding will open after the story.",
+      mc_audio_url: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("auction_code", auctionCode);
+
+  await addActivity(supabaseAdmin, auctionCode, `Preparing AI MC intro for ${artwork.child_name} ${artwork.child_surname}`);
+
+  const mcAudioUrl = await generateMcVoiceAudio(request, supabaseAdmin, auctionCode, artwork, commentary);
+
+  await supabaseAdmin
+    .from("demo_artworks")
+    .update({ status: "live", mc_audio_url: mcAudioUrl })
+    .eq("id", artwork.id);
+
+  const introSeconds = estimateMcIntroSeconds(commentary);
+  const introDeadline = new Date(Date.now() + introSeconds * 1000).toISOString();
+
+  const { data: updatedAuction, error: stateError } = await supabaseAdmin
+    .from("live_auction_state")
+    .update({
+      artwork_id: artwork.id,
+      child_name: artwork.child_name,
+      child_surname: artwork.child_surname,
+      grade: artwork.grade,
+      artwork_url: displayUrl,
+      current_bid: 0,
+      leading_bidder: "No bids yet",
+      status: "intro",
+      status_deadline: introDeadline,
+      bid_pause_until: null,
+      next_bid_amount: bidIncrement,
+      last_bid_at: null,
+      winner_email: null,
+      winner_email_submitted_at: null,
+      mc_commentary: commentary,
+      mc_audio_url: mcAudioUrl,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("auction_code", auctionCode)
+    .select("*")
+    .maybeSingle();
+
+  if (stateError) throw new Error(stateError.message);
+
+  await addActivity(
+    supabaseAdmin,
+    auctionCode,
+    mcAudioUrl
+      ? `AI MC voice generated for ${artwork.child_name} ${artwork.child_surname}`
+      : `MC intro started for ${artwork.child_name} ${artwork.child_surname}`
+  );
+
+  return updatedAuction;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => null);
     const auctionCode = normalizeAuctionCode(body?.auctionCode);
 
-    if (!isValidAuctionCode(auctionCode)) {
-      return jsonError("Invalid auction code.", 400);
-    }
+    if (!isValidAuctionCode(auctionCode)) return jsonError("Invalid auction code.", 400);
 
     const supabaseAdmin = getSupabaseAdmin();
-
     const { data: auctionData, error: auctionError } = await supabaseAdmin
       .from("live_auction_state")
       .select("*")
       .eq("auction_code", auctionCode)
       .maybeSingle();
 
-    if (auctionError) {
-      return jsonError(auctionError.message, 500);
-    }
-
+    if (auctionError) return jsonError(auctionError.message, 500);
     const auction = auctionData as AuctionState | null;
-
-    if (!auction) {
-      return jsonError("Auction state not found.", 404);
-    }
+    if (!auction) return jsonError("Auction state not found.", 404);
 
     const status = String(auction.status || "").trim();
     const currentBid = toNumber(auction.current_bid);
     const leadingBidder = String(auction.leading_bidder || "").trim();
-
-    if (currentBid <= 0) {
-      return NextResponse.json({ action: "none", auction });
-    }
-
-    if (status === "sold" || status === "waiting" || status === "intro") {
-      return NextResponse.json({ action: "none", auction });
-    }
-
     const now = Date.now();
 
-    if (status === "open") {
-      const pauseUntil = auction.bid_pause_until
-        ? new Date(auction.bid_pause_until).getTime()
-        : 0;
+    if (status === "starting_soon") {
+      const deadline = auction.status_deadline ? new Date(auction.status_deadline).getTime() : 0;
+      if (!deadline || now < deadline) return NextResponse.json({ action: "none", auction });
 
-      if (pauseUntil > now) {
-        return NextResponse.json({ action: "none", auction });
-      }
-
-      const lastBidTime = auction.last_bid_at
-        ? new Date(auction.last_bid_at).getTime()
-        : 0;
-
-      if (!lastBidTime) {
-        return NextResponse.json({ action: "none", auction });
-      }
-
-      const silenceStartsAt = Math.max(lastBidTime, pauseUntil);
-      const silenceSeconds = Math.floor((now - silenceStartsAt) / 1000);
-
-      if (silenceSeconds < SILENCE_BEFORE_GOING_ONCE_SECONDS) {
-        return NextResponse.json({ action: "none", auction });
-      }
-
-      const deadline = new Date(
-        Date.now() + GOING_ONCE_SECONDS * 1000
-      ).toISOString();
-
-      const commentary = `Going once at R${currentBid.toLocaleString()} for ${leadingBidder}. Last chance to beat this bid.`;
+      const bidIncrement = await fetchBidIncrement(supabaseAdmin, auctionCode);
+      const openingBid = Math.max(Number(auction.next_bid_amount || 0), currentBid + bidIncrement, bidIncrement);
+      const commentary = `Bidding is now open. Opening bid is R${openingBid.toLocaleString()}.`;
 
       const { data: updatedAuction, error: updateError } = await supabaseAdmin
         .from("live_auction_state")
         .update({
-          status: "going once",
-          status_deadline: deadline,
+          status: "open",
+          status_deadline: null,
           bid_pause_until: null,
+          next_bid_amount: openingBid,
           mc_commentary: commentary,
+          updated_at: new Date().toISOString(),
         })
+        .eq("auction_code", auctionCode)
+        .eq("status", "starting_soon")
+        .select("*")
+        .maybeSingle();
+
+      if (updateError) return jsonError(updateError.message, 500);
+      if (!updatedAuction) return NextResponse.json({ action: "none", auction });
+      await addActivity(supabaseAdmin, auctionCode, "Bidding opened after the 20 second countdown");
+      return NextResponse.json({ action: "open", auction: updatedAuction });
+    }
+
+    if (status === "sold") {
+      if (!auction.winner_email && !auction.winner_email_submitted_at) {
+        return NextResponse.json({ action: "waiting_for_winner_email", auction });
+      }
+
+      const deadline = auction.status_deadline ? new Date(auction.status_deadline).getTime() : 0;
+      if (!deadline || now < deadline) return NextResponse.json({ action: "next_countdown", auction });
+
+      const artworks = await fetchArtworks(supabaseAdmin, auctionCode);
+      const currentArtwork = getCurrentArtwork(auction, artworks);
+      const nextArtwork = getNextArtwork(currentArtwork, artworks);
+
+      if (!nextArtwork) {
+        const { data: updatedAuction, error } = await supabaseAdmin
+          .from("live_auction_state")
+          .update({
+            status: "complete",
+            status_deadline: null,
+            bid_pause_until: null,
+            mc_audio_url: null,
+            mc_commentary: "Auction complete. Thank you for supporting the young artists and the school fundraiser.",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("auction_code", auctionCode)
+          .select("*")
+          .maybeSingle();
+
+        if (error) return jsonError(error.message, 500);
+        await addActivity(supabaseAdmin, auctionCode, "Auction complete");
+        return NextResponse.json({ action: "complete", auction: updatedAuction || auction });
+      }
+
+      const updatedAuction = await moveToArtwork(request, supabaseAdmin, auctionCode, nextArtwork);
+      return NextResponse.json({ action: "next_artwork", auction: updatedAuction || auction });
+    }
+
+    if (currentBid <= 0) return NextResponse.json({ action: "none", auction });
+    if (status === "waiting" || status === "intro" || status === "preparing_intro" || status === "complete") {
+      return NextResponse.json({ action: "none", auction });
+    }
+
+    if (status === "open") {
+      const pauseUntil = auction.bid_pause_until ? new Date(auction.bid_pause_until).getTime() : 0;
+      if (pauseUntil > now) return NextResponse.json({ action: "none", auction });
+
+      const lastBidTime = auction.last_bid_at ? new Date(auction.last_bid_at).getTime() : 0;
+      if (!lastBidTime) return NextResponse.json({ action: "none", auction });
+
+      const silenceStartsAt = Math.max(lastBidTime, pauseUntil);
+      const silenceSeconds = Math.floor((now - silenceStartsAt) / 1000);
+      if (silenceSeconds < SILENCE_BEFORE_GOING_ONCE_SECONDS) return NextResponse.json({ action: "none", auction });
+
+      const deadline = new Date(Date.now() + GOING_ONCE_SECONDS * 1000).toISOString();
+      const commentary = `Going once at R${currentBid.toLocaleString()} for ${leadingBidder}. Last chance to beat this bid.`;
+
+      const { data: updatedAuction, error: updateError } = await supabaseAdmin
+        .from("live_auction_state")
+        .update({ status: "going once", status_deadline: deadline, bid_pause_until: null, mc_commentary: commentary })
         .eq("auction_code", auctionCode)
         .eq("status", "open")
         .eq("current_bid", currentBid)
@@ -156,48 +447,22 @@ export async function POST(request: Request) {
         .select("*")
         .maybeSingle();
 
-      if (updateError) {
-        return jsonError(updateError.message, 500);
-      }
-
-      if (!updatedAuction) {
-        return NextResponse.json({ action: "none", auction });
-      }
-
-      await addActivity(
-        supabaseAdmin,
-        auctionCode,
-        `Going once at R${currentBid.toLocaleString()}`
-      );
-
+      if (updateError) return jsonError(updateError.message, 500);
+      if (!updatedAuction) return NextResponse.json({ action: "none", auction });
+      await addActivity(supabaseAdmin, auctionCode, `Going once at R${currentBid.toLocaleString()}`);
       return NextResponse.json({ action: "going_once", auction: updatedAuction });
     }
 
     if (status === "going once") {
-      if (!auction.status_deadline) {
-        return NextResponse.json({ action: "none", auction });
-      }
+      if (!auction.status_deadline) return NextResponse.json({ action: "none", auction });
+      if (now < new Date(auction.status_deadline).getTime()) return NextResponse.json({ action: "none", auction });
 
-      const deadline = new Date(auction.status_deadline).getTime();
-
-      if (now < deadline) {
-        return NextResponse.json({ action: "none", auction });
-      }
-
-      const newDeadline = new Date(
-        Date.now() + GOING_TWICE_SECONDS * 1000
-      ).toISOString();
-
+      const newDeadline = new Date(Date.now() + GOING_TWICE_SECONDS * 1000).toISOString();
       const commentary = `Going twice at R${currentBid.toLocaleString()}. ${leadingBidder} is seconds away from serious bragging rights.`;
 
       const { data: updatedAuction, error: updateError } = await supabaseAdmin
         .from("live_auction_state")
-        .update({
-          status: "going twice",
-          status_deadline: newDeadline,
-          bid_pause_until: null,
-          mc_commentary: commentary,
-        })
+        .update({ status: "going twice", status_deadline: newDeadline, bid_pause_until: null, mc_commentary: commentary })
         .eq("auction_code", auctionCode)
         .eq("status", "going once")
         .eq("current_bid", currentBid)
@@ -205,33 +470,15 @@ export async function POST(request: Request) {
         .select("*")
         .maybeSingle();
 
-      if (updateError) {
-        return jsonError(updateError.message, 500);
-      }
-
-      if (!updatedAuction) {
-        return NextResponse.json({ action: "none", auction });
-      }
-
-      await addActivity(
-        supabaseAdmin,
-        auctionCode,
-        `Going twice at R${currentBid.toLocaleString()}`
-      );
-
+      if (updateError) return jsonError(updateError.message, 500);
+      if (!updatedAuction) return NextResponse.json({ action: "none", auction });
+      await addActivity(supabaseAdmin, auctionCode, `Going twice at R${currentBid.toLocaleString()}`);
       return NextResponse.json({ action: "going_twice", auction: updatedAuction });
     }
 
     if (status === "going twice") {
-      if (!auction.status_deadline) {
-        return NextResponse.json({ action: "none", auction });
-      }
-
-      const deadline = new Date(auction.status_deadline).getTime();
-
-      if (now < deadline) {
-        return NextResponse.json({ action: "none", auction });
-      }
+      if (!auction.status_deadline) return NextResponse.json({ action: "none", auction });
+      if (now < new Date(auction.status_deadline).getTime()) return NextResponse.json({ action: "none", auction });
 
       const commentary = `Sold to ${leadingBidder} for R${currentBid.toLocaleString()}. A masterpiece has found its forever wall.`;
 
@@ -242,6 +489,7 @@ export async function POST(request: Request) {
           status_deadline: null,
           bid_pause_until: null,
           mc_commentary: commentary,
+          updated_at: new Date().toISOString(),
         })
         .eq("auction_code", auctionCode)
         .eq("status", "going twice")
@@ -250,38 +498,22 @@ export async function POST(request: Request) {
         .select("*")
         .maybeSingle();
 
-      if (updateError) {
-        return jsonError(updateError.message, 500);
-      }
-
-      if (!updatedAuction) {
-        return NextResponse.json({ action: "none", auction });
-      }
+      if (updateError) return jsonError(updateError.message, 500);
+      if (!updatedAuction) return NextResponse.json({ action: "none", auction });
 
       await supabaseAdmin
         .from("demo_artworks")
-        .update({
-          status: "sold",
-          sold_amount: currentBid,
-          winning_bidder: leadingBidder,
-        })
+        .update({ status: "sold", sold_amount: currentBid, winning_bidder: leadingBidder })
         .eq("auction_code", auctionCode)
         .eq("status", "live");
 
-      await addActivity(
-        supabaseAdmin,
-        auctionCode,
-        `SOLD to ${leadingBidder} for R${currentBid.toLocaleString()}`
-      );
-
+      await addActivity(supabaseAdmin, auctionCode, `SOLD to ${leadingBidder} for R${currentBid.toLocaleString()}`);
       return NextResponse.json({ action: "sold", auction: updatedAuction });
     }
 
     return NextResponse.json({ action: "none", auction });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Could not run auction rhythm.";
-
+    const message = error instanceof Error ? error.message : "Could not run auction rhythm.";
     return jsonError(message, 500);
   }
 }
