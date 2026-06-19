@@ -510,8 +510,6 @@ export default function AdminLivePage() {
         <div className="min-h-[calc(100vh-28px)] rounded-[30px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.72)] overflow-visible">
           <div className="grid min-h-[calc(100vh-28px)] grid-cols-[235px_1fr]">
             <aside className="h-[calc(100vh-56px)] max-h-[calc(100vh-56px)] min-h-0 overflow-y-scroll overscroll-contain border-r border-white/10 bg-[#061124]/92 backdrop-blur-2xl p-4 pt-5 pr-3 flex flex-col [scrollbar-gutter:stable]">
-              <DarkLogoBlock />
-
               <div className="mt-4">
                 <AdminAuctionSelector />
               </div>
@@ -1758,6 +1756,7 @@ function toneText(tone: Tone) {
   if (tone === "red") return "text-[#ef2b20]";
   return "text-white";
 }
+
 
 
 
