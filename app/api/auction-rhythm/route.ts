@@ -29,8 +29,6 @@ type AuctionState = {
   next_bid_amount?: number | null;
   winner_email?: string | null;
   winner_email_submitted_at?: string | null;
-  mc_commentary?: string | null;
-  mc_audio_url?: string | null;
 };
 
 type Artwork = {
@@ -362,9 +360,19 @@ export async function POST(request: Request) {
     const now = Date.now();
 
     if (autoStartFromParent) {
+      // Parent entry should never land straight in open bidding when no bids have happened yet.
+      // If the MC intro/countdown is already running, keep the current state.
+      if (status === "preparing_intro" || status === "intro" || status === "starting_soon") {
+        return NextResponse.json({ action: "parent_joined_existing_intro_flow", auction });
+      }
+
+      const noBidsYet =
+        currentBid <= 0 &&
+        (!leadingBidder || leadingBidder.toLowerCase() === "no bids yet");
+
       const canAutoStartIntro =
         status === "waiting" ||
-        (status === "open" && currentBid <= 0 && !(auction as AuctionState & { mc_audio_url?: string | null }).mc_audio_url);
+        (status === "open" && noBidsYet);
 
       if (canAutoStartIntro) {
         const artworks = await fetchArtworks(supabaseAdmin, auctionCode);
@@ -545,7 +553,6 @@ export async function POST(request: Request) {
     return jsonError(message, 500);
   }
 }
-
 
 
 
