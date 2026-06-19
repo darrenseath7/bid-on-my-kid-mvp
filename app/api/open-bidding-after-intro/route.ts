@@ -19,6 +19,7 @@ type SchoolProfile = {
 
 const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
+const BIDDING_START_BUFFER_SECONDS = 20;
 
 function normalizeAuctionCode(value: unknown) {
   const normalized = String(value || DEFAULT_AUCTION_CODE)
@@ -123,13 +124,14 @@ export async function POST(request: NextRequest) {
     const childName = String(auction.child_name || "this artwork").trim() || "this artwork";
     const childSurname = String(auction.child_surname || "").trim();
     const displayName = [childName, childSurname].filter(Boolean).join(" ");
-    const commentary = `Bidding is now open for ${childName}’s masterpiece. Opening bid is R${openingBid.toLocaleString()}.`;
+    const countdownDeadline = new Date(Date.now() + BIDDING_START_BUFFER_SECONDS * 1000).toISOString();
+    const commentary = `MC intro complete. Bidding starts in ${BIDDING_START_BUFFER_SECONDS} seconds for ${childName}’s artwork.`;
 
     const { data: updatedAuction, error: updateError } = await supabase
       .from("live_auction_state")
       .update({
-        status: "open",
-        status_deadline: null,
+        status: "starting_soon",
+        status_deadline: countdownDeadline,
         bid_pause_until: null,
         next_bid_amount: openingBid,
         mc_commentary: commentary,
@@ -146,13 +148,14 @@ export async function POST(request: NextRequest) {
 
     await supabase.from("live_activity_feed").insert({
       auction_code: auctionCode,
-      message: `Bidding opened for ${displayName}`,
+      message: `MC intro complete for ${displayName}. Bidding starts in ${BIDDING_START_BUFFER_SECONDS} seconds.`,
     });
 
     return NextResponse.json({
       ok: true,
       auction: updatedAuction,
       nextBidAmount: openingBid,
+      biddingStartsAt: countdownDeadline,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not open bidding.";

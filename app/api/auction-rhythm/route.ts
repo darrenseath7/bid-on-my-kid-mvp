@@ -29,6 +29,8 @@ type AuctionState = {
   next_bid_amount?: number | null;
   winner_email?: string | null;
   winner_email_submitted_at?: string | null;
+  mc_commentary?: string | null;
+  mc_audio_url?: string | null;
 };
 
 type Artwork = {
@@ -543,6 +545,7 @@ export async function POST(request: Request) {
     return jsonError(message, 500);
   }
 }
+
 
 
 
