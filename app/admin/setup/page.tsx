@@ -563,7 +563,7 @@ export default function AdminSetupPage() {
                       <select
                         value={String(profile.bid_increment || 100)}
                         onChange={(event) => updateBidIncrement(event.target.value)}
-                        className="mt-2 w-full rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-base font-black text-white outline-none focus:border-[#16d66d]/60"
+                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-black text-[#07152b] outline-none focus:border-[#16d66d]"
                       >
                         <option value="25">R25</option>
                         <option value="50">R50</option>
@@ -1237,5 +1237,6 @@ function EnhancementBadge({
     </span>
   );
 }
+
 
 
