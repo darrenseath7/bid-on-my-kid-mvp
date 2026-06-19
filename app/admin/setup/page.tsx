@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import AdminAuctionSelector from "@/components/AdminAuctionSelector";
 import { supabase } from "@/lib/supabase";
-import { useAdminAuctionCode } from "@/lib/useAdminAuctionCode";
+import { sanitizeAuctionCode, useAdminAuctionCode } from "@/lib/useAdminAuctionCode";
 
 type SchoolProfile = {
   id?: string;
@@ -112,7 +112,7 @@ function createStoryPreview({
 }
 
 export default function AdminSetupPage() {
-  const [auctionCode] = useAdminAuctionCode(DEFAULT_AUCTION_CODE);
+  const [auctionCode, setAdminAuctionCode] = useAdminAuctionCode(DEFAULT_AUCTION_CODE);
   const [profile, setProfile] = useState<SchoolProfile>({
     auction_code: DEFAULT_AUCTION_CODE,
     school_name: "",
@@ -234,7 +234,20 @@ export default function AdminSetupPage() {
   function updateProfileField(field: keyof SchoolProfile, value: string) {
     setProfile((current) => ({
       ...current,
-      [field]: value,
+      [field]: field === "auction_code" ? sanitizeAuctionCode(value) : value,
+    }));
+  }
+
+  function updateSchoolName(value: string) {
+    const suggestedSlug = sanitizeAuctionCode(value);
+
+    setProfile((current) => ({
+      ...current,
+      school_name: value,
+      auction_code:
+        !current.auction_code || current.auction_code === DEFAULT_AUCTION_CODE
+          ? suggestedSlug
+          : current.auction_code,
     }));
   }
 
@@ -269,15 +282,31 @@ export default function AdminSetupPage() {
     setMessage("");
 
     try {
+      const targetAuctionCode = sanitizeAuctionCode(profile.auction_code || auctionCode);
+
       const result = await runSetupAction({
         action: "save-profile",
-        profile,
+        auctionCode: targetAuctionCode,
+        profile: {
+          ...profile,
+          auction_code: targetAuctionCode,
+        },
       });
 
       setMessage(
         result.message || "School and auction setup saved successfully."
       );
+      setAdminAuctionCode(targetAuctionCode);
+
+      if (targetAuctionCode !== auctionCode) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("auctionCode", targetAuctionCode);
+        window.location.href = url.toString();
+        return;
+      }
+
       fetchProfile();
+      fetchArtworks();
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not save school setup."
@@ -540,11 +569,25 @@ export default function AdminSetupPage() {
                   <Field
                     label="School Name"
                     value={profile.school_name}
-                    onChange={(value) =>
-                      updateProfileField("school_name", value)
-                    }
+                    onChange={updateSchoolName}
                     placeholder="St John's Preparatory"
                   />
+
+                  <Field
+                    label="School URL slug"
+                    value={profile.auction_code || auctionCode}
+                    onChange={(value) => updateProfileField("auction_code", value)}
+                    placeholder="prime-primary"
+                  />
+
+                  <div className="rounded-2xl border border-[#16d66d]/20 bg-[#16d66d]/10 px-4 py-3">
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#16d66d]">
+                      Parent auction link
+                    </p>
+                    <p className="mt-1 break-all text-sm font-black text-[#07152b]">
+                      /auction/{profile.auction_code || auctionCode}
+                    </p>
+                  </div>
 
                   <div className="grid md:grid-cols-2 gap-5">
                     <Field
@@ -1237,6 +1280,7 @@ function EnhancementBadge({
     </span>
   );
 }
+
 
 
 
