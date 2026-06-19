@@ -4,7 +4,7 @@ import AdminAuctionSelector from "@/components/AdminAuctionSelector";
 
 export default function AdminDashboardPage() {
   return (
-    <main className="min-h-screen bg-[#020b18] text-white overflow-hidden">
+    <main className="min-h-screen bg-[#020b18] text-white">
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -38,10 +38,10 @@ export default function AdminDashboardPage() {
       <div className="fixed inset-3 pointer-events-none rounded-[32px] border border-[#c78b25]/20 shadow-[inset_0_0_70px_rgba(199,139,37,0.07)]" />
       <DashboardArtDecor />
 
-      <section className="relative h-screen p-3.5">
-        <div className="h-full rounded-[30px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.72)] overflow-hidden">
-          <div className="grid h-full grid-cols-[248px_1fr]">
-            <aside className="h-full border-r border-white/10 bg-[#061124]/92 backdrop-blur-2xl p-4 flex flex-col">
+      <section className="relative min-h-screen p-3.5">
+        <div className="min-h-[calc(100vh-28px)] rounded-[30px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.72)] overflow-hidden">
+          <div className="grid min-h-[calc(100vh-28px)] grid-cols-[248px_1fr]">
+            <aside className="h-[calc(100vh-28px)] max-h-[calc(100vh-28px)] min-h-0 overflow-y-scroll overscroll-contain border-r border-white/10 bg-[#061124]/92 backdrop-blur-2xl p-4 pr-3 flex flex-col [scrollbar-gutter:stable]">
               <LogoBlock />
 
               <div className="mt-5">
@@ -641,3 +641,7 @@ function TrophyIcon() {
     </IconSvg>
   );
 }
+
+
+
+

@@ -384,7 +384,7 @@ function SaleCard({
 
 function AdminSidebar({ auctionCode }: { auctionCode: string }) {
   return (
-    <aside className="hidden lg:flex bg-[#061124] border-r border-white/10 p-6 flex-col">
+    <aside className="hidden lg:flex bg-[#061124] border-r border-white/10 p-6 flex-col h-screen overflow-y-auto">
       <div className="bg-white rounded-2xl p-4 mb-8">
         <BrandHeader center />
       </div>
@@ -525,6 +525,7 @@ function ActionBadge({ label, good }: { label: string; good: boolean }) {
     </span>
   );
 }
+
 
 
 

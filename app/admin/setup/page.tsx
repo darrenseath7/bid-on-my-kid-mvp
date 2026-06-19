@@ -427,7 +427,7 @@ export default function AdminSetupPage() {
       <div className="fixed inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
       <div className="relative grid xl:grid-cols-[280px_1fr] min-h-screen">
-        <aside className="border-r border-white/10 bg-[#061124]/85 backdrop-blur-xl p-5 xl:sticky xl:top-0 xl:h-screen">
+        <aside className="border-r border-white/10 bg-[#061124]/85 backdrop-blur-xl p-5 xl:sticky xl:top-0 xl:h-screen xl:overflow-y-auto">
           <div className="rounded-[24px] border border-white/10 bg-[#020b18] shadow-2xl relative overflow-hidden px-4 py-5 mb-6">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(22,214,109,0.12),transparent_45%)]" />
 
