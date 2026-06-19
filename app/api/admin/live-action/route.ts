@@ -65,9 +65,9 @@ function getSafeAuctionCode(value: unknown) {
   return cleaned || DEFAULT_AUCTION_CODE;
 }
 const MIN_MC_INTRO_SECONDS = 28;
-const MAX_MC_INTRO_SECONDS = 60;
-const MC_WORDS_PER_SECOND = 2.2;
-const MC_INTRO_PADDING_SECONDS = 8;
+const MAX_MC_INTRO_SECONDS = 90;
+const MC_WORDS_PER_SECOND = 1.55;
+const MC_INTRO_PADDING_SECONDS = 14;
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -123,7 +123,7 @@ function estimateMcIntroSeconds(text: string) {
   // before. Use a safer near-60s deadline to avoid cutting the MC voice short.
   return Math.min(
     MAX_MC_INTRO_SECONDS,
-    Math.max(55, MIN_MC_INTRO_SECONDS, estimated)
+    Math.max(65, MIN_MC_INTRO_SECONDS, estimated)
   );
 }
 
@@ -309,6 +309,7 @@ async function generateMcVoiceAudio(
           .join(" ")
           .trim(),
         grade: artwork.grade,
+        forceRegenerate: true,
       }),
     });
 

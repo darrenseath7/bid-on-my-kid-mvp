@@ -9,9 +9,9 @@ const GOING_TWICE_SECONDS = 3;
 const NEXT_ARTWORK_COUNTDOWN_SECONDS = 20;
 const BIDDING_START_BUFFER_SECONDS = 20;
 const MIN_MC_INTRO_SECONDS = 28;
-const MAX_MC_INTRO_SECONDS = 60;
-const MC_WORDS_PER_SECOND = 2.2;
-const MC_INTRO_PADDING_SECONDS = 8;
+const MAX_MC_INTRO_SECONDS = 90;
+const MC_WORDS_PER_SECOND = 1.55;
+const MC_INTRO_PADDING_SECONDS = 14;
 
 type AuctionState = {
   auction_code: string;
@@ -126,7 +126,7 @@ function estimateMcIntroSeconds(text: string) {
   // waits for the actual audio ended event before the 20-second countdown, and
   // this fallback deadline is only there in case the browser blocks audio.
   // Keeping it near 60s prevents cutting the voice off near the end.
-  return Math.min(MAX_MC_INTRO_SECONDS, Math.max(55, estimated, MIN_MC_INTRO_SECONDS));
+  return Math.min(MAX_MC_INTRO_SECONDS, Math.max(65, estimated, MIN_MC_INTRO_SECONDS));
 }
 
 async function addActivity(
@@ -221,6 +221,7 @@ async function generateMcVoiceAudio(
         text: commentary,
         childName: [artwork.child_name, artwork.child_surname].filter(Boolean).join(" ").trim(),
         grade: artwork.grade,
+        forceRegenerate: true,
       }),
     });
 
