@@ -257,7 +257,6 @@ export default function HomePage() {
 
             <PanelActions>
               <PrimaryButton onClick={openDemoForm}>Request a demo</PrimaryButton>
-              <LinkButton subtle href="#how-it-works">How it works</LinkButton>
             </PanelActions>
           </ContentPanel>
         </section>
@@ -290,29 +289,44 @@ export default function HomePage() {
 
         <section id="about-us" className="scroll-mt-28 mx-auto max-w-[1480px] px-5 pb-14 pt-8 md:px-8 lg:px-10">
           <ContentPanel>
-            <div className="max-w-3xl">
+            <div className="max-w-5xl">
               <SectionKicker>About us</SectionKicker>
               <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
-                We built this because schools deserve better.
+                Every piece of art tells a story. Here is ours.
               </h2>
-              <p className="mt-6 text-lg font-medium leading-relaxed text-white/68 md:text-xl">
-                We believe fundraising should feel like a celebration. That every child's creativity deserves a moment in the spotlight. BragWall puts young artists at the centre, gives schools a simple powerful tool, and turns fundraising night into an event the whole community remembers.
-              </p>
-            </div>
 
-            <div className="mt-10 divide-y divide-white/10 border-y border-white/10">
-              <ValueLine title="Young art deserves attention" text="Every child gets their moment on the wall." />
-              <ValueLine title="Fundraising should feel alive" text="An event the community remembers, not just a payment request." />
-              <ValueLine title="Real results, zero overheads" text="Every rand raised goes straight back to your school." />
-            </div>
-
-            <div className="mt-10 grid max-w-sm gap-4">
-              <HeroPoint icon={<ChartIcon />} title="R50k" text="raised to date" />
+              <div className="mt-8 grid gap-5 text-lg font-medium leading-relaxed text-white/72 md:text-xl">
+                <p>
+                  I went to my daughter's school art auction not really knowing what to expect.
+                </p>
+                <p>
+                  I left with a winning bid, a massive smile, and a question I could not get out of my head.
+                </p>
+                <p>
+                  The evening had been unlike any school event I had been to before. Loud. Funny. Emotional in the best possible way. Parents were genuinely competing, kids were genuinely thrilled, and the school raised over R50,000 in a single evening.
+                </p>
+                <p>
+                  It was one of those nights that reminds you what a community can feel like when everyone is pulling in the same direction.
+                </p>
+                <p>
+                  The problem? Most schools will never run an event like that. It is too complicated, too expensive, too hard to organise. So most kids will never get to see their artwork bid on. Most parents will never feel that slightly irrational joy of paying way too much for a painting of a lopsided dog, and loving every second of it!
+                </p>
+                <p>
+                  We thought that was worth fixing.
+                </p>
+                <p>
+                  That is why BragWall exists. To take that one extraordinary evening and make it available to every school, every parent, and every kid with a masterpiece to their name.
+                </p>
+              </div>
             </div>
 
             <QuoteBlock>
-              When kids see their work celebrated, they stand a little taller. That is worth every rand.
+              BragWall brings the MC, the gavel, the drama, and the dopamine to every school, every art show, and every kid who deserves to see their work celebrated properly.
             </QuoteBlock>
+
+            <div className="mt-10 grid max-w-sm gap-4">
+              <HeroPoint icon={<ChartIcon />} title="R50k+" text="raised in one school evening" />
+            </div>
 
             <PanelActions>
               <PrimaryButton onClick={openDemoForm}>Request a demo</PrimaryButton>
