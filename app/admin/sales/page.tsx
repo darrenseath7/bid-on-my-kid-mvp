@@ -217,6 +217,7 @@ function SaleCard({
   const certificateReleased = Boolean(item.certificate_email_requested_at);
   const emailCaptured = Boolean(item.winner_email);
   const [releasingCertificate, setReleasingCertificate] = useState(false);
+  const [preview, setPreview] = useState<"invoice" | "certificate" | null>(null);
 
   async function releaseCertificate() {
     if (!emailCaptured || certificateReleased || releasingCertificate) {
@@ -351,10 +352,26 @@ function SaleCard({
                 label={
                   certificateReleased
                     ? "Certificate released after payment"
-                    : "Certificate locked until payment confirmed"
+                    : "Certificate preview visible to admin"
                 }
                 good={certificateReleased}
               />
+
+              <button
+                type="button"
+                onClick={() => setPreview("invoice")}
+                className="rounded-full bg-white px-4 py-2 text-sm font-black text-[#07152b] transition hover:scale-[1.02]"
+              >
+                View Invoice
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPreview("certificate")}
+                className="rounded-full bg-white px-4 py-2 text-sm font-black text-[#07152b] transition hover:scale-[1.02]"
+              >
+                View Certificate
+              </button>
 
               <button
                 type="button"
@@ -376,8 +393,204 @@ function SaleCard({
               </button>
             </div>
           </div>
+
+          {preview && (
+            <DocumentPreviewModal
+              type={preview}
+              item={item}
+              certificateReleased={certificateReleased}
+              onClose={() => setPreview(null)}
+            />
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+
+function DocumentPreviewModal({
+  type,
+  item,
+  certificateReleased,
+  onClose,
+}: {
+  type: "invoice" | "certificate";
+  item: SoldArtwork;
+  certificateReleased: boolean;
+  onClose: () => void;
+}) {
+  const isInvoice = type === "invoice";
+  const amount = item.sold_amount || 0;
+  const winnerName = item.winning_bidder || "Winning bidder";
+  const winnerEmail = item.winner_email || "Winner email not captured";
+  const artworkName = `${item.child_name} ${item.child_surname}`.trim() || `Artwork #${item.sort_order}`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020b18]/82 px-4 py-6 backdrop-blur-xl">
+      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[32px] border border-white/15 bg-white p-5 text-[#07152b] shadow-2xl lg:p-8">
+        <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-slate-400">
+              Admin Preview
+            </p>
+            <h3 className="mt-1 text-3xl font-black">
+              {isInvoice ? "Invoice" : "Artwork Certificate"}
+            </h3>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="rounded-2xl bg-[#07152b] px-4 py-3 text-sm font-black text-white"
+            >
+              Print / Save PDF
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-2xl border border-slate-200 px-4 py-3 text-sm font-black text-[#07152b]"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+
+        {isInvoice ? (
+          <InvoicePreview
+            item={item}
+            amount={amount}
+            winnerName={winnerName}
+            winnerEmail={winnerEmail}
+            artworkName={artworkName}
+          />
+        ) : (
+          <CertificatePreview
+            item={item}
+            amount={amount}
+            winnerName={winnerName}
+            artworkName={artworkName}
+            certificateReleased={certificateReleased}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InvoicePreview({
+  item,
+  amount,
+  winnerName,
+  winnerEmail,
+  artworkName,
+}: {
+  item: SoldArtwork;
+  amount: number;
+  winnerName: string;
+  winnerEmail: string;
+  artworkName: string;
+}) {
+  return (
+    <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5 lg:p-8">
+      <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-sm font-black uppercase tracking-[0.22em] text-[#16d66d]">
+            BragWall Fundraiser
+          </p>
+          <h4 className="mt-2 text-4xl font-black">Invoice Request</h4>
+          <p className="mt-2 max-w-xl text-base font-bold text-slate-500">
+            Admin follow-up document for the winning parent. No email is sent automatically yet.
+          </p>
+        </div>
+        <div className="rounded-3xl bg-white p-4 shadow-sm">
+          <img src="/bragwall-logo.png" alt="BragWall" className="h-16 w-auto object-contain" />
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
+        <div className="rounded-[24px] border border-[#d6a94a] bg-[#fff8e2] p-4">
+          <img src={item.artwork_url} alt="" className="h-52 w-full rounded-2xl bg-white object-contain" />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <DocumentInfo label="Winner" value={winnerName} />
+          <DocumentInfo label="Winner Email" value={winnerEmail} />
+          <DocumentInfo label="Artwork" value={artworkName} />
+          <DocumentInfo label="Grade" value={item.grade || "Not captured"} />
+          <DocumentInfo label="Amount Due" value={`R${amount.toLocaleString()}`} strong />
+          <DocumentInfo label="Status" value="Invoice requested for admin follow-up" />
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-[24px] bg-[#07152b] p-5 text-white">
+        <p className="text-xs font-black uppercase tracking-[0.25em] text-white/45">Payment Reference</p>
+        <p className="mt-2 text-2xl font-black">BRAG-{winnerName.replace(/\s+/g, "")}</p>
+      </div>
+    </div>
+  );
+}
+
+function CertificatePreview({
+  item,
+  amount,
+  winnerName,
+  artworkName,
+  certificateReleased,
+}: {
+  item: SoldArtwork;
+  amount: number;
+  winnerName: string;
+  artworkName: string;
+  certificateReleased: boolean;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-[28px] border border-[#d6a94a] bg-[#fff8e2] p-5 lg:p-8">
+      {!certificateReleased && (
+        <div className="absolute right-5 top-5 rounded-full bg-[#ffc857] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#07152b]">
+          Admin preview - locked
+        </div>
+      )}
+
+      <div className="mx-auto max-w-3xl text-center">
+        <img src="/bragwall-logo.png" alt="BragWall" className="mx-auto mb-5 h-20 w-auto object-contain" />
+        <p className="text-sm font-black uppercase tracking-[0.3em] text-[#16a064]">Certificate of Bragging Rights</p>
+        <h4 className="mt-4 text-4xl font-black lg:text-6xl">{artworkName}</h4>
+        <p className="mt-3 text-xl font-black text-slate-600">{item.grade || "Young Artist"}</p>
+
+        <div className="mx-auto my-8 max-w-sm rounded-[28px] border-[10px] border-[#d6a94a] bg-white p-4 shadow-xl">
+          <img src={item.artwork_url} alt="" className="h-64 w-full rounded-2xl object-contain" />
+        </div>
+
+        <p className="text-lg font-bold leading-relaxed text-slate-600">
+          This certifies that <span className="font-black text-[#07152b]">{winnerName}</span> proudly won this original young artist masterpiece for <span className="font-black text-[#07152b]">R{amount.toLocaleString()}</span> in support of the school fundraiser.
+        </p>
+
+        <div className="mt-8 rounded-[24px] bg-white p-5 shadow-sm">
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400">Certificate Status</p>
+          <p className={`mt-2 text-2xl font-black ${certificateReleased ? "text-[#16d66d]" : "text-[#b38300]"}`}>
+            {certificateReleased ? "Released after payment" : "Locked until payment is confirmed"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DocumentInfo({
+  label,
+  value,
+  strong = false,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+}) {
+  return (
+    <div className="rounded-[20px] border border-slate-200 bg-white p-4">
+      <p className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">{label}</p>
+      <p className={`mt-2 break-words ${strong ? "text-3xl" : "text-lg"} font-black text-[#07152b]`}>{value}</p>
     </div>
   );
 }
