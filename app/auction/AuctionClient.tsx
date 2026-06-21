@@ -599,6 +599,8 @@ export default function DemoAuctionPage({
       }
 
       if (currentStatus === "sold") {
+        playSound("/sounds/gavel.mp3");
+
         showAuctionFlash({
           kind: "sold",
           title: "Sold!",
