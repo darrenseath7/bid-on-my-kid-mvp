@@ -162,8 +162,10 @@ export default function AdminSetupPage() {
   ).length;
 
   useEffect(() => {
-    fetchProfile();
-    fetchArtworks();
+    const activeAuctionCode = sanitizeAuctionCode(auctionCode || DEFAULT_AUCTION_CODE);
+
+    fetchProfile(activeAuctionCode);
+    fetchArtworks(activeAuctionCode);
 
     const channel = supabase
       .channel("admin-setup-school-artwork")
@@ -173,9 +175,9 @@ export default function AdminSetupPage() {
           event: "*",
           schema: "public",
           table: "demo_artworks",
-          filter: `auction_code=eq.${auctionCode}`,
+          filter: `auction_code=eq.${activeAuctionCode}`,
         },
-        () => fetchArtworks()
+        () => fetchArtworks(activeAuctionCode)
       )
       .subscribe();
 
@@ -192,16 +194,18 @@ export default function AdminSetupPage() {
     };
   }, [previewUrl]);
 
-  async function fetchProfile() {
+  async function fetchProfile(targetAuctionCode = auctionCode) {
+    const cleanAuctionCode = sanitizeAuctionCode(targetAuctionCode || DEFAULT_AUCTION_CODE);
+
     const { data } = await supabase
       .from("demo_school_profile")
       .select("*")
-      .eq("auction_code", auctionCode)
-      .single();
+      .eq("auction_code", cleanAuctionCode)
+      .maybeSingle();
 
     if (data) {
       setProfile({
-        auction_code: auctionCode,
+        auction_code: cleanAuctionCode,
         school_name: data.school_name || "",
         branch_code: data.branch_code || "",
         payment_reference_prefix: data.payment_reference_prefix || "",
@@ -211,7 +215,7 @@ export default function AdminSetupPage() {
     } else {
       setProfile((current) => ({
         ...current,
-        auction_code: auctionCode,
+        auction_code: cleanAuctionCode,
         school_name: "",
         branch_code: "",
         payment_reference_prefix: "",
@@ -221,14 +225,16 @@ export default function AdminSetupPage() {
     }
   }
 
-  async function fetchArtworks() {
+  async function fetchArtworks(targetAuctionCode = auctionCode) {
+    const cleanAuctionCode = sanitizeAuctionCode(targetAuctionCode || DEFAULT_AUCTION_CODE);
+
     const { data } = await supabase
       .from("demo_artworks")
       .select("*")
-      .eq("auction_code", auctionCode)
+      .eq("auction_code", cleanAuctionCode)
       .order("sort_order", { ascending: true });
 
-    setArtworks(data || []);
+    setArtworks((data || []).filter((artwork) => artwork.auction_code === cleanAuctionCode));
   }
 
   function updateProfileField(field: keyof SchoolProfile, value: string) {
@@ -305,8 +311,8 @@ export default function AdminSetupPage() {
         return;
       }
 
-      fetchProfile();
-      fetchArtworks();
+      fetchProfile(targetAuctionCode);
+      fetchArtworks(targetAuctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not save school setup."
@@ -371,7 +377,7 @@ export default function AdminSetupPage() {
       setGrade("Grade 3");
       setFile(null);
       setPreviewUrl("");
-      fetchArtworks();
+      fetchArtworks(auctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not upload artwork."
@@ -399,7 +405,7 @@ export default function AdminSetupPage() {
         result.message ||
           `${artwork.child_name} ${artwork.child_surname}'s artwork has been archived.`
       );
-      fetchArtworks();
+      fetchArtworks(auctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not archive artwork."
@@ -419,7 +425,7 @@ export default function AdminSetupPage() {
         result.message ||
           `${artwork.child_name} ${artwork.child_surname}'s artwork has been restored to upcoming artworks.`
       );
-      fetchArtworks();
+      fetchArtworks(auctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not restore artwork."
@@ -441,7 +447,7 @@ export default function AdminSetupPage() {
       });
 
       setMessage(result.message || "All unsold artworks have been moved to the archive.");
-      fetchArtworks();
+      fetchArtworks(auctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -858,20 +864,7 @@ export default function AdminSetupPage() {
                         </div>
                       </div>
                     </>
-                  ) : (
-                    <div className="min-h-[420px] rounded-[32px] border border-dashed border-white/20 flex items-center justify-center text-center px-8">
-                      <div>
-                        <div className="text-8xl mb-6">🖼️</div>
-                        <h3 className="text-4xl font-black mb-4">
-                          Preview appears here
-                        </h3>
-                        <p className="text-white/50 text-xl max-w-xl mx-auto">
-                          Select an artwork image to see the framed BragWall
-                          presentation.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </section>
 
@@ -891,7 +884,7 @@ export default function AdminSetupPage() {
 
                   <div className="flex gap-3 shrink-0">
                     <button
-                      onClick={fetchArtworks}
+                      onClick={() => fetchArtworks(auctionCode)}
                       className="rounded-2xl bg-white/10 border border-white/10 px-5 py-4 font-black hover:bg-white/15 transition"
                     >
                       Refresh
