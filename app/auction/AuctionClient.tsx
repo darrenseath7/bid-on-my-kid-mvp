@@ -36,6 +36,13 @@ type SchoolProfile = {
   bid_increment?: number | null;
 };
 
+type AuctionFlash = {
+  id: number;
+  kind: "bid" | "once" | "twice" | "sold";
+  title: string;
+  subtitle: string;
+};
+
 type Artwork = {
   id: string;
   auction_code: string;
@@ -100,8 +107,13 @@ export default function DemoAuctionPage({
   const [introAudioStatus, setIntroAudioStatus] = useState<
     "idle" | "loading" | "playing" | "finished" | "blocked" | "error" | "missing"
   >("idle");
+  const [auctionFlash, setAuctionFlash] = useState<AuctionFlash | null>(null);
+  const [bidPulseKey, setBidPulseKey] = useState(0);
 
   const previousStatusRef = useRef<string | null>(null);
+  const previousBidRef = useRef<number | null>(null);
+  const previousBidderRef = useRef<string | null>(null);
+  const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioUnlockedRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioUnlockElementRef = useRef<HTMLAudioElement | null>(null);
@@ -527,11 +539,97 @@ export default function DemoAuctionPage({
     void playIntroAudio({ force: true });
   }
 
+  function showAuctionFlash(nextFlash: Omit<AuctionFlash, "id">) {
+    if (flashTimeoutRef.current) {
+      clearTimeout(flashTimeoutRef.current);
+      flashTimeoutRef.current = null;
+    }
+
+    setAuctionFlash({
+      ...nextFlash,
+      id: Date.now(),
+    });
+
+    flashTimeoutRef.current = setTimeout(() => {
+      setAuctionFlash(null);
+      flashTimeoutRef.current = null;
+    }, nextFlash.kind === "sold" ? 2300 : 1700);
+  }
+
+  useEffect(() => {
+    if (!auction || !joined) return;
+
+    const currentBid = Number(auction.current_bid || 0);
+    const currentBidder = auction.leading_bidder || "";
+    const currentStatus = auction.status || "";
+    const previousBid = previousBidRef.current;
+    const previousStatus = previousStatusRef.current;
+
+    if (previousBid === null) {
+      previousBidRef.current = currentBid;
+      previousBidderRef.current = currentBidder;
+      previousStatusRef.current = currentStatus;
+      return;
+    }
+
+    if (currentBid > previousBid && currentBidder && currentBidder !== "No bids yet") {
+      setBidPulseKey((value) => value + 1);
+      showAuctionFlash({
+        kind: "bid",
+        title: `R${currentBid.toLocaleString()} received`,
+        subtitle: `from ${currentBidder}`,
+      });
+    } else if (currentStatus !== previousStatus) {
+      if (currentStatus === "going once") {
+        showAuctionFlash({
+          kind: "once",
+          title: "Going once",
+          subtitle: currentBidder && currentBidder !== "No bids yet"
+            ? `R${currentBid.toLocaleString()} to ${currentBidder}`
+            : "Last chance to bid",
+        });
+      }
+
+      if (currentStatus === "going twice") {
+        showAuctionFlash({
+          kind: "twice",
+          title: "Going twice",
+          subtitle: "Last chance!",
+        });
+      }
+
+      if (currentStatus === "sold") {
+        showAuctionFlash({
+          kind: "sold",
+          title: "Sold!",
+          subtitle: currentBidder && currentBidder !== "No bids yet"
+            ? `${currentBidder} wins for R${currentBid.toLocaleString()}`
+            : `Winning bid R${currentBid.toLocaleString()}`,
+        });
+      }
+    }
+
+    previousBidRef.current = currentBid;
+    previousBidderRef.current = currentBidder;
+    previousStatusRef.current = currentStatus;
+  }, [
+    auction?.current_bid,
+    auction?.leading_bidder,
+    auction?.status,
+    auction?.artwork_id,
+    auction?.artwork_url,
+    joined,
+  ]);
+
   useEffect(() => {
     previousStatusRef.current = null;
+    previousBidRef.current = null;
+    previousBidderRef.current = null;
     previousArtworkKeyRef.current = "";
     playedIntroAudioKeyRef.current = "";
     autoActionKeyRef.current = "";
+    setAuctionFlash(null);
+    setBidPulseKey(0);
     setAuction(null);
     setBids([]);
     setArtworks([]);
@@ -546,6 +644,10 @@ export default function DemoAuctionPage({
 
     return () => {
       stopIntroAudio();
+      if (flashTimeoutRef.current) {
+        clearTimeout(flashTimeoutRef.current);
+        flashTimeoutRef.current = null;
+      }
       window.clearInterval(refreshInterval);
     };
   }, [auctionCode]);
@@ -742,9 +844,6 @@ export default function DemoAuctionPage({
       setArtworks(Array.isArray(result?.artworks) ? result.artworks : []);
       setBidIncrement(getSafeBidIncrement(nextProfile?.bid_increment));
 
-      if (nextAuction) {
-        previousStatusRef.current = nextAuction.status;
-      }
     } catch (error) {
       console.error("Could not load public auction state:", error);
     }
@@ -1111,6 +1210,8 @@ export default function DemoAuctionPage({
         artworks={artworks}
       />
 
+      <AuctionFlashToast flash={auctionFlash} />
+
       <div className="relative shrink-0 bg-white/90 backdrop-blur border-b-4 border-[#07152b]/10 shadow-[0_10px_30px_rgba(7,21,43,0.12)]">
         <div className="max-w-md mx-auto px-4 py-2.5">
           <div className="flex items-center justify-between gap-3">
@@ -1463,12 +1564,19 @@ export default function DemoAuctionPage({
         </div>
 
         <motion.div
-          key={`${auction.current_bid}-${auction.leading_bidder}`}
+          key={`${auction.current_bid}-${auction.leading_bidder}-${bidPulseKey}`}
           animate={{
-            scale: [1, 1.012, 1],
+            scale: bidPulseKey > 0 ? [1, 1.04, 1] : [1, 1.012, 1],
+            boxShadow: bidPulseKey > 0
+              ? [
+                  "0 18px 40px rgba(7,21,43,0.18)",
+                  "0 0 42px rgba(22,214,109,0.46)",
+                  "0 18px 40px rgba(7,21,43,0.18)",
+                ]
+              : "0 18px 40px rgba(7,21,43,0.18)",
           }}
           transition={{
-            duration: 0.35,
+            duration: bidPulseKey > 0 ? 0.55 : 0.35,
           }}
           className="shrink-0 bg-white text-[#07152b] rounded-[28px] p-5 shadow-[0_18px_40px_rgba(7,21,43,0.18)] border-4 border-white"
         >
@@ -1599,6 +1707,49 @@ export default function DemoAuctionPage({
         </div>
       )}
     </main>
+  );
+}
+
+function AuctionFlashToast({ flash }: { flash: AuctionFlash | null }) {
+  return (
+    <AnimatePresence>
+      {flash && (
+        <motion.div
+          key={flash.id}
+          initial={{ opacity: 0, y: 18, scale: 0.92 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 12, scale: 0.96 }}
+          transition={{ duration: 0.22 }}
+          className="pointer-events-none fixed inset-x-0 bottom-[118px] z-[70] px-4"
+        >
+          <div className="mx-auto max-w-md">
+            <div
+              className={`mx-auto max-w-[340px] rounded-[26px] border-4 px-5 py-4 text-center shadow-[0_22px_55px_rgba(7,21,43,0.32)] backdrop-blur-md ${
+                flash.kind === "sold"
+                  ? "rotate-[-4deg] border-[#ffc857] bg-[#ef2b20] text-white"
+                  : flash.kind === "twice"
+                  ? "rotate-[3deg] border-white bg-[#ef2b20] text-white"
+                  : flash.kind === "once"
+                  ? "rotate-[-3deg] border-white bg-[#ffc857] text-[#07152b]"
+                  : "border-white bg-[#16d66d] text-[#07152b]"
+              }`}
+            >
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] opacity-75">
+                {flash.kind === "bid" ? "Bid received" : "Auction update"}
+              </p>
+
+              <p className="mt-1 text-3xl font-black leading-none tracking-[-0.04em]">
+                {flash.title}
+              </p>
+
+              <p className="mt-2 text-sm font-black leading-tight opacity-85">
+                {flash.subtitle}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
