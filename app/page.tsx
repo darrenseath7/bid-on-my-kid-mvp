@@ -167,13 +167,7 @@ export default function HomePage() {
                 <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/15 bg-[#061124]/88 px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em] text-white/78 backdrop-blur-md">
                   BragWall workflow
                 </div>
-                <div className="pointer-events-none absolute bottom-4 left-4 right-4 rounded-[22px] border border-white/10 bg-[#061124]/88 p-4 backdrop-blur-md">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-black text-[#16d66d]">Upload. Share. Auction. SOLD.</p>
-                      <p className="mt-1 text-sm font-bold text-white/72">Replace this placeholder with your recorded 30-second app demo.</p>
-                    </div>                  </div>
-                </div>
+
               </div>
             </div>
           </div>
@@ -808,6 +802,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
