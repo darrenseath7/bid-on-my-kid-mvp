@@ -2,58 +2,49 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+const DEFAULT_ELEVENLABS_VOICE_ID = "0S5oIfi8zOZixuSj8K6n";
+
 const DEFAULT_WELCOME_TEXT =
   "Welcome to BragWall. Tonight we are turning school artwork into a live fundraising event with proud parents, dangerous grandparents, competitive uncles, and masterpieces that deserve prime fridge-door real estate.";
 
-export async function POST(request: NextRequest) {
-  try {
-    const apiKey = process.env.OPENAI_API_KEY;
+export async function GET(request: NextRequest) {
+  return generateWelcomeVoice(request);
+}
 
-    if (!apiKey) {
+export async function POST(request: NextRequest) {
+  return generateWelcomeVoice(request);
+}
+
+async function generateWelcomeVoice(request: NextRequest) {
+  try {
+    if (!process.env.ELEVENLABS_API_KEY) {
       return NextResponse.json(
         {
-          error: "OPENAI_API_KEY is not configured.",
+          error:
+            "ELEVENLABS_API_KEY is missing. Add it to .env.local and Vercel environment variables.",
         },
         { status: 500 }
       );
     }
 
-    const body = await request.json().catch(() => ({}));
+    const urlText = request.nextUrl.searchParams.get("text");
+    const bodyText =
+      request.method === "POST"
+        ? await request
+            .json()
+            .then((body) => (typeof body?.text === "string" ? body.text : ""))
+            .catch(() => "")
+        : "";
 
-    const inputText =
-      typeof body.text === "string" && body.text.trim()
-        ? body.text.trim()
-        : DEFAULT_WELCOME_TEXT;
+    const inputText = cleanText(urlText) || cleanText(bodyText) || DEFAULT_WELCOME_TEXT;
+    const voiceId =
+      cleanText(process.env.ELEVENLABS_MC_VOICE_ID) || DEFAULT_ELEVENLABS_VOICE_ID;
 
-    const response = await fetch("https://api.openai.com/v1/audio/speech", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini-tts",
-        voice: "shimmer",
-        input: inputText,
-        response_format: "mp3",
-        instructions:
-          "Speak like a playful, warm, slightly theatrical school auction MC at a family fundraising evening. Sound excited, charming, and cheeky, but never childish or cartoonish. Smile while speaking. Add natural pauses after 'Welcome to BragWall' and before the fridge-door joke. Emphasize 'dangerous grandparents', 'competitive uncles', and 'prime fridge-door real estate' with humorous timing. Keep the delivery clear, premium, upbeat, and family appropriate. Do not add extra words.",
-      }),
+    const audioBuffer = await generateElevenLabsAudio({
+      apiKey: process.env.ELEVENLABS_API_KEY,
+      voiceId,
+      text: buildWelcomeScript(inputText),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-
-      return NextResponse.json(
-        {
-          error: "Failed to generate welcome voice.",
-          details: errorText,
-        },
-        { status: response.status }
-      );
-    }
-
-    const audioBuffer = await response.arrayBuffer();
 
     return new NextResponse(audioBuffer, {
       status: 200,
@@ -63,12 +54,78 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
+    console.error("Welcome voice generation failed:", error);
+
     return NextResponse.json(
       {
-        error: "Unexpected voice generation error.",
-        details: error instanceof Error ? error.message : String(error),
+        error:
+          error instanceof Error
+            ? error.message
+            : "Welcome voice generation failed.",
       },
       { status: 500 }
     );
   }
+}
+
+async function generateElevenLabsAudio({
+  apiKey,
+  voiceId,
+  text,
+}: {
+  apiKey: string;
+  voiceId: string;
+  text: string;
+}) {
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg",
+      },
+      body: JSON.stringify({
+        text,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: {
+          stability: 0.18,
+          similarity_boost: 0.78,
+          style: 0.92,
+          use_speaker_boost: true,
+        },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+
+    throw new Error(
+      `ElevenLabs welcome voice failed: ${response.status} ${response.statusText}${
+        errorText ? ` - ${errorText}` : ""
+      }`
+    );
+  }
+
+  return await response.arrayBuffer();
+}
+
+function buildWelcomeScript(sourceText: string) {
+  const cleanSource = cleanText(sourceText) || DEFAULT_WELCOME_TEXT;
+
+  return [
+    "Welcome to BragWall!",
+    "Parents, families, and dangerous grandparents, get ready.",
+    cleanSource,
+    "When the bidding opens, back your young artist, enjoy the drama, and remember: this is proudly for the kids.",
+  ]
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanText(value: unknown) {
+  return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
 }

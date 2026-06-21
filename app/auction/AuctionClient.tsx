@@ -329,7 +329,7 @@ export default function DemoAuctionPage({
         welcomeAudioRef.current = null;
       }
 
-      const audio = new Audio("/sounds/welcome-mc.wav");
+      const audio = new Audio(`/api/welcome-voice?auctionCode=${encodeURIComponent(auctionCode)}`);
 
       welcomeAudioRef.current = audio;
       audio.preload = "auto";
@@ -348,7 +348,7 @@ export default function DemoAuctionPage({
       audio.onerror = () => {
         setWelcomeVoiceLoading(false);
         setWelcomeVoicePlaying(false);
-        alert("Could not play welcome voice. Please check that /sounds/welcome-mc.wav exists.");
+        alert("Could not play welcome voice. Please check the ElevenLabs voice setup, then try again.");
       };
 
       // Important for iPhone and mobile browsers: call audio.play() directly
