@@ -136,10 +136,10 @@ export default function HomePage() {
                   Watch the auction room come alive.
                 </h2>
                 <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-white/72 md:text-xl">
-                  A clear walkthrough of the BragWall live flow: the MC introduces the artwork, parents bid from their phones, the countdown creates the theatre, and the winning family gets the SOLD moment.
+                  A clear walkthrough of the BragWall live flow: the live AI MC brings humour and personality to each artwork, parents bid from their phones, the countdown creates the theatre, and the winning family gets the SOLD moment.
                 </p>
                 <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                  <LiveDemoPoint label="1" title="Artwork spotlight" text="Every child gets a professional auction moment." />
+                  <LiveDemoPoint label="1" title="Live AI MC" text="Funny, personal artwork intros bring each child's story to life." />
                   <LiveDemoPoint label="2" title="Parent bidding" text="Bids update live across the room." />
                   <LiveDemoPoint label="3" title="Countdown energy" text="A 15-second timer keeps everyone engaged." />
                   <LiveDemoPoint label="4" title="SOLD handover" text="Winner details are captured for invoices." />
@@ -185,7 +185,7 @@ export default function HomePage() {
                       BragWall live demo
                     </div>
                     <div className="pointer-events-none absolute bottom-4 left-4 right-4 grid gap-3 sm:grid-cols-3">
-                      <DemoOverlayPill title="MC intro" text="Artwork gets the spotlight" />
+                      <DemoOverlayPill title="Live AI MC" text="Funny artwork intros" />
                       <DemoOverlayPill title="Live bids" text="Parents compete in real time" />
                       <DemoOverlayPill title="SOLD" text="Winner captured instantly" />
                     </div>
@@ -291,7 +291,7 @@ export default function HomePage() {
             </div>
 
             <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <AuctionFeature icon="MC" title="MC intros" text="Every artwork gets its own spotlight moment." />
+              <AuctionFeature icon="AI" title="Live AI MC" text="Humour, personality, and artwork stories bring every piece to life." />
               <AuctionFeature icon="BID" title="Live bids" text="Parents see highest bid and next bid instantly." />
               <AuctionFeature icon="1x" title="Going once" text="Countdown pressure creates real auction energy." />
               <AuctionFeature icon="SOLD" title="Sold moment" text="Winners are captured clearly for the school." />
