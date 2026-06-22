@@ -546,7 +546,7 @@ function HeroImageCard() {
       <div className="relative overflow-hidden rounded-[30px] border border-[#16d66d]/24 bg-[#061124] p-2 shadow-[0_34px_100px_rgba(0,0,0,0.48)] md:rounded-[36px]">
         <div className="relative overflow-hidden rounded-[24px] bg-[#020b18] md:rounded-[30px]">
           <video
-            src="/bragwall-intro.mp4"
+            src="/bragwall-founder-story.mp4"
             poster="/bragwall-hero-paint-hands.jpg"
             className="h-[430px] w-full bg-[#020b18] object-contain md:h-[560px] lg:h-[610px]"
             autoPlay
@@ -555,12 +555,12 @@ function HeroImageCard() {
             playsInline
             controls
             preload="metadata"
-            aria-label="BragWall intro video"
+            aria-label="BragWall founder story video"
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#020b18]/70 to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[18%] bg-gradient-to-r from-[#020b18]/35 to-transparent" />
           <div className="pointer-events-none absolute left-5 top-5 rounded-full border border-white/12 bg-[#061124]/86 px-4 py-2 text-xs font-black uppercase tracking-[0.25em] text-white/78 shadow-xl backdrop-blur-md md:left-7 md:top-7">
-            BragWall Intro
+            Founder Story
           </div>
           <div className="pointer-events-none absolute bottom-5 left-5 right-5 max-w-[520px] rounded-[24px] border border-white/10 bg-[#061124]/90 p-5 shadow-2xl backdrop-blur-md md:bottom-7 md:left-7 md:p-6">
             <div className="flex items-center gap-4">
@@ -568,8 +568,8 @@ function HeroImageCard() {
                 <GavelIcon />
               </div>
               <div>
-                <h3 className="text-xl font-black text-[#16d66d] md:text-2xl">Live Auctions. Real Impact.</h3>
-                <p className="mt-1 text-base font-bold text-white md:text-lg">Turn young creativity into opportunities.</p>
+                <h3 className="text-xl font-black text-[#16d66d] md:text-2xl">Every piece of art tells a story.</h3>
+                <p className="mt-1 text-base font-bold text-white md:text-lg">Why BragWall exists.</p>
               </div>
             </div>
           </div>
