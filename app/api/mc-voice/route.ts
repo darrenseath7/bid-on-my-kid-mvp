@@ -285,13 +285,20 @@ function buildMcScript({
   grade: string;
 }) {
   const cleanStory = makeStoryMoreSpoken(sourceText, childName, grade);
-  const intro = `Welcome to ${childName} from ${grade}.`;
+  const intro = buildArtworkHandover(childName, grade);
   const outro = `Get ready. Bidding opens after the countdown.`;
 
   // Keep the MC voice aligned with the exact intro shown on Admin Live.
   // Do not add random extra auctioneer phrases, and do not introduce the
   // student/grade more than once. Keep it close to a 30-second spoken intro.
   return limitWords(removeConsecutiveDuplicateWords(`${intro} ${cleanStory} ${outro}`), 90);
+}
+
+function buildArtworkHandover(childName: string, grade: string) {
+  const artist = childName || "our young artist";
+  const gradeText = grade && grade !== "the school" ? ` from ${grade}` : "";
+
+  return `First up tonight, we have ${artist}${gradeText}.`;
 }
 
 function makeStoryMoreSpoken(sourceText: string, childName: string, grade: string) {
@@ -310,6 +317,7 @@ function makeStoryMoreSpoken(sourceText: string, childName: string, grade: strin
 
   const cleaned = trimmed
     .replace(introPattern || /$a/, "")
+    .replace(/^welcome(?:\s+welcome)*(?:\s+to\s+bragwall)?[.!,:;-]*\s*/i, "")
     .replace(/welcome to\s+from\s*\.?/gi, "")
     .replace(/from\s+from/gi, "from")
     .replace(/\s+/g, " ")

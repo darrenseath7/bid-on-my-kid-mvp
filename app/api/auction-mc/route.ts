@@ -51,7 +51,9 @@ Rules:
 - Use humour, but keep it kind and family-friendly.
 - Relate the intro to the artwork story below.
 - Do not repeat phrases, names, or words awkwardly.
-- Do not say “welcome” more than once.
+- Do not use the word “welcome”. The separate Welcome MC already welcomes the room.
+- Do not start with “Welcome”, “Welcome welcome”, or “Welcome to”.
+- Start with a specific artwork handover such as “First up tonight”, “Next on the easel”, or “Eyes on this masterpiece”.
 - End by building anticipation for bidding after the countdown.
 
 Artist:
@@ -123,10 +125,13 @@ Create a funny celebratory sold message.
       temperature: 0.9,
     });
 
+    const generatedText = cleanMcIntroText(
+      completion.choices[0].message.content ||
+        "First up tonight, this artwork is ready for its moment in the spotlight. Bidding is about to heat up beautifully."
+    );
+
     return Response.json({
-      text:
-        completion.choices[0].message.content ||
-        "Bidding is heating up beautifully tonight.",
+      text: generatedText,
     });
   } catch (error) {
     console.error(error);
@@ -136,4 +141,35 @@ Create a funny celebratory sold message.
       { status: 500 }
     );
   }
+}
+
+function cleanMcIntroText(value: string) {
+  return removeConsecutiveDuplicateWords(
+    String(value || "")
+      .replace(/^\s*welcome(?:\s+welcome)*(?:\s+to\s+bragwall)?[.!,:;\-]*\s*/i, "")
+      .replace(/\bwelcome\s+welcome\b/gi, "welcome")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+}
+
+function removeConsecutiveDuplicateWords(value: string) {
+  return value
+    .split(/(\s+)/)
+    .filter((part, index, parts) => {
+      if (/\s+/.test(part)) return true;
+
+      const previousWord = [...parts]
+        .slice(0, index)
+        .reverse()
+        .find((item) => !/\s+/.test(item));
+
+      if (!previousWord) return true;
+
+      return previousWord.toLowerCase().replace(/[^a-z0-9]/g, "") !==
+        part.toLowerCase().replace(/[^a-z0-9]/g, "");
+    })
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
 }
