@@ -152,7 +152,7 @@ export default function SchoolProfilePage() {
                   onChange={(value) =>
                     updateField("payment_reference_prefix", value)
                   }
-                  placeholder="BRAG"
+                  placeholder="Optional - e.g. SCHOOL-ART"
                 />
 
                 <Field

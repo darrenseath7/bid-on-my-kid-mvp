@@ -628,7 +628,7 @@ export default function AdminSetupPage() {
                       onChange={(value) =>
                         updateProfileField("payment_reference_prefix", value)
                       }
-                      placeholder="BRAG-STJOHNS"
+                      placeholder="Optional - e.g. SCHOOL-ART"
                     />
 
                     <div>
