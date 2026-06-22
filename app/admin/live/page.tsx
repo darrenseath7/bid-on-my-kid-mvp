@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import AdminAuctionSelector from "@/components/AdminAuctionSelector";
@@ -8,6 +8,8 @@ import { supabase } from "@/lib/supabase";
 import { useAdminAuctionCode } from "@/lib/useAdminAuctionCode";
 
 type AuctionState = {
+  auction_code?: string | null;
+  artwork_id?: string | null;
   child_name: string;
   child_surname: string;
   grade: string;
@@ -85,6 +87,7 @@ export default function AdminLivePage() {
   const [bidIncrement, setBidIncrement] = useState(DEFAULT_BID_STEP);
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState("");
+  const activeAuctionCodeRef = useRef(DEFAULT_AUCTION_CODE);
 
   const currentArtwork = useMemo(() => {
     return getCurrentArtwork(auction, artworks);
@@ -133,89 +136,100 @@ export default function AdminLivePage() {
   const isLive = statusLabel !== "waiting" && statusLabel !== "sold";
 
   useEffect(() => {
-    loadEverything();
+    const activeAuctionCode = auctionCode;
+    let cancelled = false;
+
+    activeAuctionCodeRef.current = activeAuctionCode;
+    setAuction(null);
+    setArtworks([]);
+    setBids([]);
+    setActivity([]);
+    setBidIncrement(DEFAULT_BID_STEP);
+    setBusyAction("");
+    loadEverything(activeAuctionCode, () => cancelled);
 
     const auctionChannel = supabase
-      .channel("admin-live-auction-state-premium-bidders")
+      .channel(`admin-live-auction-state-${activeAuctionCode}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "live_auction_state",
-          filter: `auction_code=eq.${auctionCode}`,
+          filter: `auction_code=eq.${activeAuctionCode}`,
         },
         () => {
-          fetchAuction();
+          fetchAuction(activeAuctionCode, () => cancelled);
         }
       )
       .subscribe();
 
     const schoolProfileChannel = supabase
-      .channel("admin-live-school-profile-bid-increment-bidders")
+      .channel(`admin-live-school-profile-${activeAuctionCode}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "demo_school_profile",
-          filter: `auction_code=eq.${auctionCode}`,
+          filter: `auction_code=eq.${activeAuctionCode}`,
         },
         () => {
-          fetchSchoolProfile();
+          fetchSchoolProfile(activeAuctionCode, () => cancelled);
         }
       )
       .subscribe();
 
     const artworksChannel = supabase
-      .channel("admin-live-artworks-premium-bidders")
+      .channel(`admin-live-artworks-${activeAuctionCode}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "demo_artworks",
-          filter: `auction_code=eq.${auctionCode}`,
+          filter: `auction_code=eq.${activeAuctionCode}`,
         },
         () => {
-          fetchArtworks();
+          fetchArtworks(activeAuctionCode, () => cancelled);
         }
       )
       .subscribe();
 
     const bidsChannel = supabase
-      .channel("admin-live-bids-premium-bidders")
+      .channel(`admin-live-bids-${activeAuctionCode}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "live_bids",
-          filter: `auction_code=eq.${auctionCode}`,
+          filter: `auction_code=eq.${activeAuctionCode}`,
         },
         () => {
-          fetchBids();
+          fetchBids(activeAuctionCode, () => cancelled);
         }
       )
       .subscribe();
 
     const activityChannel = supabase
-      .channel("admin-live-activity-premium-bidders")
+      .channel(`admin-live-activity-${activeAuctionCode}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "live_activity_feed",
-          filter: `auction_code=eq.${auctionCode}`,
+          filter: `auction_code=eq.${activeAuctionCode}`,
         },
         () => {
-          fetchActivity();
+          fetchActivity(activeAuctionCode, () => cancelled);
         }
       )
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(auctionChannel);
       supabase.removeChannel(schoolProfileChannel);
       supabase.removeChannel(artworksChannel);
@@ -224,74 +238,104 @@ export default function AdminLivePage() {
     };
   }, [auctionCode]);
 
-  async function loadEverything() {
+  async function loadEverything(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
     setLoading(true);
 
     await Promise.all([
-      fetchAuction(),
-      fetchSchoolProfile(),
-      fetchArtworks(),
-      fetchBids(),
-      fetchActivity(),
+      fetchAuction(targetAuctionCode, isCancelled),
+      fetchSchoolProfile(targetAuctionCode, isCancelled),
+      fetchArtworks(targetAuctionCode, isCancelled),
+      fetchBids(targetAuctionCode, isCancelled),
+      fetchActivity(targetAuctionCode, isCancelled),
     ]);
 
-    setLoading(false);
+    if (!isCancelled() && activeAuctionCodeRef.current === targetAuctionCode) {
+      setLoading(false);
+    }
   }
 
-  async function fetchAuction() {
+  async function fetchAuction(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
     const { data, error } = await supabase
       .from("live_auction_state")
       .select("*")
-      .eq("auction_code", auctionCode)
+      .eq("auction_code", targetAuctionCode)
       .single();
 
-    if (!error && data) {
+    if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
+
+    if (!error && data && data.auction_code === targetAuctionCode) {
       setAuction(data);
     }
   }
 
-  async function fetchSchoolProfile() {
+  async function fetchSchoolProfile(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
     const { data } = await supabase
       .from("demo_school_profile")
       .select("auction_code,bid_increment")
-      .eq("auction_code", auctionCode)
+      .eq("auction_code", targetAuctionCode)
       .maybeSingle();
+
+    if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
 
     const profile = data as SchoolProfile | null;
 
     setBidIncrement(getSafeBidIncrement(profile?.bid_increment));
   }
 
-  async function fetchArtworks() {
+  async function fetchArtworks(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
     const { data } = await supabase
       .from("demo_artworks")
       .select("*")
-      .eq("auction_code", auctionCode)
+      .eq("auction_code", targetAuctionCode)
       .order("sort_order", { ascending: true });
 
-    setArtworks(data || []);
+    if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
+
+    setArtworks((data || []).filter((artwork) => artwork.auction_code === targetAuctionCode));
   }
 
-  async function fetchBids() {
+  async function fetchBids(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
     const { data } = await supabase
       .from("live_bids")
       .select("*")
-      .eq("auction_code", auctionCode)
+      .eq("auction_code", targetAuctionCode)
       .order("amount", { ascending: false })
       .limit(500);
 
-    setBids(data || []);
+    if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
+
+    setBids((data || []).filter((bid) => bid.auction_code === targetAuctionCode));
   }
 
-  async function fetchActivity() {
+  async function fetchActivity(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
     const { data } = await supabase
       .from("live_activity_feed")
       .select("*")
-      .eq("auction_code", auctionCode)
+      .eq("auction_code", targetAuctionCode)
       .order("created_at", { ascending: false })
       .limit(12);
 
-    setActivity(data || []);
+    if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
+
+    setActivity((data || []).filter((item) => item.auction_code === targetAuctionCode));
   }
 
   async function addActivity(message: string) {
@@ -780,7 +824,7 @@ export default function AdminLivePage() {
                         </div>
 
                         <button
-                          onClick={loadEverything}
+                          onClick={() => loadEverything()}
                           className="rounded-[18px] bg-white/5 border border-white/10 px-5 py-3 font-black hover:bg-white/10 transition"
                         >
                           <span className="inline-flex align-middle mr-2">

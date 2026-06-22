@@ -124,6 +124,7 @@ export default function DemoAuctionPage({
   const previousArtworkKeyRef = useRef("");
   const lastManualIntroTapRef = useRef(0);
   const lastManualWelcomeTapRef = useRef(0);
+  const activeAuctionCodeRef = useRef(auctionCode);
 
   const uniqueBidderCount = useMemo(() => {
     const uniqueNames = new Set(
@@ -633,18 +634,22 @@ export default function DemoAuctionPage({
     previousArtworkKeyRef.current = "";
     playedIntroAudioKeyRef.current = "";
     autoActionKeyRef.current = "";
+    activeAuctionCodeRef.current = auctionCode;
     setAuctionFlash(null);
     setBidPulseKey(0);
     setAuction(null);
     setBids([]);
     setArtworks([]);
+    setBidIncrement(DEFAULT_BID_STEP);
+    setSecondsRemaining(0);
+    setPauseRemaining(0);
 
-    fetchPublicAuctionState();
+    fetchPublicAuctionState(auctionCode);
 
     // Public parent page now reads only from our safe Next.js API.
     // The browser no longer selects raw Supabase auction tables directly.
     const refreshInterval = window.setInterval(() => {
-      fetchPublicAuctionState();
+      fetchPublicAuctionState(auctionCode);
     }, 1500);
 
     return () => {
@@ -828,10 +833,10 @@ export default function DemoAuctionPage({
     await runSecureAuctionRhythmOnce();
   }
 
-  async function fetchPublicAuctionState() {
+  async function fetchPublicAuctionState(targetAuctionCode = auctionCode) {
     try {
       const response = await fetch(
-        `/api/public-auction-state?auctionCode=${encodeURIComponent(auctionCode)}`,
+        `/api/public-auction-state?auctionCode=${encodeURIComponent(targetAuctionCode)}`,
         {
           cache: "no-store",
         }
@@ -843,12 +848,21 @@ export default function DemoAuctionPage({
         throw new Error(result?.error || "Could not load auction.");
       }
 
+      if (activeAuctionCodeRef.current !== targetAuctionCode) return;
+
+      const resultAuctionCode = normalizeAuctionCode(result?.auctionCode);
+
+      if (resultAuctionCode !== targetAuctionCode) return;
+
       const nextAuction = (result?.auction || null) as AuctionState | null;
       const nextProfile = (result?.profile || null) as SchoolProfile | null;
+      const nextArtworks = Array.isArray(result?.artworks)
+        ? result.artworks.filter((artwork: Artwork) => artwork.auction_code === targetAuctionCode)
+        : [];
 
       setAuction(nextAuction);
       setBids(Array.isArray(result?.bids) ? result.bids : []);
-      setArtworks(Array.isArray(result?.artworks) ? result.artworks : []);
+      setArtworks(nextArtworks);
       setBidIncrement(getSafeBidIncrement(nextProfile?.bid_increment));
 
     } catch (error) {

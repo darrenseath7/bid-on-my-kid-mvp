@@ -49,7 +49,10 @@ function getSafeBidIncrement(value: unknown) {
   return Math.round(parsed);
 }
 
-type RawAuctionState = {  child_name?: string | null;
+type RawAuctionState = {
+  auction_code?: string | null;
+  artwork_id?: string | null;
+  child_name?: string | null;
   child_surname?: string | null;
   grade?: string | null;
   artwork_url?: string | null;
@@ -86,13 +89,17 @@ type RawArtwork = {
   sort_order?: number | null;
   sold_amount?: number | null;
   winning_bidder?: string | null;
-  ai_intro?: string | null;  mc_audio_url?: string | null;
+  ai_intro?: string | null;
+  mc_audio_url?: string | null;
 };
 
 function sanitizeAuction(auction: RawAuctionState | null) {
   if (!auction) return null;
 
-  return {    child_name: auction.child_name || "",
+  return {
+    auction_code: auction.auction_code || "",
+    artwork_id: auction.artwork_id || null,
+    child_name: auction.child_name || "",
     child_surname: auction.child_surname || "",
     grade: auction.grade || "",
     artwork_url: auction.artwork_url || "",
@@ -136,7 +143,8 @@ function sanitizeArtwork(artwork: RawArtwork) {
     sort_order: artwork.sort_order || null,
     sold_amount: artwork.sold_amount || null,
     winning_bidder: artwork.winning_bidder || null,
-    ai_intro: artwork.ai_intro || null,    mc_audio_url: artwork.mc_audio_url || null,
+    ai_intro: artwork.ai_intro || null,
+    mc_audio_url: artwork.mc_audio_url || null,
   };
 }
 
@@ -155,7 +163,7 @@ export async function GET(request: NextRequest) {
       supabase
         .from("live_auction_state")
         .select(
-          "child_name,child_surname,grade,artwork_url,current_bid,leading_bidder,status,total_raised,status_deadline,mc_commentary,mc_audio_url,bid_pause_until,next_bid_amount,last_bid_at,winner_email,winner_email_submitted_at"
+          "auction_code,artwork_id,child_name,child_surname,grade,artwork_url,current_bid,leading_bidder,status,total_raised,status_deadline,mc_commentary,mc_audio_url,bid_pause_until,next_bid_amount,last_bid_at,winner_email,winner_email_submitted_at"
         )
         .eq("auction_code", auctionCode)
         .maybeSingle<RawAuctionState>(),

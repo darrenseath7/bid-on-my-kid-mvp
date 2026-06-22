@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
         [
           "id",
           "sort_order",
+          "auction_code",
           "child_name",
           "child_surname",
           "grade",
@@ -142,6 +143,7 @@ export async function POST(request: NextRequest) {
         [
           "id",
           "sort_order",
+          "auction_code",
           "child_name",
           "child_surname",
           "grade",

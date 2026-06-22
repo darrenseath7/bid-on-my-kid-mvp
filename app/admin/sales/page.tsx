@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import BrandHeader from "@/components/BrandHeader";
 import AdminAuctionSelector from "@/components/AdminAuctionSelector";
@@ -17,6 +17,7 @@ type SoldArtwork = {
   status: string;
   sold_amount: number | null;
   winning_bidder: string | null;
+  auction_code?: string | null;
   winner_email?: string | null;
   invoice_email_requested_at?: string | null;
   certificate_email_requested_at?: string | null;
@@ -28,12 +29,18 @@ export default function AdminSalesPage() {
   const [auctionCode] = useAdminAuctionCode(DEFAULT_AUCTION_CODE);
   const [sales, setSales] = useState<SoldArtwork[]>([]);
   const [loading, setLoading] = useState(true);
+  const activeAuctionCodeRef = useRef(DEFAULT_AUCTION_CODE);
 
   useEffect(() => {
-    fetchSales();
+    let cancelled = false;
+
+    activeAuctionCodeRef.current = auctionCode;
+    setSales([]);
+    setLoading(true);
+    fetchSales(auctionCode, () => cancelled);
 
     const salesChannel = supabase
-      .channel("admin-sales-page")
+      .channel(`admin-sales-page-${auctionCode}`)
       .on(
         "postgres_changes",
         {
@@ -42,21 +49,25 @@ export default function AdminSalesPage() {
           table: "demo_artworks",
           filter: `auction_code=eq.${auctionCode}`,
         },
-        () => fetchSales()
+        () => fetchSales(auctionCode, () => cancelled)
       )
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(salesChannel);
     };
   }, [auctionCode]);
 
-  async function fetchSales() {
+  async function fetchSales(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
     setLoading(true);
     setSales([]);
 
     try {
-      const response = await fetch(`/api/admin/sales-action?auctionCode=${encodeURIComponent(auctionCode)}`, {
+      const response = await fetch(`/api/admin/sales-action?auctionCode=${encodeURIComponent(targetAuctionCode)}`, {
         cache: "no-store",
       });
 
@@ -66,12 +77,22 @@ export default function AdminSalesPage() {
         throw new Error(result?.error || "Could not load sales records.");
       }
 
-      setSales(result?.sales || []);
+      if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
+
+      const isolatedSales = Array.isArray(result?.sales)
+        ? result.sales.filter((item: SoldArtwork) => item.auction_code === targetAuctionCode)
+        : [];
+
+      setSales(isolatedSales);
     } catch (error) {
-      console.error("Could not load secure sales records:", error);
-      setSales([]);
+      if (!isCancelled() && activeAuctionCodeRef.current === targetAuctionCode) {
+        console.error("Could not load secure sales records:", error);
+        setSales([]);
+      }
     } finally {
-      setLoading(false);
+      if (!isCancelled() && activeAuctionCodeRef.current === targetAuctionCode) {
+        setLoading(false);
+      }
     }
   }
 
@@ -122,7 +143,7 @@ export default function AdminSalesPage() {
               <AdminAuctionSelector />
 
               <button
-                onClick={fetchSales}
+                onClick={() => fetchSales()}
                 className="rounded-2xl bg-white text-[#07152b] px-6 py-4 font-black shadow-xl w-full"
               >
                 Refresh

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import AdminAuctionSelector from "@/components/AdminAuctionSelector";
 import { supabase } from "@/lib/supabase";
@@ -132,6 +132,7 @@ export default function AdminSetupPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
+  const activeAuctionCodeRef = useRef(sanitizeAuctionCode(DEFAULT_AUCTION_CODE));
 
   const liveUpcomingArtworks = artworks.filter((artwork) => {
     return artwork.status !== "sold" && artwork.status !== "archived";
@@ -163,12 +164,26 @@ export default function AdminSetupPage() {
 
   useEffect(() => {
     const activeAuctionCode = sanitizeAuctionCode(auctionCode || DEFAULT_AUCTION_CODE);
+    let cancelled = false;
 
-    fetchProfile(activeAuctionCode);
-    fetchArtworks(activeAuctionCode);
+    activeAuctionCodeRef.current = activeAuctionCode;
+    setMessage("");
+    setArtworks([]);
+    setProfile((current) => ({
+      ...current,
+      auction_code: activeAuctionCode,
+      school_name: "",
+      branch_code: "",
+      payment_reference_prefix: "",
+      collection_instructions: "",
+      bid_increment: current.bid_increment || 100,
+    }));
+
+    fetchProfile(activeAuctionCode, () => cancelled);
+    fetchArtworks(activeAuctionCode, () => cancelled);
 
     const channel = supabase
-      .channel("admin-setup-school-artwork")
+      .channel(`admin-setup-school-artwork-${activeAuctionCode}`)
       .on(
         "postgres_changes",
         {
@@ -177,11 +192,12 @@ export default function AdminSetupPage() {
           table: "demo_artworks",
           filter: `auction_code=eq.${activeAuctionCode}`,
         },
-        () => fetchArtworks(activeAuctionCode)
+        () => fetchArtworks(activeAuctionCode, () => cancelled)
       )
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(channel);
     };
   }, [auctionCode]);
@@ -194,7 +210,10 @@ export default function AdminSetupPage() {
     };
   }, [previewUrl]);
 
-  async function fetchProfile(targetAuctionCode = auctionCode) {
+  async function fetchProfile(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
     const cleanAuctionCode = sanitizeAuctionCode(targetAuctionCode || DEFAULT_AUCTION_CODE);
 
     const { data } = await supabase
@@ -202,6 +221,8 @@ export default function AdminSetupPage() {
       .select("*")
       .eq("auction_code", cleanAuctionCode)
       .maybeSingle();
+
+    if (isCancelled() || activeAuctionCodeRef.current !== cleanAuctionCode) return;
 
     if (data) {
       setProfile({
@@ -225,7 +246,10 @@ export default function AdminSetupPage() {
     }
   }
 
-  async function fetchArtworks(targetAuctionCode = auctionCode) {
+  async function fetchArtworks(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
     const cleanAuctionCode = sanitizeAuctionCode(targetAuctionCode || DEFAULT_AUCTION_CODE);
 
     const { data } = await supabase
@@ -233,6 +257,8 @@ export default function AdminSetupPage() {
       .select("*")
       .eq("auction_code", cleanAuctionCode)
       .order("sort_order", { ascending: true });
+
+    if (isCancelled() || activeAuctionCodeRef.current !== cleanAuctionCode) return;
 
     setArtworks((data || []).filter((artwork) => artwork.auction_code === cleanAuctionCode));
   }
