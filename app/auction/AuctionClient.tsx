@@ -226,7 +226,7 @@ export default function DemoAuctionPage({
   const shouldShowSoldOverlay =
     isSold && !(isWinningBidder && winnerEmailAlreadySubmitted);
 
-  const shouldShowArtworkSoldBanner = isSold && winnerEmailAlreadySubmitted;
+  const shouldShowArtworkSoldBanner = isSold;
 
   const canBid = Boolean(
     auction &&
@@ -976,7 +976,11 @@ export default function DemoAuctionPage({
       }
 
       if (result?.auction) {
-        setAuction(result.auction);
+        setAuction({
+          ...result.auction,
+          winner_email_submitted: true,
+          winner_email: result.auction.winner_email || cleanEmail,
+        });
       }
 
       setEmailSubmittedArtworkKey(activeArtworkKey);
@@ -1400,6 +1404,18 @@ export default function DemoAuctionPage({
               Next artwork starts in {secondsRemaining}s.
             </p>
           </div>
+        )}
+
+        {isSold && winnerEmailAlreadySubmitted && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="shrink-0 rounded-[28px] border-4 border-[#ffc857] bg-[#07152b] p-5 text-center text-white shadow-2xl"
+          >
+            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.28em] text-[#ffc857]">Sold artwork</p>
+            <h2 className="text-4xl font-black leading-none text-[#ffc857]">SOLD</h2>
+            <p className="mt-3 text-sm font-bold text-white/75">The winning email is saved. Next artwork starts in {secondsRemaining}s.</p>
+          </motion.div>
         )}
 
         {isPreparingIntro && (

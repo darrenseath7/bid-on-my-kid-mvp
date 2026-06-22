@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const DEFAULT_AUCTION_CODE = "demo";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const NEXT_ARTWORK_COUNTDOWN_SECONDS = 20;
+const NEXT_ARTWORK_COUNTDOWN_SECONDS = 15;
 
 function normalizeAuctionCode(value: unknown) {
   const normalized = String(value || DEFAULT_AUCTION_CODE)
