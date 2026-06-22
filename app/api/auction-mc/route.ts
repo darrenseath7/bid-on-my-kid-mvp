@@ -15,7 +15,16 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    const { childName, grade, highestBid, bidderName, mode } = body;
+    const {
+      childName,
+      childSurname,
+      grade,
+      highestBid,
+      bidderName,
+      mode,
+      fallbackPreview,
+      sortOrder,
+    } = body;
 
     let prompt = "";
 
@@ -23,7 +32,8 @@ export async function POST(req: Request) {
       prompt = `
 You are a funny, charismatic South African school auction MC.
 
-Create a short premium-art-auction-style introduction for a child's artwork.
+Create a premium-art-auction-style introduction for a child's artwork.
+It must sound like a live MC script that takes about 30 seconds to say out loud.
 
 Tone:
 - witty
@@ -33,11 +43,24 @@ Tone:
 - premium
 - playful
 
-Artist:
-${childName}
-${grade}
+Rules:
+- Keep it between 65 and 80 words.
+- Mention the artist once by name.
+- Mention the grade once if provided.
+- Use humour, but keep it kind and family-friendly.
+- Relate the intro to the artwork story below.
+- Do not repeat phrases, names, or words awkwardly.
+- Do not say “welcome” more than once.
+- End by building anticipation for bidding after the countdown.
 
-Keep response under 120 words.
+Artist:
+${[childName, childSurname].filter(Boolean).join(" ") || "our young artist"}
+Grade:
+${grade || "not provided"}
+Artwork order:
+${sortOrder || "not provided"}
+Artwork story/details:
+${fallbackPreview || "Use colour, imagination, young-artist confidence, and proud family bidding energy."}
 `;
     }
 

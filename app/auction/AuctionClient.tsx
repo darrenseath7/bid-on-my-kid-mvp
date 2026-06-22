@@ -64,7 +64,7 @@ type Artwork = {
 const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
 const MC_INTRO_SECONDS = 60;
-const BIDDING_START_BUFFER_SECONDS = 20;
+const BIDDING_START_BUFFER_SECONDS = 15;
 
 function normalizeAuctionCode(value?: string) {
   const normalized = String(value || DEFAULT_AUCTION_CODE)
@@ -659,7 +659,7 @@ export default function DemoAuctionPage({
 
     if (!isIntro) {
       // Do not abruptly cut off the MC voice if another device/server has just
-      // moved the auction into the 20-second countdown. Let any already-playing
+      // moved the auction into the 15-second countdown. Let any already-playing
       // audio finish naturally; the bid button remains locked during countdown.
       if (introAudioStatus !== "playing" || !isStartingSoon) {
         stopIntroAudio();
@@ -1474,7 +1474,7 @@ export default function DemoAuctionPage({
                 )}
 
                 <p className="text-sm font-black leading-snug opacity-75">
-                  After the MC voice intro, bidding starts in 20 seconds.
+                  After the MC voice intro, bidding starts in 15 seconds.
                 </p>
 
                 {(introAudioStatus === "blocked" || introAudioStatus === "error") && (

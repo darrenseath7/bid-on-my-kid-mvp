@@ -65,9 +65,9 @@ function getSafeAuctionCode(value: unknown) {
   return cleaned || DEFAULT_AUCTION_CODE;
 }
 const MIN_MC_INTRO_SECONDS = 28;
-const MAX_MC_INTRO_SECONDS = 90;
-const MC_WORDS_PER_SECOND = 1.55;
-const MC_INTRO_PADDING_SECONDS = 14;
+const MAX_MC_INTRO_SECONDS = 45;
+const MC_WORDS_PER_SECOND = 2.25;
+const MC_INTRO_PADDING_SECONDS = 4;
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -120,10 +120,11 @@ function estimateMcIntroSeconds(text: string) {
   const estimated = Math.ceil(wordCount / MC_WORDS_PER_SECOND) + MC_INTRO_PADDING_SECONDS;
 
   // Fallback only. The parent should advance when the real audio ends, not
-  // before. Use a safer near-60s deadline to avoid cutting the MC voice short.
+  // before. Keep the generated script close to a 30-second MC intro, while
+  // still allowing a small safety buffer for slower voice playback.
   return Math.min(
     MAX_MC_INTRO_SECONDS,
-    Math.max(65, MIN_MC_INTRO_SECONDS, estimated)
+    Math.max(30, MIN_MC_INTRO_SECONDS, estimated)
   );
 }
 

@@ -5,7 +5,7 @@ export const runtime = "nodejs";
 const DEFAULT_ELEVENLABS_VOICE_ID = "0S5oIfi8zOZixuSj8K6n";
 
 const DEFAULT_WELCOME_TEXT =
-  "Welcome to BragWall. Tonight we are turning school artwork into a live fundraising event with proud parents, dangerous grandparents, competitive uncles, and masterpieces that deserve prime fridge-door real estate.";
+  "Tonight we are turning school artwork into a live fundraising event with proud parents, dangerous grandparents, competitive uncles, and masterpieces that deserve prime fridge-door real estate.";
 
 export async function GET(request: NextRequest) {
   return generateWelcomeVoice(request);
@@ -113,19 +113,49 @@ async function generateElevenLabsAudio({
 }
 
 function buildWelcomeScript(sourceText: string) {
-  const cleanSource = cleanText(sourceText) || DEFAULT_WELCOME_TEXT;
+  const cleanSource = stripLeadingWelcome(cleanText(sourceText) || DEFAULT_WELCOME_TEXT);
 
-  return [
-    "Welcome to BragWall!",
-    "Parents, families, and dangerous grandparents, get ready.",
-    cleanSource,
-    "When the bidding opens, back your young artist, enjoy the drama, and remember: this is proudly for the kids.",
-  ]
-    .join(" ")
-    .replace(/\s+/g, " ")
+  return removeConsecutiveDuplicateWords(
+    [
+      "Welcome to BragWall!",
+      "Parents, families, and dangerous grandparents, get ready.",
+      cleanSource,
+      "When bidding opens, back your young artist, enjoy the drama, and remember: this is proudly for the kids.",
+    ]
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+}
+
+function stripLeadingWelcome(value: string) {
+  return value
+    .replace(/^welcome\s+to\s+bragwall[.!,:;-]*\s*/i, "")
+    .replace(/^welcome[.!,:;-]*\s*/i, "")
     .trim();
 }
 
 function cleanText(value: unknown) {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+}
+
+function removeConsecutiveDuplicateWords(value: string) {
+  return value
+    .split(/(\s+)/)
+    .filter((part, index, parts) => {
+      if (/\s+/.test(part)) return true;
+
+      const previousWord = [...parts]
+        .slice(0, index)
+        .reverse()
+        .find((item) => !/\s+/.test(item));
+
+      if (!previousWord) return true;
+
+      return previousWord.toLowerCase().replace(/[^a-z0-9]/g, "") !==
+        part.toLowerCase().replace(/[^a-z0-9]/g, "");
+    })
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
 }

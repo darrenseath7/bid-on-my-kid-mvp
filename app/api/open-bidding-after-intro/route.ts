@@ -19,7 +19,7 @@ type SchoolProfile = {
 
 const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
-const BIDDING_START_BUFFER_SECONDS = 20;
+const BIDDING_START_BUFFER_SECONDS = 15;
 
 function normalizeAuctionCode(value: unknown) {
   const normalized = String(value || DEFAULT_AUCTION_CODE)

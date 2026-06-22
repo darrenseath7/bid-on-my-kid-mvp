@@ -243,6 +243,27 @@ function cleanText(value?: string | null) {
     .slice(0, 8000);
 }
 
+function removeConsecutiveDuplicateWords(value: string) {
+  return value
+    .split(/(\s+)/)
+    .filter((part, index, parts) => {
+      if (/\s+/.test(part)) return true;
+
+      const previousWord = [...parts]
+        .slice(0, index)
+        .reverse()
+        .find((item) => !/\s+/.test(item));
+
+      if (!previousWord) return true;
+
+      return previousWord.toLowerCase().replace(/[^a-z0-9]/g, "") !==
+        part.toLowerCase().replace(/[^a-z0-9]/g, "");
+    })
+    .join("")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function makeSafeFilePart(value: string) {
   const cleaned = value
     .toLowerCase()
@@ -269,8 +290,8 @@ function buildMcScript({
 
   // Keep the MC voice aligned with the exact intro shown on Admin Live.
   // Do not add random extra auctioneer phrases, and do not introduce the
-  // student/grade more than once.
-  return limitWords(`${intro} ${cleanStory} ${outro}`, 130);
+  // student/grade more than once. Keep it close to a 30-second spoken intro.
+  return limitWords(removeConsecutiveDuplicateWords(`${intro} ${cleanStory} ${outro}`), 90);
 }
 
 function makeStoryMoreSpoken(sourceText: string, childName: string, grade: string) {

@@ -7,11 +7,11 @@ const SILENCE_BEFORE_GOING_ONCE_SECONDS = 5;
 const GOING_ONCE_SECONDS = 3;
 const GOING_TWICE_SECONDS = 3;
 const NEXT_ARTWORK_COUNTDOWN_SECONDS = 20;
-const BIDDING_START_BUFFER_SECONDS = 20;
+const BIDDING_START_BUFFER_SECONDS = 15;
 const MIN_MC_INTRO_SECONDS = 28;
-const MAX_MC_INTRO_SECONDS = 90;
-const MC_WORDS_PER_SECOND = 1.55;
-const MC_INTRO_PADDING_SECONDS = 14;
+const MAX_MC_INTRO_SECONDS = 45;
+const MC_WORDS_PER_SECOND = 2.25;
+const MC_INTRO_PADDING_SECONDS = 4;
 
 type AuctionState = {
   auction_code: string;
@@ -122,11 +122,10 @@ function estimateMcIntroSeconds(text: string) {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
   const estimated = Math.ceil(wordCount / MC_WORDS_PER_SECOND) + MC_INTRO_PADDING_SECONDS;
 
-  // Use the long end of the range for generated MC audio. The parent screen
-  // waits for the actual audio ended event before the 20-second countdown, and
-  // this fallback deadline is only there in case the browser blocks audio.
-  // Keeping it near 60s prevents cutting the voice off near the end.
-  return Math.min(MAX_MC_INTRO_SECONDS, Math.max(65, estimated, MIN_MC_INTRO_SECONDS));
+  // Fallback only. The parent should advance when the real audio ends, not
+  // before. Keep the generated script close to a 30-second MC intro, while
+  // still allowing a small safety buffer for slower voice playback.
+  return Math.min(MAX_MC_INTRO_SECONDS, Math.max(30, estimated, MIN_MC_INTRO_SECONDS));
 }
 
 async function addActivity(
@@ -415,7 +414,7 @@ export async function POST(request: Request) {
 
       if (updateError) return jsonError(updateError.message, 500);
       if (!updatedAuction) return NextResponse.json({ action: "none", auction });
-      await addActivity(supabaseAdmin, auctionCode, "Bidding opened after the 20 second countdown");
+      await addActivity(supabaseAdmin, auctionCode, "Bidding opened after the 15 second countdown");
       return NextResponse.json({ action: "open", auction: updatedAuction });
     }
 
