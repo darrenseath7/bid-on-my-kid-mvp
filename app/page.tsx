@@ -172,12 +172,12 @@ export default function HomePage() {
                       src="/bragwall-homepage-demo-final-intro-outro.mp4"
                       poster="/bragwall-hero-paint-hands.jpg"
                       className="aspect-video w-full bg-[#020b18] object-cover"
-                      autoPlay
-                      muted
-                      loop
+
+
+
                       playsInline
                       controls
-                      preload="metadata"
+                      preload="auto"
                       aria-label="Professional BragWall live auction workflow demo video"
                     />
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#020b18]/78 to-transparent" />
@@ -332,7 +332,7 @@ export default function HomePage() {
                   We thought that was worth fixing.
                 </p>
                 <p>
-                  That is why BragWall exists. To take that one extraordinary evening and make it available to every school, every parent, and every kid with a masterpiece to their name.
+                  That is Click play to hear why BragWall exists. To take that one extraordinary evening and make it available to every school, every parent, and every kid with a masterpiece to their name.
                 </p>
               </div>
             </div>
@@ -549,12 +549,12 @@ function HeroImageCard() {
             src="/bragwall-founder-story.mp4"
             poster="/bragwall-hero-paint-hands.jpg"
             className="h-[430px] w-full bg-[#020b18] object-contain md:h-[560px] lg:h-[610px]"
-            autoPlay
-            muted
-            loop
+
+
+
             playsInline
             controls
-            preload="metadata"
+            preload="auto"
             aria-label="BragWall founder story video"
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#020b18]/70 to-transparent" />
@@ -569,7 +569,7 @@ function HeroImageCard() {
               </div>
               <div>
                 <h3 className="text-xl font-black text-[#16d66d] md:text-2xl">Every piece of art tells a story.</h3>
-                <p className="mt-1 text-base font-bold text-white md:text-lg">Why BragWall exists.</p>
+                <p className="mt-1 text-base font-bold text-white md:text-lg">Click play to hear why BragWall exists.</p>
               </div>
             </div>
           </div>
