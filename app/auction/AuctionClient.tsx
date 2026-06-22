@@ -439,9 +439,10 @@ export default function DemoAuctionPage({
     if (autoActionKeyRef.current === actionKey) return;
     autoActionKeyRef.current = actionKey;
 
-    if (reason === "backup-timer") {
-      stopIntroAudio();
-    }
+    // Do not stop the MC audio here. A backup timer can fire on a slower
+    // browser or another joined device while the voice is still playing. The
+    // bid button stays locked during the countdown, so it is safer to let the
+    // audio finish naturally.
 
     try {
       const response = await fetch("/api/open-bidding-after-intro", {
@@ -658,12 +659,14 @@ export default function DemoAuctionPage({
     if (!joined) return;
 
     if (!isIntro) {
-      // Do not abruptly cut off the MC voice if another device/server has just
-      // moved the auction into the 15-second countdown. Let any already-playing
-      // audio finish naturally; the bid button remains locked during countdown.
-      if (introAudioStatus !== "playing" || !isStartingSoon) {
-        stopIntroAudio();
+      // Do not abruptly cut off the MC voice if this browser or another device
+      // has moved the auction into the 15-second countdown. Let the audio
+      // finish naturally while the bid button remains locked.
+      if (isStartingSoon && introAudioRef.current) {
+        return;
       }
+
+      stopIntroAudio();
       setIntroAudioStatus("idle");
       return;
     }

@@ -20,6 +20,7 @@ type SchoolProfile = {
 const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
 const BIDDING_START_BUFFER_SECONDS = 15;
+const BACKUP_TIMER_GRACE_SECONDS = 45;
 
 function normalizeAuctionCode(value: unknown) {
   const normalized = String(value || DEFAULT_AUCTION_CODE)
@@ -102,8 +103,10 @@ export async function POST(request: NextRequest) {
         ? new Date(auction.status_deadline).getTime()
         : 0;
 
-      if (!deadlineMs || deadlineMs > Date.now()) {
-        return jsonError("The MC intro timer has not finished yet.", 409);
+      const backupAllowedAt = deadlineMs + BACKUP_TIMER_GRACE_SECONDS * 1000;
+
+      if (!deadlineMs || backupAllowedAt > Date.now()) {
+        return jsonError("The MC intro backup timer has not finished yet.", 409);
       }
     }
 
