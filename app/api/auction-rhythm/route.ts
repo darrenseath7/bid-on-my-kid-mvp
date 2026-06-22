@@ -426,6 +426,21 @@ export async function POST(request: Request) {
       }
     }
 
+    if (status === "next_artwork_countdown") {
+      const deadline = auction.status_deadline ? new Date(auction.status_deadline).getTime() : 0;
+      if (!deadline || now < deadline) return NextResponse.json({ action: "next_artwork_countdown", auction });
+
+      const artworks = await fetchArtworks(supabaseAdmin, auctionCode);
+      const countdownArtwork = getCurrentArtwork(auction, artworks);
+
+      if (!countdownArtwork) {
+        return jsonError("Next artwork could not be loaded.", 404);
+      }
+
+      const updatedAuction = await moveToArtwork(request, supabaseAdmin, auctionCode, countdownArtwork);
+      return NextResponse.json({ action: "next_artwork_intro", auction: updatedAuction || auction });
+    }
+
     if (status === "starting_soon") {
       const deadline = auction.status_deadline ? new Date(auction.status_deadline).getTime() : 0;
       if (!deadline || now < deadline) return NextResponse.json({ action: "none", auction });
@@ -492,7 +507,7 @@ export async function POST(request: Request) {
     }
 
     if (currentBid <= 0) return NextResponse.json({ action: "none", auction });
-    if (status === "waiting" || status === "intro" || status === "preparing_intro" || status === "complete") {
+    if (status === "waiting" || status === "intro" || status === "preparing_intro" || status === "next_artwork_countdown" || status === "complete") {
       return NextResponse.json({ action: "none", auction });
     }
 

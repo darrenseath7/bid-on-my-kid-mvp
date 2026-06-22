@@ -159,6 +159,7 @@ export default function DemoAuctionPage({
   const isUrgency =
     auction?.status === "going once" || auction?.status === "going twice";
   const isStartingSoon = auction?.status === "starting_soon";
+  const isNextArtworkCountdown = auction?.status === "next_artwork_countdown";
   const isAuctionComplete = auction?.status === "complete";
   const isAuctionOpenForBids = auction?.status === "open" || isUrgency;
   const isBidPaused = pauseRemaining > 0 && auction?.status === "open";
@@ -236,6 +237,7 @@ export default function DemoAuctionPage({
       !isWaiting &&
       !isIntro &&
       !isPreparingIntro &&
+      !isNextArtworkCountdown &&
       !isBidPaused &&
       !biddingNow
   );
@@ -779,7 +781,7 @@ export default function DemoAuctionPage({
 
     const now = Date.now();
 
-    if ((auction.status === "intro" || auction.status === "starting_soon") && auction.status_deadline) {
+    if ((auction.status === "intro" || auction.status === "starting_soon" || auction.status === "next_artwork_countdown") && auction.status_deadline) {
       const deadline = new Date(auction.status_deadline).getTime();
 
       if (now >= deadline) {
@@ -875,6 +877,11 @@ export default function DemoAuctionPage({
 
     if (auction.status === "starting_soon") {
       alert("Bidding starts when the countdown reaches zero.");
+      return;
+    }
+
+    if (auction.status === "next_artwork_countdown") {
+      alert("The next artwork is loading. The AI MC starts after the countdown.");
       return;
     }
 
@@ -1418,6 +1425,40 @@ export default function DemoAuctionPage({
           </motion.div>
         )}
 
+        {isNextArtworkCountdown && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="shrink-0 bg-[#07152b] text-white rounded-[24px] p-4 shadow-xl border border-[#16d66d]/55"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-[#16d66d] text-[#07152b] flex items-center justify-center text-3xl shrink-0 shadow-xl">
+                🎨
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <p className="uppercase tracking-[0.22em] text-[9px] font-black text-[#16d66d]">
+                    Next Artwork
+                  </p>
+
+                  <p className="bg-[#16d66d] text-[#07152b] rounded-full px-3 py-1 text-xs font-black shrink-0">
+                    {secondsRemaining}s
+                  </p>
+                </div>
+
+                <p className="font-black text-sm leading-snug">
+                  This is the next artwork. The AI MC starts after the countdown.
+                </p>
+
+                <p className="text-xs font-bold text-white/65 mt-2 leading-relaxed">
+                  Bidding stays locked while we prepare the full intro.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         {isPreparingIntro && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -1694,6 +1735,8 @@ export default function DemoAuctionPage({
                 ? "Waiting for MC"
                 : isIntro
                 ? `MC Intro • ${introSecondsRemaining}s`
+                : isNextArtworkCountdown
+                ? `Next art in ${secondsRemaining}s`
                 : isStartingSoon
                 ? `Starts in ${secondsRemaining}s`
                 : isBidPaused
@@ -1716,6 +1759,8 @@ export default function DemoAuctionPage({
                 ? introAudioStatus === "playing"
                   ? "The AI MC is presenting the artwork. Bidding opens when the full intro finishes."
                   : "If sound does not start automatically on iPhone, tap the MC voice button above."
+                : isNextArtworkCountdown
+                ? "The next artwork is on screen. The AI MC starts after this countdown."
                 : isStartingSoon
                 ? "Bidding opens automatically after the countdown."
                 : isUrgency
