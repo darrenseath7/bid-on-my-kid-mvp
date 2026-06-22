@@ -115,6 +115,42 @@ function getMcIntroText(artwork: Artwork) {
   return "full of colour, imagination, and proper young-artist confidence.";
 }
 
+async function generateAiMcIntroText(
+  request: NextRequest,
+  artwork: Artwork,
+  artworkDisplayUrl: string
+) {
+  const fallbackPreview = getMcIntroText(artwork);
+
+  try {
+    const origin = new URL(request.url).origin;
+    const response = await fetch(`${origin}/api/auction-mc`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "intro",
+        childName: artwork.child_name,
+        childSurname: artwork.child_surname,
+        grade: artwork.grade,
+        sortOrder: artwork.sort_order,
+        fallbackPreview,
+        artworkUrl: artworkDisplayUrl,
+      }),
+    });
+
+    const result = await response.json().catch(() => null);
+    const text = String(result?.text || "").replace(/\s+/g, " ").trim();
+
+    if (response.ok && text) {
+      return text;
+    }
+  } catch (error) {
+    console.warn("AI MC intro generation failed; using artwork story fallback.", error);
+  }
+
+  return fallbackPreview;
+}
+
 function estimateMcIntroSeconds(text: string) {
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
   const estimated = Math.ceil(wordCount / MC_WORDS_PER_SECOND) + MC_INTRO_PADDING_SECONDS;
@@ -335,7 +371,7 @@ async function moveToArtwork(
   const artwork = await fetchArtworkById(supabaseAdmin, artworkId);
   const bidIncrement = await fetchBidIncrement(supabaseAdmin);
   const displayUrl = getArtworkDisplayUrl(artwork);
-  const commentary = getMcIntroText(artwork);
+  const commentary = await generateAiMcIntroText(request, artwork, displayUrl);
 
   await supabaseAdmin.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
 
@@ -402,8 +438,9 @@ async function moveToArtwork(
 
   if (finalArtworkError) throw new Error(finalArtworkError.message);
 
-  const introSeconds = estimateMcIntroSeconds(commentary);
-  const introDeadline = new Date(Date.now() + introSeconds * 1000).toISOString();
+  // Do not set an intro deadline. The parent auction must move to the
+  // 15-second countdown only after the real MC audio element fires ended.
+  // A guessed deadline can cut off longer ElevenLabs audio on slower devices.
 
   const { error: stateError } = await supabaseAdmin
     .from("live_auction_state")
@@ -416,7 +453,7 @@ async function moveToArtwork(
       current_bid: 0,
       leading_bidder: "No bids yet",
       status: "intro",
-      status_deadline: introDeadline,
+      status_deadline: null,
       bid_pause_until: null,
       next_bid_amount: bidIncrement,
       last_bid_at: null,

@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       mode,
       fallbackPreview,
       sortOrder,
+      artworkUrl,
     } = body;
 
     let prompt = "";
@@ -61,6 +62,11 @@ Artwork order:
 ${sortOrder || "not provided"}
 Artwork story/details:
 ${fallbackPreview || "Use colour, imagination, young-artist confidence, and proud family bidding energy."}
+
+Artwork image:
+${artworkUrl || "not provided"}
+
+If an artwork image is provided, use what is visible in the painting to make the intro feel specific. Do not invent private details about the child.
 `;
     }
 
@@ -88,6 +94,20 @@ Create a funny celebratory sold message.
 `;
     }
 
+    const userContent =
+      mode === "intro" && artworkUrl
+        ? ([
+            { type: "text", text: prompt },
+            {
+              type: "image_url",
+              image_url: {
+                url: String(artworkUrl),
+                detail: "low",
+              },
+            },
+          ] as any)
+        : prompt;
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
       messages: [
@@ -97,7 +117,7 @@ Create a funny celebratory sold message.
         },
         {
           role: "user",
-          content: prompt,
+          content: userContent,
         },
       ],
       temperature: 0.9,
