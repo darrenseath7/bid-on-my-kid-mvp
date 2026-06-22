@@ -128,46 +128,69 @@ export default function HomePage() {
         </section>
 
         <section id="workflow-demo" className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-8 md:px-8 lg:px-10">
-          <div className="grid items-center gap-8 rounded-[36px] border border-[#16d66d]/24 bg-[radial-gradient(circle_at_12%_20%,rgba(22,214,109,0.16),transparent_32%),linear-gradient(135deg,rgba(255,200,87,0.12),rgba(255,255,255,0.045)_34%,rgba(11,99,206,0.10))] p-5 shadow-[0_26px_90px_rgba(0,0,0,0.34)] md:p-8 lg:grid-cols-[0.86fr_1.14fr] lg:p-10">
-            <div>
-              <SectionKicker>30 second demo</SectionKicker>
-              <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
-                From first bid to SOLD in half a minute.
-              </h2>
-              <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-white/70 md:text-xl">
-                Show parents and school leaders the full BragWall flow: admin starts the auction, parents join from any device, bids climb live, and the winning artwork gets its big SOLD moment.
-              </p>
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <MiniWorkflowStep number="1" title="Start" text="Admin opens the artwork." />
-                <MiniWorkflowStep number="2" title="Bid" text="Parents bid live." />
-                <MiniWorkflowStep number="3" title="SOLD" text="Winner captured instantly." />
-              </div>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <PrimaryButton onClick={openDemoForm}>Request a demo</PrimaryButton>
-                <SecondaryAnchor href="#how-it-works">How it works</SecondaryAnchor>
-              </div>
-            </div>
-
-            <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[#020b18] p-2 shadow-[0_30px_90px_rgba(0,0,0,0.42)]">
-              <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#ffc857]/20 blur-2xl" />
-              <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[#16d66d]/20 blur-2xl" />
-              <div className="relative overflow-hidden rounded-[24px] bg-black">
-                <video
-                  src="/bragwall-app-demo.mp4"
-                  poster="/bragwall-hero-paint-hands.jpg"
-                  className="aspect-video w-full bg-[#020b18] object-cover"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  controls
-                  preload="metadata"
-                  aria-label="30 second BragWall workflow demo video"
-                />
-                <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/15 bg-[#061124]/88 px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em] text-white/78 backdrop-blur-md">
-                  BragWall workflow
+          <div className="overflow-hidden rounded-[40px] border border-[#16d66d]/26 bg-[radial-gradient(circle_at_16%_18%,rgba(22,214,109,0.18),transparent_34%),radial-gradient(circle_at_84%_6%,rgba(255,200,87,0.16),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.07),rgba(11,99,206,0.10))] p-5 shadow-[0_34px_120px_rgba(0,0,0,0.42)] md:p-8 lg:p-10">
+            <div className="grid items-end gap-8 lg:grid-cols-[0.76fr_1.24fr]">
+              <div>
+                <SectionKicker>Live product demo</SectionKicker>
+                <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
+                  Watch the auction room come alive.
+                </h2>
+                <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-white/72 md:text-xl">
+                  A clear walkthrough of the BragWall live flow: the MC introduces the artwork, parents bid from their phones, the countdown creates the theatre, and the winning family gets the SOLD moment.
+                </p>
+                <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                  <LiveDemoPoint label="1" title="Artwork spotlight" text="Every child gets a professional auction moment." />
+                  <LiveDemoPoint label="2" title="Parent bidding" text="Bids update live across the room." />
+                  <LiveDemoPoint label="3" title="Countdown energy" text="A 15-second timer keeps everyone engaged." />
+                  <LiveDemoPoint label="4" title="SOLD handover" text="Winner details are captured for invoices." />
                 </div>
+                <div className="mt-7 flex flex-wrap gap-3">
+                  <PrimaryButton onClick={openDemoForm}>Book a live demo</PrimaryButton>
+                  <SecondaryAnchor href="#live-auction">See auction features</SecondaryAnchor>
+                </div>
+              </div>
 
+              <div className="relative">
+                <div className="absolute -inset-4 rounded-[38px] bg-[radial-gradient(circle_at_50%_38%,rgba(22,214,109,0.22),transparent_58%)] blur-2xl" />
+                <div className="relative overflow-hidden rounded-[34px] border border-white/12 bg-[#020b18] p-3 shadow-[0_34px_110px_rgba(0,0,0,0.55)]">
+                  <div className="flex items-center justify-between gap-4 rounded-t-[24px] border border-white/10 border-b-0 bg-white/[0.055] px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+                      <span className="h-3 w-3 rounded-full bg-[#ffc857]" />
+                      <span className="h-3 w-3 rounded-full bg-[#16d66d]" />
+                    </div>
+                    <div className="hidden rounded-full border border-white/10 bg-[#061124]/88 px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em] text-white/58 sm:block">
+                      bragwall.co.za/live-demo
+                    </div>
+                    <div className="rounded-full bg-[#16d66d] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-[#07152b]">
+                      Live
+                    </div>
+                  </div>
+
+                  <div className="relative overflow-hidden rounded-b-[24px] border border-white/10 bg-black">
+                    <video
+                      src="/bragwall-homepage-demo-final-intro-outro.mp4"
+                      poster="/bragwall-hero-paint-hands.jpg"
+                      className="aspect-video w-full bg-[#020b18] object-cover"
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      controls
+                      preload="metadata"
+                      aria-label="Professional BragWall live auction workflow demo video"
+                    />
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#020b18]/78 to-transparent" />
+                    <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/15 bg-[#061124]/88 px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em] text-white/78 backdrop-blur-md">
+                      BragWall live demo
+                    </div>
+                    <div className="pointer-events-none absolute bottom-4 left-4 right-4 grid gap-3 sm:grid-cols-3">
+                      <DemoOverlayPill title="MC intro" text="Artwork gets the spotlight" />
+                      <DemoOverlayPill title="Live bids" text="Parents compete in real time" />
+                      <DemoOverlayPill title="SOLD" text="Winner captured instantly" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -495,6 +518,26 @@ function MiniWorkflowStep({ number, title, text }: { number: string; title: stri
   );
 }
 
+function LiveDemoPoint({ label, title, text }: { label: string; title: string; text: string }) {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-[#020b18]/42 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-full border border-[#16d66d]/44 bg-[#16d66d]/12 text-sm font-black text-[#16d66d]">
+        {label}
+      </div>
+      <p className="text-base font-black text-white">{title}</p>
+      <p className="mt-1 text-sm font-bold leading-relaxed text-white/58">{text}</p>
+    </div>
+  );
+}
+
+function DemoOverlayPill({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="hidden rounded-[18px] border border-white/12 bg-[#061124]/86 p-3 shadow-2xl backdrop-blur-md sm:block">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-[#16d66d]">{title}</p>
+      <p className="mt-1 text-xs font-bold leading-snug text-white/72">{text}</p>
+    </div>
+  );
+}
 
 function HeroImageCard() {
   return (
