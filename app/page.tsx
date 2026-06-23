@@ -189,7 +189,6 @@ export default function HomePage() {
                     <video
                       ref={demoVideoRef}
                       src="/bragwall-homepage-demo-final-intro-outro.mp4"
-                      poster="/bragwall-hero-paint-hands.jpg"
                       className="aspect-[9/16] w-full bg-[#020b18] object-cover"
 
 
@@ -909,6 +908,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
