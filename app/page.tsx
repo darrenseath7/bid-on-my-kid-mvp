@@ -146,11 +146,11 @@ export default function HomePage() {
         </section>
 
         <section id="workflow-demo" className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-8 md:px-8 lg:px-10">
-          <div className="overflow-hidden rounded-[40px] border border-[#16d66d]/26 bg-[radial-gradient(circle_at_16%_18%,rgba(22,214,109,0.18),transparent_34%),radial-gradient(circle_at_84%_6%,rgba(255,200,87,0.16),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.07),rgba(11,99,206,0.10))] p-5 shadow-[0_34px_120px_rgba(0,0,0,0.42)] md:p-8 lg:p-10">
-            <div className="grid items-end gap-8 lg:grid-cols-[0.76fr_1.24fr]">
+          <div className="overflow-hidden rounded-[40px] border border-[#16d66d]/26 bg-[radial-gradient(circle_at_16%_18%,rgba(22,214,109,0.18),transparent_34%),radial-gradient(circle_at_84%_6%,rgba(255,200,87,0.16),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.07),rgba(11,99,206,0.10))] p-5 shadow-[0_26px_90px_rgba(0,0,0,0.36)] md:p-7 lg:p-8">
+            <div className="grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
               <div>
                 <SectionKicker>Live product demo</SectionKicker>
-                <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
+                <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
                   Watch the auction room come alive.
                 </h2>
                 <p className="mt-6 max-w-2xl text-lg font-medium leading-relaxed text-white/72 md:text-xl">
@@ -235,7 +235,7 @@ export default function HomePage() {
           <ContentPanel>
             <div className="max-w-3xl">
               <SectionKicker>For schools</SectionKicker>
-              <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
+              <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
                 Your students create it. Your community celebrates it. Your school benefits from it.
               </h2>
               <p className="mt-6 text-lg font-medium leading-relaxed text-white/68 md:text-xl">
@@ -265,7 +265,7 @@ export default function HomePage() {
           <ContentPanel>
             <div className="max-w-3xl">
               <SectionKicker>For parents</SectionKicker>
-              <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
+              <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
                 There is no higher bidder than a proud parent.
               </h2>
               <p className="mt-6 text-lg font-medium leading-relaxed text-white/68 md:text-xl">
@@ -294,7 +294,7 @@ export default function HomePage() {
         <section id="how-it-works" className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-8 md:px-8 lg:px-10">
           <ContentPanel>
             <SectionKicker>How it works</SectionKicker>
-            <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
+            <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
               Fun. Effective. Fundraising.
             </h2>
             <p className="mt-4 text-lg font-medium leading-relaxed text-white/68 md:text-xl">
@@ -317,7 +317,7 @@ export default function HomePage() {
           <ContentPanel>
             <div className="max-w-4xl">
               <SectionKicker>Live auction</SectionKicker>
-              <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
+              <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
                 The moment the hammer falls, everyone remembers it.
               </h2>
               <p className="mt-6 text-lg font-medium leading-relaxed text-white/68 md:text-xl">
@@ -343,7 +343,7 @@ export default function HomePage() {
           <ContentPanel>
             <div className="max-w-5xl">
               <SectionKicker>About us</SectionKicker>
-              <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
+              <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
                 Every piece of art tells a story. Here is ours.
               </h2>
 
@@ -402,7 +402,7 @@ export default function HomePage() {
               Ready to see it live?
             </p>
             <div className="mt-4 flex justify-center">            </div>
-            <h2 className="mx-auto mt-4 max-w-3xl text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-6xl">
+            <h2 className="mx-auto mt-4 max-w-3xl text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
               Turn your next school fundraiser into a moment everyone remembers.
             </h2>
             <div className="mt-8 flex justify-center">
@@ -909,6 +909,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
