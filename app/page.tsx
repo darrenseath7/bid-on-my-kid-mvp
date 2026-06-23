@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useRef, useState, type FormEvent, type ReactNode, type RefObject } from "react";
 
 
 const schoolLogos = [
@@ -15,6 +15,10 @@ const schoolLogos = [
 export default function HomePage() {
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [demoSubmitted, setDemoSubmitted] = useState(false);
+  const demoVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [isDemoVideoPlaying, setIsDemoVideoPlaying] = useState(false);
+  const founderVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [isFounderVideoPlaying, setIsFounderVideoPlaying] = useState(false);
 
   function openDemoForm() {
     setDemoSubmitted(false);
@@ -29,6 +33,14 @@ export default function HomePage() {
   function handleDemoSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setDemoSubmitted(true);
+  }
+
+  async function playDemoVideo() {
+    await demoVideoRef.current?.play();
+  }
+
+  async function playFounderVideo() {
+    await founderVideoRef.current?.play();
   }
 
   return (
@@ -123,7 +135,13 @@ export default function HomePage() {
               </div>
             </div>
 
-            <HeroImageCard />
+            <HeroImageCard
+              videoRef={founderVideoRef}
+              isPlaying={isFounderVideoPlaying}
+              onPlayClick={playFounderVideo}
+              onPlay={() => setIsFounderVideoPlaying(true)}
+              onPause={() => setIsFounderVideoPlaying(false)}
+            />
           </div>
         </section>
 
@@ -169,6 +187,7 @@ export default function HomePage() {
 
                   <div className="relative overflow-hidden rounded-b-[24px] border border-white/10 bg-black">
                     <video
+                      ref={demoVideoRef}
                       src="/bragwall-homepage-demo-final-intro-outro.mp4"
                       poster="/bragwall-hero-paint-hands.jpg"
                       className="aspect-[9/16] w-full bg-[#020b18] object-cover"
@@ -180,8 +199,22 @@ export default function HomePage() {
                       controlsList="nodownload noplaybackrate"
                       disablePictureInPicture
                       preload="auto"
+                      onPlay={() => setIsDemoVideoPlaying(true)}
+                      onPause={() => setIsDemoVideoPlaying(false)}
+                      onEnded={() => setIsDemoVideoPlaying(false)}
                       aria-label="Professional BragWall live auction workflow demo video"
                     />
+                    {!isDemoVideoPlaying ? (
+                      <button
+                        type="button"
+                        onClick={playDemoVideo}
+                        className="absolute left-1/2 top-1/2 z-20 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-full border border-white/18 bg-[#16d66d] px-6 py-4 text-sm font-black text-[#07152b] shadow-[0_22px_60px_rgba(0,0,0,0.45)] transition hover:scale-[1.04]"
+                        aria-label="Play BragWall parent mobile demo video"
+                      >
+                        <span className="text-lg leading-none">▶</span>
+                        Play Demo
+                      </button>
+                    ) : null}
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#020b18]/78 to-transparent" />
                     <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/15 bg-[#061124]/88 px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em] text-white/78 backdrop-blur-md">
                       BragWall live demo
@@ -541,13 +574,26 @@ function DemoOverlayPill({ title, text }: { title: string; text: string }) {
   );
 }
 
-function HeroImageCard() {
+function HeroImageCard({
+  videoRef,
+  isPlaying,
+  onPlayClick,
+  onPlay,
+  onPause,
+}: {
+  videoRef: RefObject<HTMLVideoElement | null>;
+  isPlaying: boolean;
+  onPlayClick: () => void;
+  onPlay: () => void;
+  onPause: () => void;
+}) {
   return (
     <div className="relative">
       <div className="absolute -inset-5 rounded-[38px] bg-[radial-gradient(circle_at_50%_30%,rgba(22,214,109,0.16),transparent_55%)] blur-xl" />
       <div className="relative overflow-hidden rounded-[30px] border border-[#16d66d]/24 bg-[#061124] p-2 shadow-[0_34px_100px_rgba(0,0,0,0.48)] md:rounded-[36px]">
         <div className="relative overflow-hidden rounded-[24px] bg-[#020b18] md:rounded-[30px]">
           <video
+            ref={videoRef}
             src="/bragwall-founder-story.mp4"
             poster="/bragwall-hero-paint-hands.jpg"
             className="h-[430px] w-full bg-[#020b18] object-contain md:h-[560px] lg:h-[610px]"
@@ -559,8 +605,22 @@ function HeroImageCard() {
             controlsList="nodownload noplaybackrate"
             disablePictureInPicture
             preload="auto"
+            onPlay={onPlay}
+            onPause={onPause}
+            onEnded={onPause}
             aria-label="BragWall founder story video"
           />
+          {!isPlaying ? (
+            <button
+              type="button"
+              onClick={onPlayClick}
+              className="absolute left-1/2 top-1/2 z-20 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 rounded-full border border-white/18 bg-[#16d66d] px-6 py-4 text-sm font-black text-[#07152b] shadow-[0_22px_60px_rgba(0,0,0,0.45)] transition hover:scale-[1.04] md:text-base"
+              aria-label="Play BragWall founder story video"
+            >
+              <span className="text-lg leading-none">▶</span>
+              Play Founder Video
+            </button>
+          ) : null}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#020b18]/70 to-transparent" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[18%] bg-gradient-to-r from-[#020b18]/35 to-transparent" />
           <div className="pointer-events-none absolute left-5 top-5 rounded-full border border-white/12 bg-[#061124]/86 px-4 py-2 text-xs font-black uppercase tracking-[0.25em] text-white/78 shadow-xl backdrop-blur-md md:left-7 md:top-7">
