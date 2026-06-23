@@ -171,12 +171,14 @@ export default function HomePage() {
                     <video
                       src="/bragwall-homepage-demo-final-intro-outro.mp4"
                       poster="/bragwall-hero-paint-hands.jpg"
-                      className="aspect-video w-full bg-[#020b18] object-cover"
+                      className="aspect-[9/16] w-full bg-[#020b18] object-cover"
 
 
 
                       playsInline
                       controls
+                      controlsList="nodownload noplaybackrate"
+                      disablePictureInPicture
                       preload="auto"
                       aria-label="Professional BragWall live auction workflow demo video"
                     />
@@ -554,6 +556,8 @@ function HeroImageCard() {
 
             playsInline
             controls
+            controlsList="nodownload noplaybackrate"
+            disablePictureInPicture
             preload="auto"
             aria-label="BragWall founder story video"
           />
@@ -845,6 +849,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
