@@ -218,11 +218,6 @@ export default function HomePage() {
                     <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/15 bg-[#061124]/88 px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em] text-white/78 backdrop-blur-md">
                       BragWall live demo
                     </div>
-                    <div className="pointer-events-none absolute bottom-4 left-4 right-4 grid gap-3 sm:grid-cols-3">
-                      <DemoOverlayPill title="Live AI MC" text="Funny artwork intros" />
-                      <DemoOverlayPill title="Live bids" text="Parents compete in real time" />
-                      <DemoOverlayPill title="SOLD" text="Winner captured instantly" />
-                    </div>
                   </div>
                 </div>
               </div>
@@ -908,6 +903,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
