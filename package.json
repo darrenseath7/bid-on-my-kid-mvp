@@ -13,6 +13,7 @@
     "@tailwindcss/postcss": "latest",
     "framer-motion": "^12.39.0",
     "next": "latest",
+    "nodemailer": "^9.0.1",
     "openai": "^6.38.0",
     "react": "latest",
     "react-dom": "latest",

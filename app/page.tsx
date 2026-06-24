@@ -15,6 +15,8 @@ const schoolLogos = [
 export default function HomePage() {
   const [isDemoOpen, setIsDemoOpen] = useState(false);
   const [demoSubmitted, setDemoSubmitted] = useState(false);
+  const [demoSubmitting, setDemoSubmitting] = useState(false);
+  const [demoSubmitError, setDemoSubmitError] = useState("");
   const demoVideoRef = useRef<HTMLVideoElement | null>(null);
   const [isDemoVideoPlaying, setIsDemoVideoPlaying] = useState(false);
   const founderVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -414,7 +416,7 @@ export default function HomePage() {
       </div>
 
       {isDemoOpen ? (
-        <DemoRequestModal submitted={demoSubmitted} onClose={closeDemoForm} onSubmit={handleDemoSubmit} />
+        <DemoRequestModal submitted={demoSubmitted} submitting={demoSubmitting} error={demoSubmitError} onClose={closeDemoForm} onSubmit={handleDemoSubmit} />
       ) : null}
     </main>
   );
@@ -422,10 +424,14 @@ export default function HomePage() {
 
 function DemoRequestModal({
   submitted,
+  submitting,
+  error,
   onClose,
   onSubmit,
 }: {
   submitted: boolean;
+  submitting: boolean;
+  error: string;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
@@ -903,6 +909,8 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
+
 
 
 
