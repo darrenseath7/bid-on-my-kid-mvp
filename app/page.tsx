@@ -620,7 +620,7 @@ function HeroImageCard({
           <div className="pointer-events-none absolute left-5 top-5 rounded-full border border-white/12 bg-[#061124]/86 px-4 py-2 text-xs font-black uppercase tracking-[0.25em] text-white/78 shadow-xl backdrop-blur-md md:left-7 md:top-7">
             Founder Story
           </div>
-          <div className="pointer-events-none absolute bottom-5 left-5 right-5 max-w-[520px] rounded-[24px] border border-white/10 bg-[#061124]/90 p-5 shadow-2xl backdrop-blur-md md:bottom-7 md:left-7 md:p-6">
+          <div className="pointer-events-none absolute bottom-5 left-5 right-5 hidden max-w-[520px] rounded-[24px] border border-white/10 bg-[#061124]/90 p-5 shadow-2xl backdrop-blur-md sm:block md:bottom-7 md:left-7 md:p-6">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-[#16d66d]/28 bg-[#16d66d]/10 text-[#16d66d]">
                 <GavelIcon />
@@ -903,6 +903,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
