@@ -32,9 +32,42 @@ export default function HomePage() {
     setDemoSubmitted(false);
   }
 
-  function handleDemoSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleDemoSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setDemoSubmitted(true);
+
+    const formData = new FormData(event.currentTarget);
+
+    setDemoSubmitting(true);
+    setDemoSubmitError("");
+
+    try {
+      const response = await fetch("/api/demo-request", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contactPerson: String(formData.get("contactPerson") || ""),
+          contactNumber: String(formData.get("contactNumber") || ""),
+          email: String(formData.get("email") || ""),
+          schoolName: String(formData.get("schoolName") || ""),
+          message: String(formData.get("message") || ""),
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "We could not send the request. Please try again.");
+      }
+
+      setDemoSubmitted(true);
+      event.currentTarget.reset();
+    } catch (error) {
+      setDemoSubmitError(error instanceof Error ? error.message : "We could not send the request. Please try again.");
+    } finally {
+      setDemoSubmitting(false);
+    }
   }
 
   async function playDemoVideo() {
@@ -909,6 +942,8 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
+
 
 
 
