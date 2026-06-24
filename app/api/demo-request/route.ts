@@ -1,4 +1,5 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 const nodemailer = require("nodemailer");
 
@@ -32,6 +33,56 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+
+async function saveDemoRequestLead({
+  contactPerson,
+  contactNumber,
+  email,
+  schoolName,
+  message,
+  sourceUrl,
+  emailSent,
+  emailError,
+}: {
+  contactPerson: string;
+  contactNumber: string;
+  email: string;
+  schoolName: string;
+  message: string;
+  sourceUrl: string;
+  emailSent: boolean;
+  emailError?: string;
+}) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.warn("Demo request Supabase backup skipped: missing Supabase env vars.");
+    return;
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  });
+
+  const { error } = await supabase.from("demo_requests").insert({
+    contact_person: contactPerson,
+    contact_number: contactNumber,
+    email,
+    school_name: schoolName,
+    message: message || null,
+    source_url: sourceUrl,
+    email_sent: emailSent,
+    email_error: emailError || null,
+  });
+
+  if (error) {
+    console.error("Demo request Supabase backup failed", error);
+  }
+}
 function escapeHtml(value: string) {
   return value
     .replace(/&/g, "&amp;")
@@ -123,18 +174,46 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    await transporter.sendMail({
-      from: leadsFrom,
-      to: leadsTo,
-      replyTo: email,
-      subject,
-      text,
-      html,
-    });
+    try {
+      await transporter.sendMail({
+        from: leadsFrom,
+        to: leadsTo,
+        replyTo: email,
+        subject,
+        text,
+        html,
+      });
 
-    return NextResponse.json({ ok: true });
+      await saveDemoRequestLead({
+        contactPerson,
+        contactNumber,
+        email,
+        schoolName,
+        message,
+        sourceUrl: pageUrl,
+        emailSent: true,
+      });
+
+      return NextResponse.json({ ok: true });
+    } catch (error) {
+      const emailError = error instanceof Error ? error.message : "Unknown email error";
+
+      await saveDemoRequestLead({
+        contactPerson,
+        contactNumber,
+        email,
+        schoolName,
+        message,
+        sourceUrl: pageUrl,
+        emailSent: false,
+        emailError,
+      });
+
+      throw error;
+    }
   } catch (error) {
     console.error("Demo request email failed", error);
     return NextResponse.json({ error: "We could not send the request. Please try again." }, { status: 500 });
   }
 }
+
