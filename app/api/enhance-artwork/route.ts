@@ -113,8 +113,8 @@ export async function POST(request: NextRequest) {
     if (!imageResponse.ok) {
       await updateArtworkEnhancementStatus({
         artworkId,
-        status: "failed",
-        notes: "Could not download original artwork image.",
+        status: "not_enhanced",
+        notes: "Using original artwork image.",
       });
 
       return NextResponse.json(
@@ -165,8 +165,8 @@ Grade: ${grade}
 
       await updateArtworkEnhancementStatus({
         artworkId,
-        status: "failed",
-        notes: `AI enhancement failed: ${errorText.slice(0, 500)}`,
+        status: "not_enhanced",
+        notes: "Using original artwork image.",
       });
 
       return NextResponse.json(
@@ -184,8 +184,8 @@ Grade: ${grade}
     if (!imageBase64) {
       await updateArtworkEnhancementStatus({
         artworkId,
-        status: "failed",
-        notes: "AI enhancement did not return an image.",
+        status: "not_enhanced",
+        notes: "Using original artwork image.",
       });
 
       return NextResponse.json(
@@ -212,8 +212,8 @@ Grade: ${grade}
     if (uploadError) {
       await updateArtworkEnhancementStatus({
         artworkId,
-        status: "failed",
-        notes: `Enhanced image upload failed: ${uploadError.message}`,
+        status: "not_enhanced",
+        notes: "Using original artwork image.",
       });
 
       return NextResponse.json(
@@ -245,8 +245,8 @@ Grade: ${grade}
     if (artworkId) {
       await updateArtworkEnhancementStatus({
         artworkId,
-        status: "failed",
-        notes: error instanceof Error ? error.message : String(error),
+        status: "not_enhanced",
+        notes: "Using original artwork image.",
       }).catch(() => {});
     }
 

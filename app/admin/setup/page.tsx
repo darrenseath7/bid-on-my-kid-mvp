@@ -1287,8 +1287,8 @@ function EnhancementBadge({
 
   if (cleanStatus === "failed") {
     return (
-      <span className="inline-block rounded-full bg-[#ef2b20] text-white px-3 py-1 text-xs font-black">
-        FAILED
+      <span className="inline-block rounded-full bg-white/10 text-white/60 px-3 py-1 text-xs font-black">
+        ORIGINAL
       </span>
     );
   }

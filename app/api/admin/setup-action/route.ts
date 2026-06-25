@@ -146,23 +146,19 @@ async function enhanceArtwork(request: NextRequest, payload: Record<string, unkn
     const result = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+      console.error("Artwork enhancement fallback:", result?.details || result?.error || result);
       return {
         ok: false,
-        message:
-          result?.details ||
-          result?.error ||
-          "Artwork was uploaded, but AI enhancement failed.",
+        message: "Artwork added. Using the original artwork image.",
       };
     }
 
-    return { ok: true, message: "Enhanced framed auction version created successfully." };
+    return { ok: true, message: "Artwork added. Enhanced framed auction version created successfully." };
   } catch (error) {
+    console.error("Artwork enhancement fallback:", error);
     return {
       ok: false,
-      message:
-        error instanceof Error
-          ? `Artwork uploaded, but enhancement failed: ${error.message}`
-          : "Artwork uploaded, but enhancement failed.",
+      message: "Artwork added. Using the original artwork image.",
     };
   }
 }
@@ -275,9 +271,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
           ok: true,
-          message: enhancement.ok
-            ? "Artwork added. Enhanced framed auction version created successfully."
-            : enhancement.message,
+          message: enhancement.message,
         });
       }
 
