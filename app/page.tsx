@@ -627,7 +627,7 @@ function HeroImageCard({
         <div className="relative overflow-hidden rounded-[24px] bg-[#020b18] md:rounded-[30px]">
           <video
             ref={videoRef}
-            src="/bragwall-founder-story-v3.mp4"
+            src="/bragwall-founder-story-v4.mp4"
             poster="/bragwall-hero-paint-hands.jpg"
             className="h-[430px] w-full bg-[#020b18] object-contain md:h-[560px] lg:h-[610px]"
 
@@ -942,6 +942,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
