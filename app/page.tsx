@@ -458,41 +458,47 @@ export default function HomePage() {
 
 
 function HomepagePaintSplashes() {
+  const swipeClass =
+    "absolute hidden select-none opacity-45 mix-blend-screen md:block";
+
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
-      <svg className="absolute left-[3%] top-[18%] hidden h-28 w-44 -rotate-12 opacity-45 md:block" viewBox="0 0 220 120" fill="none">
-        <path d="M18 80 C58 48, 92 30, 136 36 C166 40, 188 54, 204 72" stroke="#ff7a2f" strokeWidth="24" strokeLinecap="round" />
-        <path d="M28 72 C70 50, 106 42, 176 62" stroke="#ffd33d" strokeWidth="13" strokeLinecap="round" opacity="0.75" />
-        <path d="M35 86 C74 62, 116 56, 192 78" stroke="#ff4fd8" strokeWidth="7" strokeLinecap="round" opacity="0.35" />
-      </svg>
-
-      <svg className="absolute right-[4%] top-[24%] hidden h-28 w-48 rotate-12 opacity-42 lg:block" viewBox="0 0 240 120" fill="none">
-        <path d="M20 76 C62 46, 116 32, 166 40 C190 44, 208 54, 222 68" stroke="#34b7ff" strokeWidth="25" strokeLinecap="round" />
-        <path d="M38 70 C82 50, 124 46, 198 62" stroke="#ff4fd8" strokeWidth="12" strokeLinecap="round" opacity="0.65" />
-        <path d="M52 82 C96 64, 136 58, 210 76" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" opacity="0.18" />
-      </svg>
-
-      <svg className="absolute left-[2%] top-[57%] hidden h-28 w-48 rotate-[18deg] opacity-38 md:block" viewBox="0 0 240 120" fill="none">
-        <path d="M18 74 C54 42, 108 34, 150 42 C180 48, 204 60, 222 76" stroke="#18e37c" strokeWidth="24" strokeLinecap="round" />
-        <path d="M34 70 C76 50, 122 48, 194 66" stroke="#34b7ff" strokeWidth="10" strokeLinecap="round" opacity="0.55" />
-        <path d="M28 84 C70 64, 122 60, 210 82" stroke="#ffd33d" strokeWidth="7" strokeLinecap="round" opacity="0.32" />
-      </svg>
-
-      <svg className="absolute right-[5%] top-[63%] hidden h-28 w-48 -rotate-[15deg] opacity-38 lg:block" viewBox="0 0 240 120" fill="none">
-        <path d="M20 78 C62 48, 112 34, 158 40 C188 44, 210 58, 224 76" stroke="#8b5cf6" strokeWidth="25" strokeLinecap="round" />
-        <path d="M40 72 C86 52, 130 48, 200 66" stroke="#ff4fd8" strokeWidth="11" strokeLinecap="round" opacity="0.48" />
-        <path d="M58 82 C100 66, 144 62, 214 78" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" opacity="0.14" />
-      </svg>
-
-      <svg className="absolute left-[9%] bottom-[10%] hidden h-24 w-44 -rotate-[10deg] opacity-32 xl:block" viewBox="0 0 220 110" fill="none">
-        <path d="M18 70 C56 44, 96 32, 138 38 C166 42, 190 54, 204 68" stroke="#34b7ff" strokeWidth="22" strokeLinecap="round" />
-        <path d="M34 66 C76 48, 112 44, 188 62" stroke="#18e37c" strokeWidth="9" strokeLinecap="round" opacity="0.45" />
-      </svg>
-
-      <svg className="absolute right-[11%] bottom-[12%] hidden h-24 w-44 rotate-[16deg] opacity-34 xl:block" viewBox="0 0 220 110" fill="none">
-        <path d="M18 70 C58 42, 102 34, 144 40 C172 44, 194 56, 206 70" stroke="#ffd33d" strokeWidth="23" strokeLinecap="round" />
-        <path d="M36 66 C78 48, 116 46, 190 64" stroke="#ff6b35" strokeWidth="10" strokeLinecap="round" opacity="0.5" />
-      </svg>
+      <img
+        src="/bragwall-paint-swipe.svg"
+        alt=""
+        aria-hidden="true"
+        className={`${swipeClass} left-[-70px] top-[14%] w-[300px] -rotate-[18deg]`}
+      />
+      <img
+        src="/bragwall-paint-swipe.svg"
+        alt=""
+        aria-hidden="true"
+        className={`${swipeClass} right-[-90px] top-[22%] w-[330px] rotate-[14deg] opacity-40 lg:block`}
+      />
+      <img
+        src="/bragwall-paint-swipe.svg"
+        alt=""
+        aria-hidden="true"
+        className={`${swipeClass} left-[-85px] top-[56%] w-[320px] rotate-[18deg] opacity-36`}
+      />
+      <img
+        src="/bragwall-paint-swipe.svg"
+        alt=""
+        aria-hidden="true"
+        className={`${swipeClass} right-[-110px] top-[64%] w-[340px] -rotate-[16deg] opacity-36 lg:block`}
+      />
+      <img
+        src="/bragwall-paint-swipe.svg"
+        alt=""
+        aria-hidden="true"
+        className={`${swipeClass} left-[8%] bottom-[8%] w-[260px] -rotate-[8deg] opacity-28 xl:block`}
+      />
+      <img
+        src="/bragwall-paint-swipe.svg"
+        alt=""
+        aria-hidden="true"
+        className={`${swipeClass} right-[9%] bottom-[10%] w-[280px] rotate-[12deg] opacity-30 xl:block`}
+      />
     </div>
   );
 }
@@ -984,6 +990,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 

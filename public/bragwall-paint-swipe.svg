@@ -1,0 +1,39 @@
+<svg width="900" height="360" viewBox="0 0 900 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="roughPaint" x="-20%" y="-30%" width="140%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="4" seed="8" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="18" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <linearGradient id="paintA" x1="95" y1="218" x2="804" y2="129" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff8a1f"/>
+      <stop offset="0.22" stop-color="#ffd22e"/>
+      <stop offset="0.55" stop-color="#ff2fa3"/>
+      <stop offset="1" stop-color="#ff7a22"/>
+    </linearGradient>
+    <linearGradient id="paintB" x1="151" y1="194" x2="811" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffd33d"/>
+      <stop offset="0.45" stop-color="#ff4fd8"/>
+      <stop offset="1" stop-color="#ff6b35"/>
+    </linearGradient>
+  </defs>
+
+  <g filter="url(#roughPaint)" opacity="0.96">
+    <path d="M74 252 C164 162 291 105 420 129 C510 146 562 214 650 209 C728 204 788 154 839 125"
+      stroke="url(#paintA)" stroke-width="82" stroke-linecap="butt" stroke-linejoin="round"/>
+    <path d="M105 240 C204 179 316 143 422 158 C513 171 559 223 648 217 C727 212 783 172 829 148"
+      stroke="url(#paintB)" stroke-width="44" stroke-linecap="butt" stroke-linejoin="round" opacity="0.95"/>
+    <path d="M120 217 C225 162 326 143 431 163 C524 181 572 217 651 208 C722 201 773 167 815 146"
+      stroke="#ff9d28" stroke-width="18" stroke-linecap="butt" opacity="0.58"/>
+    <path d="M150 194 C268 148 373 151 456 176 C544 202 598 207 671 194 C730 183 776 154 807 137"
+      stroke="#ffe04d" stroke-width="12" stroke-linecap="butt" opacity="0.5"/>
+    <path d="M172 260 C286 201 382 189 481 207 C562 221 622 221 704 197 C760 181 804 156 835 139"
+      stroke="#bd166f" stroke-width="10" stroke-linecap="butt" opacity="0.36"/>
+  </g>
+
+  <g opacity="0.45">
+    <path d="M85 282 C145 252 205 238 286 243" stroke="#ff7a22" stroke-width="5" stroke-linecap="round"/>
+    <path d="M606 239 C690 229 755 201 853 165" stroke="#ff2fa3" stroke-width="6" stroke-linecap="round"/>
+    <path d="M64 222 C136 162 206 124 296 106" stroke="#ffd33d" stroke-width="4" stroke-linecap="round"/>
+    <path d="M690 115 C750 99 804 84 871 63" stroke="#ff6b35" stroke-width="5" stroke-linecap="round"/>
+  </g>
+</svg>
