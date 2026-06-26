@@ -458,47 +458,91 @@ export default function HomePage() {
 
 
 function HomepagePaintSplashes() {
-  const swipeClass =
-    "absolute hidden select-none opacity-45 mix-blend-screen md:block";
-
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
-      <img
-        src="/bragwall-paint-swipe.svg"
-        alt=""
+      <svg
+        className="absolute left-[3%] top-[20%] hidden h-32 w-72 -rotate-[14deg] opacity-28 md:block"
+        viewBox="0 0 420 180"
+        fill="none"
         aria-hidden="true"
-        className={`${swipeClass} left-[-70px] top-[14%] w-[300px] -rotate-[18deg]`}
-      />
-      <img
-        src="/bragwall-paint-swipe.svg"
-        alt=""
+      >
+        <path
+          d="M28 118 C90 58, 178 38, 252 64 C306 83, 344 84, 392 48"
+          stroke="#ff7a1a"
+          strokeWidth="34"
+          strokeLinecap="round"
+        />
+        <path
+          d="M45 107 C110 70, 176 58, 254 80 C304 94, 342 89, 382 62"
+          stroke="#ffd33d"
+          strokeWidth="20"
+          strokeLinecap="round"
+          opacity="0.75"
+        />
+        <path
+          d="M64 126 C130 88, 196 78, 270 96 C318 108, 350 101, 390 76"
+          stroke="#ff3fa4"
+          strokeWidth="15"
+          strokeLinecap="round"
+          opacity="0.65"
+        />
+      </svg>
+
+      <svg
+        className="absolute right-[4%] top-[26%] hidden h-32 w-72 rotate-[12deg] opacity-24 lg:block"
+        viewBox="0 0 420 180"
+        fill="none"
         aria-hidden="true"
-        className={`${swipeClass} right-[-90px] top-[22%] w-[330px] rotate-[14deg] opacity-40 lg:block`}
-      />
-      <img
-        src="/bragwall-paint-swipe.svg"
-        alt=""
+      >
+        <path
+          d="M28 118 C90 58, 178 38, 252 64 C306 83, 344 84, 392 48"
+          stroke="#34b7ff"
+          strokeWidth="34"
+          strokeLinecap="round"
+        />
+        <path
+          d="M45 107 C110 70, 176 58, 254 80 C304 94, 342 89, 382 62"
+          stroke="#18e37c"
+          strokeWidth="20"
+          strokeLinecap="round"
+          opacity="0.65"
+        />
+        <path
+          d="M64 126 C130 88, 196 78, 270 96 C318 108, 350 101, 390 76"
+          stroke="#ff4fd8"
+          strokeWidth="14"
+          strokeLinecap="round"
+          opacity="0.55"
+        />
+      </svg>
+
+      <svg
+        className="absolute right-[7%] bottom-[12%] hidden h-32 w-72 -rotate-[10deg] opacity-24 xl:block"
+        viewBox="0 0 420 180"
+        fill="none"
         aria-hidden="true"
-        className={`${swipeClass} left-[-85px] top-[56%] w-[320px] rotate-[18deg] opacity-36`}
-      />
-      <img
-        src="/bragwall-paint-swipe.svg"
-        alt=""
-        aria-hidden="true"
-        className={`${swipeClass} right-[-110px] top-[64%] w-[340px] -rotate-[16deg] opacity-36 lg:block`}
-      />
-      <img
-        src="/bragwall-paint-swipe.svg"
-        alt=""
-        aria-hidden="true"
-        className={`${swipeClass} left-[8%] bottom-[8%] w-[260px] -rotate-[8deg] opacity-28 xl:block`}
-      />
-      <img
-        src="/bragwall-paint-swipe.svg"
-        alt=""
-        aria-hidden="true"
-        className={`${swipeClass} right-[9%] bottom-[10%] w-[280px] rotate-[12deg] opacity-30 xl:block`}
-      />
+      >
+        <path
+          d="M28 118 C90 58, 178 38, 252 64 C306 83, 344 84, 392 48"
+          stroke="#ffd33d"
+          strokeWidth="34"
+          strokeLinecap="round"
+        />
+        <path
+          d="M45 107 C110 70, 176 58, 254 80 C304 94, 342 89, 382 62"
+          stroke="#ff7a1a"
+          strokeWidth="20"
+          strokeLinecap="round"
+          opacity="0.65"
+        />
+        <path
+          d="M64 126 C130 88, 196 78, 270 96 C318 108, 350 101, 390 76"
+          stroke="#ff3fa4"
+          strokeWidth="14"
+          strokeLinecap="round"
+          opacity="0.45"
+        />
+      </svg>
     </div>
   );
 }
@@ -990,6 +1034,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
