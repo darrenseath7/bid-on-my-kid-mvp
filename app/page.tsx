@@ -80,6 +80,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen overflow-hidden scroll-smooth bg-[#020b18] text-white">
+      <HomepagePaintSplashes />
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_12%,rgba(22,214,109,0.18),transparent_31%),radial-gradient(circle_at_80%_12%,rgba(255,200,87,0.13),transparent_33%),radial-gradient(circle_at_50%_86%,rgba(11,99,206,0.16),transparent_40%),linear-gradient(180deg,#061124,#020b18_56%,#010712)]" />
       <div className="fixed inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] bg-[size:56px_56px]" />
       <div className="fixed inset-3 pointer-events-none rounded-[32px] border border-[#c78b25]/18 shadow-[inset_0_0_70px_rgba(199,139,37,0.07)]" />
@@ -452,6 +453,25 @@ export default function HomePage() {
         <DemoRequestModal submitted={demoSubmitted} submitting={demoSubmitting} error={demoSubmitError} onClose={closeDemoForm} onSubmit={handleDemoSubmit} />
       ) : null}
     </main>
+  );
+}
+
+
+function HomepagePaintSplashes() {
+  return (
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div className="absolute left-[-90px] top-[120px] h-56 w-56 rounded-full bg-[#ff4fd8]/15 blur-3xl" />
+      <div className="absolute right-[-80px] top-[360px] h-64 w-64 rounded-full bg-[#18e37c]/14 blur-3xl" />
+      <div className="absolute left-[8%] top-[780px] h-40 w-72 -rotate-12 rounded-full bg-[#ffd33d]/10 blur-3xl" />
+      <div className="absolute right-[12%] top-[980px] h-44 w-72 rotate-12 rounded-full bg-[#34b7ff]/12 blur-3xl" />
+      <div className="absolute left-[-70px] bottom-[520px] h-60 w-60 rounded-full bg-[#ff6b35]/12 blur-3xl" />
+      <div className="absolute right-[-90px] bottom-[220px] h-64 w-64 rounded-full bg-[#8b5cf6]/12 blur-3xl" />
+
+      <div className="absolute left-[3%] top-[520px] hidden h-3 w-28 rotate-[18deg] rounded-full bg-[#18e37c]/30 blur-[1px] md:block" />
+      <div className="absolute right-[7%] top-[720px] hidden h-3 w-32 -rotate-[16deg] rounded-full bg-[#ffd33d]/25 blur-[1px] md:block" />
+      <div className="absolute left-[12%] bottom-[340px] hidden h-3 w-24 -rotate-[22deg] rounded-full bg-[#ff4fd8]/24 blur-[1px] lg:block" />
+      <div className="absolute right-[16%] bottom-[520px] hidden h-3 w-28 rotate-[20deg] rounded-full bg-[#34b7ff]/24 blur-[1px] lg:block" />
+    </div>
   );
 }
 
