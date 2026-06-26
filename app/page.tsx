@@ -459,18 +459,19 @@ export default function HomePage() {
 
 function HomepagePaintSplashes() {
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      <div className="absolute left-[-90px] top-[120px] h-56 w-56 rounded-full bg-[#ff4fd8]/22 blur-3xl" />
-      <div className="absolute right-[-80px] top-[360px] h-64 w-64 rounded-full bg-[#18e37c]/20 blur-3xl" />
-      <div className="absolute left-[8%] top-[780px] h-40 w-72 -rotate-12 rounded-full bg-[#ffd33d]/18 blur-3xl" />
-      <div className="absolute right-[12%] top-[980px] h-44 w-72 rotate-12 rounded-full bg-[#34b7ff]/18 blur-3xl" />
-      <div className="absolute left-[-70px] bottom-[520px] h-60 w-60 rounded-full bg-[#ff6b35]/18 blur-3xl" />
-      <div className="absolute right-[-90px] bottom-[220px] h-64 w-64 rounded-full bg-[#8b5cf6]/18 blur-3xl" />
+    <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
+      <div className="absolute left-[4%] top-[18%] hidden h-4 w-36 -rotate-[18deg] rounded-full bg-[#ff6b35]/45 shadow-[0_0_30px_rgba(255,107,53,0.35)] md:block" />
+      <div className="absolute left-[7%] top-[22%] hidden h-3 w-24 rotate-[12deg] rounded-full bg-[#ffd33d]/40 shadow-[0_0_24px_rgba(255,211,61,0.28)] md:block" />
+      <div className="absolute right-[5%] top-[24%] hidden h-4 w-40 rotate-[16deg] rounded-full bg-[#34b7ff]/38 shadow-[0_0_30px_rgba(52,183,255,0.28)] lg:block" />
+      <div className="absolute right-[9%] top-[30%] hidden h-3 w-28 -rotate-[20deg] rounded-full bg-[#ff4fd8]/35 shadow-[0_0_26px_rgba(255,79,216,0.25)] lg:block" />
 
-      <div className="absolute left-[3%] top-[520px] hidden h-3 w-28 rotate-[18deg] rounded-full bg-[#18e37c]/30 blur-[1px] md:block" />
-      <div className="absolute right-[7%] top-[720px] hidden h-3 w-32 -rotate-[16deg] rounded-full bg-[#ffd33d]/25 blur-[1px] md:block" />
-      <div className="absolute left-[12%] bottom-[340px] hidden h-3 w-24 -rotate-[22deg] rounded-full bg-[#ff4fd8]/24 blur-[1px] lg:block" />
-      <div className="absolute right-[16%] bottom-[520px] hidden h-3 w-28 rotate-[20deg] rounded-full bg-[#34b7ff]/24 blur-[1px] lg:block" />
+      <div className="absolute left-[3%] top-[58%] hidden h-28 w-28 rounded-full bg-[#18e37c]/12 blur-2xl md:block" />
+      <div className="absolute left-[5%] top-[61%] hidden h-3 w-32 rotate-[22deg] rounded-full bg-[#18e37c]/38 md:block" />
+      <div className="absolute right-[4%] top-[62%] hidden h-32 w-32 rounded-full bg-[#8b5cf6]/13 blur-2xl lg:block" />
+      <div className="absolute right-[6%] top-[66%] hidden h-3 w-36 -rotate-[15deg] rounded-full bg-[#8b5cf6]/36 lg:block" />
+
+      <div className="absolute left-[10%] bottom-[12%] hidden h-3 w-28 -rotate-[12deg] rounded-full bg-[#34b7ff]/32 xl:block" />
+      <div className="absolute right-[12%] bottom-[14%] hidden h-4 w-32 rotate-[18deg] rounded-full bg-[#ffd33d]/35 xl:block" />
     </div>
   );
 }
@@ -962,6 +963,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
