@@ -458,20 +458,29 @@ export default function HomePage() {
 
 
 function HomepagePaintSplashes() {
+  const brushBase =
+    "absolute hidden rounded-[999px] blur-[0.6px] opacity-70 md:block";
+
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
-      <div className="absolute left-[4%] top-[18%] hidden h-4 w-36 -rotate-[18deg] rounded-full bg-[#ff6b35]/45 shadow-[0_0_30px_rgba(255,107,53,0.35)] md:block" />
-      <div className="absolute left-[7%] top-[22%] hidden h-3 w-24 rotate-[12deg] rounded-full bg-[#ffd33d]/40 shadow-[0_0_24px_rgba(255,211,61,0.28)] md:block" />
-      <div className="absolute right-[5%] top-[24%] hidden h-4 w-40 rotate-[16deg] rounded-full bg-[#34b7ff]/38 shadow-[0_0_30px_rgba(52,183,255,0.28)] lg:block" />
-      <div className="absolute right-[9%] top-[30%] hidden h-3 w-28 -rotate-[20deg] rounded-full bg-[#ff4fd8]/35 shadow-[0_0_26px_rgba(255,79,216,0.25)] lg:block" />
+      <div className={`${brushBase} left-[4%] top-[18%] h-8 w-40 -rotate-[17deg] bg-[#ff6b35]/35 shadow-[0_0_22px_rgba(255,107,53,0.22)]`} />
+      <div className={`${brushBase} left-[5.5%] top-[18.8%] h-3 w-28 -rotate-[17deg] bg-[#ffb199]/20`} />
+      <div className={`${brushBase} left-[7%] top-[22%] h-6 w-28 rotate-[12deg] bg-[#ffd33d]/30 shadow-[0_0_18px_rgba(255,211,61,0.18)]`} />
 
-      <div className="absolute left-[3%] top-[58%] hidden h-28 w-28 rounded-full bg-[#18e37c]/12 blur-2xl md:block" />
-      <div className="absolute left-[5%] top-[61%] hidden h-3 w-32 rotate-[22deg] rounded-full bg-[#18e37c]/38 md:block" />
-      <div className="absolute right-[4%] top-[62%] hidden h-32 w-32 rounded-full bg-[#8b5cf6]/13 blur-2xl lg:block" />
-      <div className="absolute right-[6%] top-[66%] hidden h-3 w-36 -rotate-[15deg] rounded-full bg-[#8b5cf6]/36 lg:block" />
+      <div className={`${brushBase} right-[5%] top-[24%] h-9 w-44 rotate-[16deg] bg-[#34b7ff]/30 shadow-[0_0_22px_rgba(52,183,255,0.18)] lg:block`} />
+      <div className={`${brushBase} right-[6.5%] top-[24.7%] h-3 w-32 rotate-[16deg] bg-white/10 lg:block`} />
+      <div className={`${brushBase} right-[9%] top-[30%] h-7 w-32 -rotate-[20deg] bg-[#ff4fd8]/28 shadow-[0_0_20px_rgba(255,79,216,0.16)] lg:block`} />
 
-      <div className="absolute left-[10%] bottom-[12%] hidden h-3 w-28 -rotate-[12deg] rounded-full bg-[#34b7ff]/32 xl:block" />
-      <div className="absolute right-[12%] bottom-[14%] hidden h-4 w-32 rotate-[18deg] rounded-full bg-[#ffd33d]/35 xl:block" />
+      <div className="absolute left-[3%] top-[58%] hidden h-28 w-28 rounded-full bg-[#18e37c]/10 blur-2xl md:block" />
+      <div className={`${brushBase} left-[5%] top-[61%] h-8 w-36 rotate-[22deg] bg-[#18e37c]/30 md:block`} />
+      <div className={`${brushBase} left-[6.5%] top-[61.7%] h-3 w-24 rotate-[22deg] bg-white/10 md:block`} />
+
+      <div className="absolute right-[4%] top-[62%] hidden h-32 w-32 rounded-full bg-[#8b5cf6]/10 blur-2xl lg:block" />
+      <div className={`${brushBase} right-[6%] top-[66%] h-8 w-40 -rotate-[15deg] bg-[#8b5cf6]/28 lg:block`} />
+      <div className={`${brushBase} right-[7.5%] top-[66.7%] h-3 w-28 -rotate-[15deg] bg-white/10 lg:block`} />
+
+      <div className={`${brushBase} left-[10%] bottom-[12%] h-7 w-32 -rotate-[12deg] bg-[#34b7ff]/26 xl:block`} />
+      <div className={`${brushBase} right-[12%] bottom-[14%] h-8 w-36 rotate-[18deg] bg-[#ffd33d]/28 xl:block`} />
     </div>
   );
 }
@@ -963,6 +972,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
