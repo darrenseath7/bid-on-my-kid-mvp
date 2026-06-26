@@ -458,39 +458,49 @@ export default function HomePage() {
 
 
 
+
 function HomepagePaintSplashes() {
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
-      <img
-        src="/paintbrush.jpg"
-        alt=""
-        aria-hidden="true"
-        className="absolute left-[-180px] top-[120px] hidden w-[520px] -rotate-[18deg] opacity-[0.16] blur-[1.5px] saturate-150 md:block"
+      <div
+        className="absolute left-[-240px] top-[90px] hidden h-[520px] w-[460px] -rotate-[12deg] bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.22] blur-[1px] saturate-150 md:block"
+        style={{
+          WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 72%)",
+          maskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 72%)",
+        }}
       />
 
-      <img
-        src="/paintbrush.jpg"
-        alt=""
-        aria-hidden="true"
-        className="absolute right-[-190px] top-[260px] hidden w-[560px] rotate-[14deg] opacity-[0.14] blur-[1.5px] saturate-150 lg:block"
+      <div
+        className="absolute right-[-260px] top-[230px] hidden h-[560px] w-[500px] rotate-[10deg] bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.20] blur-[1px] saturate-150 lg:block"
+        style={{
+          WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 74%)",
+          maskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 74%)",
+        }}
       />
 
-      <img
-        src="/paintbrush.jpg"
-        alt=""
-        aria-hidden="true"
-        className="absolute left-[-160px] top-[720px] hidden w-[500px] rotate-[16deg] opacity-[0.12] blur-[2px] saturate-150 md:block"
+      <div
+        className="absolute left-[-220px] top-[760px] hidden h-[520px] w-[470px] rotate-[14deg] bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.16] blur-[1.5px] saturate-150 md:block"
+        style={{
+          WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 40%, transparent 72%)",
+          maskImage: "radial-gradient(circle at center, black 0%, black 40%, transparent 72%)",
+        }}
       />
 
-      <img
-        src="/paintbrush.jpg"
-        alt=""
-        aria-hidden="true"
-        className="absolute right-[-160px] bottom-[220px] hidden w-[520px] -rotate-[12deg] opacity-[0.13] blur-[2px] saturate-150 xl:block"
+      <div
+        className="absolute right-[-220px] bottom-[120px] hidden h-[520px] w-[470px] -rotate-[14deg] bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.17] blur-[1.5px] saturate-150 xl:block"
+        style={{
+          WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 40%, transparent 72%)",
+          maskImage: "radial-gradient(circle at center, black 0%, black 40%, transparent 72%)",
+        }}
       />
+
+      <div className="absolute left-[-120px] top-[160px] hidden h-72 w-72 rounded-full bg-[#18e37c]/10 blur-3xl md:block" />
+      <div className="absolute right-[-140px] top-[380px] hidden h-80 w-80 rounded-full bg-[#ff4fd8]/10 blur-3xl lg:block" />
+      <div className="absolute left-[-120px] bottom-[240px] hidden h-80 w-80 rounded-full bg-[#34b7ff]/8 blur-3xl xl:block" />
     </div>
   );
 }
+
 function DemoRequestModal({
   submitted,
   submitting,
@@ -978,6 +988,8 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
+
 
 
 
