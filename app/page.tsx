@@ -459,13 +459,13 @@ export default function HomePage() {
 
 function HomepagePaintSplashes() {
   return (
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <div className="absolute left-[-90px] top-[120px] h-56 w-56 rounded-full bg-[#ff4fd8]/15 blur-3xl" />
-      <div className="absolute right-[-80px] top-[360px] h-64 w-64 rounded-full bg-[#18e37c]/14 blur-3xl" />
-      <div className="absolute left-[8%] top-[780px] h-40 w-72 -rotate-12 rounded-full bg-[#ffd33d]/10 blur-3xl" />
-      <div className="absolute right-[12%] top-[980px] h-44 w-72 rotate-12 rounded-full bg-[#34b7ff]/12 blur-3xl" />
-      <div className="absolute left-[-70px] bottom-[520px] h-60 w-60 rounded-full bg-[#ff6b35]/12 blur-3xl" />
-      <div className="absolute right-[-90px] bottom-[220px] h-64 w-64 rounded-full bg-[#8b5cf6]/12 blur-3xl" />
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+      <div className="absolute left-[-90px] top-[120px] h-56 w-56 rounded-full bg-[#ff4fd8]/22 blur-3xl" />
+      <div className="absolute right-[-80px] top-[360px] h-64 w-64 rounded-full bg-[#18e37c]/20 blur-3xl" />
+      <div className="absolute left-[8%] top-[780px] h-40 w-72 -rotate-12 rounded-full bg-[#ffd33d]/18 blur-3xl" />
+      <div className="absolute right-[12%] top-[980px] h-44 w-72 rotate-12 rounded-full bg-[#34b7ff]/18 blur-3xl" />
+      <div className="absolute left-[-70px] bottom-[520px] h-60 w-60 rounded-full bg-[#ff6b35]/18 blur-3xl" />
+      <div className="absolute right-[-90px] bottom-[220px] h-64 w-64 rounded-full bg-[#8b5cf6]/18 blur-3xl" />
 
       <div className="absolute left-[3%] top-[520px] hidden h-3 w-28 rotate-[18deg] rounded-full bg-[#18e37c]/30 blur-[1px] md:block" />
       <div className="absolute right-[7%] top-[720px] hidden h-3 w-32 -rotate-[16deg] rounded-full bg-[#ffd33d]/25 blur-[1px] md:block" />
@@ -962,6 +962,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
