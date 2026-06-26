@@ -457,38 +457,39 @@ export default function HomePage() {
 }
 
 
+
 function HomepagePaintSplashes() {
   const strokeClass =
-    "absolute hidden select-none opacity-35 mix-blend-screen md:block";
+    "absolute hidden select-none opacity-45 md:block";
 
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
       <img
-        src="/bragwall-paint-strokes%20\(2\).png"
+        src="/bragwall-paint-stroke-bright.png"
         alt=""
         aria-hidden="true"
-        className={`${strokeClass} left-[2%] top-[18%] w-[260px] -rotate-[14deg]`}
+        className={`${strokeClass} left-[2%] top-[18%] w-[220px] -rotate-[14deg]`}
       />
 
       <img
-        src="/bragwall-paint-strokes%20\(2\).png"
+        src="/bragwall-paint-stroke-bright.png"
         alt=""
         aria-hidden="true"
-        className={`${strokeClass} right-[3%] top-[27%] w-[280px] rotate-[12deg] opacity-30 lg:block`}
+        className={`${strokeClass} right-[4%] top-[25%] w-[230px] rotate-[12deg] opacity-38 lg:block`}
       />
 
       <img
-        src="/bragwall-paint-strokes%20\(2\).png"
+        src="/bragwall-paint-stroke-bright.png"
         alt=""
         aria-hidden="true"
-        className={`${strokeClass} left-[4%] top-[62%] w-[240px] rotate-[18deg] opacity-28`}
+        className={`${strokeClass} left-[4%] top-[62%] w-[210px] rotate-[18deg] opacity-34`}
       />
 
       <img
-        src="/bragwall-paint-strokes%20\(2\).png"
+        src="/bragwall-paint-stroke-bright.png"
         alt=""
         aria-hidden="true"
-        className={`${strokeClass} right-[6%] bottom-[13%] w-[260px] -rotate-[10deg] opacity-30 xl:block`}
+        className={`${strokeClass} right-[7%] bottom-[13%] w-[220px] -rotate-[10deg] opacity-36 xl:block`}
       />
     </div>
   );
