@@ -458,91 +458,38 @@ export default function HomePage() {
 
 
 function HomepagePaintSplashes() {
+  const strokeClass =
+    "absolute hidden select-none opacity-35 mix-blend-screen md:block";
+
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
-      <svg
-        className="absolute left-[3%] top-[20%] hidden h-32 w-72 -rotate-[14deg] opacity-28 md:block"
-        viewBox="0 0 420 180"
-        fill="none"
+      <img
+        src="/bragwall-paint-stroke.png"
+        alt=""
         aria-hidden="true"
-      >
-        <path
-          d="M28 118 C90 58, 178 38, 252 64 C306 83, 344 84, 392 48"
-          stroke="#ff7a1a"
-          strokeWidth="34"
-          strokeLinecap="round"
-        />
-        <path
-          d="M45 107 C110 70, 176 58, 254 80 C304 94, 342 89, 382 62"
-          stroke="#ffd33d"
-          strokeWidth="20"
-          strokeLinecap="round"
-          opacity="0.75"
-        />
-        <path
-          d="M64 126 C130 88, 196 78, 270 96 C318 108, 350 101, 390 76"
-          stroke="#ff3fa4"
-          strokeWidth="15"
-          strokeLinecap="round"
-          opacity="0.65"
-        />
-      </svg>
+        className={`${strokeClass} left-[2%] top-[18%] w-[260px] -rotate-[14deg]`}
+      />
 
-      <svg
-        className="absolute right-[4%] top-[26%] hidden h-32 w-72 rotate-[12deg] opacity-24 lg:block"
-        viewBox="0 0 420 180"
-        fill="none"
+      <img
+        src="/bragwall-paint-stroke.png"
+        alt=""
         aria-hidden="true"
-      >
-        <path
-          d="M28 118 C90 58, 178 38, 252 64 C306 83, 344 84, 392 48"
-          stroke="#34b7ff"
-          strokeWidth="34"
-          strokeLinecap="round"
-        />
-        <path
-          d="M45 107 C110 70, 176 58, 254 80 C304 94, 342 89, 382 62"
-          stroke="#18e37c"
-          strokeWidth="20"
-          strokeLinecap="round"
-          opacity="0.65"
-        />
-        <path
-          d="M64 126 C130 88, 196 78, 270 96 C318 108, 350 101, 390 76"
-          stroke="#ff4fd8"
-          strokeWidth="14"
-          strokeLinecap="round"
-          opacity="0.55"
-        />
-      </svg>
+        className={`${strokeClass} right-[3%] top-[27%] w-[280px] rotate-[12deg] opacity-30 lg:block`}
+      />
 
-      <svg
-        className="absolute right-[7%] bottom-[12%] hidden h-32 w-72 -rotate-[10deg] opacity-24 xl:block"
-        viewBox="0 0 420 180"
-        fill="none"
+      <img
+        src="/bragwall-paint-stroke.png"
+        alt=""
         aria-hidden="true"
-      >
-        <path
-          d="M28 118 C90 58, 178 38, 252 64 C306 83, 344 84, 392 48"
-          stroke="#ffd33d"
-          strokeWidth="34"
-          strokeLinecap="round"
-        />
-        <path
-          d="M45 107 C110 70, 176 58, 254 80 C304 94, 342 89, 382 62"
-          stroke="#ff7a1a"
-          strokeWidth="20"
-          strokeLinecap="round"
-          opacity="0.65"
-        />
-        <path
-          d="M64 126 C130 88, 196 78, 270 96 C318 108, 350 101, 390 76"
-          stroke="#ff3fa4"
-          strokeWidth="14"
-          strokeLinecap="round"
-          opacity="0.45"
-        />
-      </svg>
+        className={`${strokeClass} left-[4%] top-[62%] w-[240px] rotate-[18deg] opacity-28`}
+      />
+
+      <img
+        src="/bragwall-paint-stroke.png"
+        alt=""
+        aria-hidden="true"
+        className={`${strokeClass} right-[6%] bottom-[13%] w-[260px] -rotate-[10deg] opacity-30 xl:block`}
+      />
     </div>
   );
 }
@@ -1034,6 +981,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
