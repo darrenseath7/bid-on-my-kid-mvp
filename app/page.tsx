@@ -459,42 +459,38 @@ export default function HomePage() {
 
 
 function HomepagePaintSplashes() {
-  const strokeClass =
-    "absolute hidden select-none opacity-45 md:block";
-
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
       <img
-        src="/bragwall-paint-stroke-bright.png"
+        src="/paintbrush.jpg"
         alt=""
         aria-hidden="true"
-        className={`${strokeClass} left-[2%] top-[18%] w-[220px] -rotate-[14deg]`}
+        className="absolute left-[-180px] top-[120px] hidden w-[520px] -rotate-[18deg] opacity-[0.16] blur-[1.5px] saturate-150 md:block"
       />
 
       <img
-        src="/bragwall-paint-stroke-bright.png"
+        src="/paintbrush.jpg"
         alt=""
         aria-hidden="true"
-        className={`${strokeClass} right-[4%] top-[25%] w-[230px] rotate-[12deg] opacity-38 lg:block`}
+        className="absolute right-[-190px] top-[260px] hidden w-[560px] rotate-[14deg] opacity-[0.14] blur-[1.5px] saturate-150 lg:block"
       />
 
       <img
-        src="/bragwall-paint-stroke-bright.png"
+        src="/paintbrush.jpg"
         alt=""
         aria-hidden="true"
-        className={`${strokeClass} left-[4%] top-[62%] w-[210px] rotate-[18deg] opacity-34`}
+        className="absolute left-[-160px] top-[720px] hidden w-[500px] rotate-[16deg] opacity-[0.12] blur-[2px] saturate-150 md:block"
       />
 
       <img
-        src="/bragwall-paint-stroke-bright.png"
+        src="/paintbrush.jpg"
         alt=""
         aria-hidden="true"
-        className={`${strokeClass} right-[7%] bottom-[13%] w-[220px] -rotate-[10deg] opacity-36 xl:block`}
+        className="absolute right-[-160px] bottom-[220px] hidden w-[520px] -rotate-[12deg] opacity-[0.13] blur-[2px] saturate-150 xl:block"
       />
     </div>
   );
 }
-
 function DemoRequestModal({
   submitted,
   submitting,
@@ -982,6 +978,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
