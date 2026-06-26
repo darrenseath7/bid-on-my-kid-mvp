@@ -463,7 +463,7 @@ function HomepagePaintSplashes() {
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
       <div
-        className="absolute left-[-240px] top-[90px] hidden h-[520px] w-[460px] -rotate-[12deg] bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.22] blur-[1px] saturate-150 md:block"
+        className="absolute left-[-240px] top-[90px] h-[360px] w-[320px] -rotate-[12deg] opacity-[0.12] blur-[2px] saturate-150"
         style={{
           WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 72%)",
           maskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 72%)",
@@ -471,7 +471,7 @@ function HomepagePaintSplashes() {
       />
 
       <div
-        className="absolute right-[-260px] top-[230px] hidden h-[560px] w-[500px] rotate-[10deg] bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.20] blur-[1px] saturate-150 lg:block"
+        className="absolute right-[-260px] top-[230px] hidden h-[420px] w-[380px] rotate-[10deg] opacity-[0.12] blur-[2px] saturate-150 sm:block"
         style={{
           WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 74%)",
           maskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 74%)",
@@ -988,6 +988,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
