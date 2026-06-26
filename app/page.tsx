@@ -464,28 +464,28 @@ function HomepagePaintSplashes() {
   return (
     <div className="pointer-events-none fixed inset-0 z-[1] overflow-hidden">
       <img
-        src="/paintbrush.jpg"
+        src="/bragwall-paint-strokes%20\(2\).png"
         alt=""
         aria-hidden="true"
         className={`${strokeClass} left-[2%] top-[18%] w-[260px] -rotate-[14deg]`}
       />
 
       <img
-        src="/paintbrush.jpg"
+        src="/bragwall-paint-strokes%20\(2\).png"
         alt=""
         aria-hidden="true"
         className={`${strokeClass} right-[3%] top-[27%] w-[280px] rotate-[12deg] opacity-30 lg:block`}
       />
 
       <img
-        src="/paintbrush.jpg"
+        src="/bragwall-paint-strokes%20\(2\).png"
         alt=""
         aria-hidden="true"
         className={`${strokeClass} left-[4%] top-[62%] w-[240px] rotate-[18deg] opacity-28`}
       />
 
       <img
-        src="/paintbrush.jpg"
+        src="/bragwall-paint-strokes%20\(2\).png"
         alt=""
         aria-hidden="true"
         className={`${strokeClass} right-[6%] bottom-[13%] w-[260px] -rotate-[10deg] opacity-30 xl:block`}
@@ -981,6 +981,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
