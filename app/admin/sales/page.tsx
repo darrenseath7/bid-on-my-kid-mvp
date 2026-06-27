@@ -109,7 +109,7 @@ export default function AdminSalesPage() {
         <AdminSidebar auctionCode={auctionCode} />
 
 
-        <div className="lg:hidden bg-[#061124] border-b border-white/10 px-4 py-4 sticky top-0 z-40">
+        <div className="lg:hidden sticky top-0 z-40 border-b border-white/10 bg-[#061124]/95 px-4 py-4 backdrop-blur-xl">
           <div className="bg-white rounded-2xl p-3 mb-4 w-fit">
             <BrandHeader />
           </div>
@@ -122,10 +122,12 @@ export default function AdminSalesPage() {
           </div>
         </div>
 
-        <section className="px-5 py-7 lg:px-8 lg:py-10">
-          <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-6 mb-8">
+        <section className="min-w-0 px-4 py-5 md:px-6 lg:px-7 lg:py-6">
+          <div className="relative mb-5 overflow-hidden rounded-[30px] border border-white/10 bg-[#061124]/88 p-5 shadow-[0_28px_95px_rgba(0,0,0,0.45)]">
+            <img src="/bragwall-admin-paint-texture.png" alt="" className="pointer-events-none absolute right-[-70px] top-[-95px] h-[310px] w-[260px] object-contain opacity-28" aria-hidden="true" />
+            <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div>
-              <p className="uppercase tracking-[0.35em] text-xs text-white/40 font-black mb-4">
+              <p className="mb-3 text-[10px] font-black uppercase tracking-[0.35em] text-[#ffc857]">
                 Sales / Invoices
               </p>
 
@@ -133,23 +135,24 @@ export default function AdminSalesPage() {
                 Winner records.
               </h1>
 
-              <p className="text-white/55 text-xl max-w-3xl leading-relaxed">
+              <p className="max-w-3xl text-base font-semibold leading-relaxed text-white/58 md:text-lg">
                 Revisit sold artworks, winner emails, invoice requests,
                 payment follow-ups, and certificate release status.
               </p>
             </div>
 
-            <div className="w-full xl:w-[320px] space-y-3">
+            <div className="w-full space-y-3 rounded-[24px] border border-white/10 bg-white/[0.055] p-4 xl:w-[330px]">
               <AdminAuctionSelector />
 
               <button
                 onClick={() => fetchSales()}
-                className="rounded-2xl bg-white text-[#07152b] px-6 py-4 font-black shadow-xl w-full"
+                className="w-full rounded-2xl bg-[#16d66d] px-6 py-4 font-black text-[#07152b] shadow-[0_18px_44px_rgba(22,214,109,0.18)] transition hover:scale-[1.01]"
               >
                 Refresh
               </button>
             </div>
           </div>
+        </div>
 
           <div className="grid md:grid-cols-3 gap-4 mb-8">
             <StatCard
@@ -174,10 +177,10 @@ export default function AdminSalesPage() {
             />
           </div>
 
-          <section className="bg-white/5 border border-white/10 rounded-[36px] overflow-hidden shadow-2xl">
-            <div className="p-6 border-b border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.045] shadow-[0_35px_120px_rgba(0,0,0,0.45)]">
+            <div className="border-b border-white/10 bg-[#061124]/60 p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-3xl font-black">Sold Artworks</h2>
+                <h2 className="text-2xl font-black md:text-3xl">Sold Artworks</h2>
                 <p className="text-white/40 mt-1">
                   {sales.length} sold artwork records
                 </p>
@@ -185,7 +188,7 @@ export default function AdminSalesPage() {
 
               <a
                 href="/admin/live"
-                className="rounded-2xl bg-[#16d66d] text-[#07152b] px-5 py-3 font-black w-fit"
+                className="w-fit rounded-2xl bg-[#16d66d] px-5 py-3 font-black text-[#07152b] shadow-[0_18px_44px_rgba(22,214,109,0.16)]"
               >
                 Back to Live Room
               </a>
@@ -281,9 +284,9 @@ function SaleCard({
   }
 
   return (
-    <div className="p-5 lg:p-6">
-      <div className="grid lg:grid-cols-[140px_1fr] gap-5">
-        <div className="bg-gradient-to-br from-[#70420f] to-[#2a1707] p-3 rounded-[26px]">
+    <div className="p-4 lg:p-5">
+      <div className="grid gap-5 lg:grid-cols-[150px_minmax(0,1fr)]">
+        <div className="rounded-[26px] bg-gradient-to-br from-[#70420f] to-[#2a1707] p-3 shadow-[0_20px_55px_rgba(0,0,0,0.28)]">
           <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-2 rounded-[20px]">
             <div className="bg-[#f8f5ef] rounded-[14px] p-2">
               <img
@@ -302,7 +305,7 @@ function SaleCard({
                 Artwork #{item.sort_order}
               </p>
 
-              <h3 className="text-3xl font-black leading-tight">
+              <h3 className="text-2xl font-black leading-tight md:text-3xl">
                 {item.child_name} {item.child_surname}
               </h3>
 
@@ -314,13 +317,13 @@ function SaleCard({
                 Sold Amount
               </p>
 
-              <p className="text-4xl font-black text-[#16d66d]">
+              <p className="text-3xl font-black text-[#16d66d] md:text-4xl">
                 R{(item.sold_amount || 0).toLocaleString()}
               </p>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <InfoBox
               label="Winning Bidder"
               value={item.winning_bidder || "Not captured"}
@@ -345,7 +348,7 @@ function SaleCard({
             />
           </div>
 
-          <div className="mt-5 bg-white/5 border border-white/10 rounded-[22px] p-4">
+          <div className="mt-5 rounded-[22px] border border-white/10 bg-[#061124]/72 p-4">
             <p className="uppercase tracking-[0.25em] text-[10px] text-white/40 font-black mb-2">
               Next Actions
             </p>
@@ -618,12 +621,12 @@ function DocumentInfo({
 
 function AdminSidebar({ auctionCode }: { auctionCode: string }) {
   return (
-    <aside className="hidden lg:flex bg-[#061124] border-r border-white/10 p-6 flex-col h-screen overflow-y-auto">
-      <div className="bg-white rounded-2xl p-4 mb-8">
+    <aside className="hidden h-screen min-h-0 flex-col overflow-y-auto overflow-x-hidden border-r border-white/10 bg-[#061124]/95 p-5 lg:flex">
+      <div className="mb-6 rounded-2xl bg-white p-4">
         <BrandHeader center />
       </div>
 
-      <nav className="space-y-2 text-sm font-bold">
+      <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1 text-sm font-bold">
         <SidebarItem href="/admin" label="Dashboard" />
         <SidebarItem href="/admin/live" label="Live Auction" />
         <SidebarItem href="/admin/setup" label="Artworks / Setup" />
@@ -631,7 +634,7 @@ function AdminSidebar({ auctionCode }: { auctionCode: string }) {
         <SidebarItem href={`/auction/${auctionCode}`} label="Parent View" />
       </nav>
 
-      <div className="mt-auto bg-white/5 border border-white/10 rounded-3xl p-5">
+      <div className="mt-5 shrink-0 rounded-3xl border border-white/10 bg-white/[0.055] p-5">
         <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-3">
           Records
         </p>
@@ -702,13 +705,13 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-[28px] p-6 text-[#07152b] shadow-xl">
+    <div className="rounded-[28px] border border-white/10 bg-white p-5 text-[#07152b] shadow-[0_22px_70px_rgba(0,0,0,0.24)]">
       <p className="uppercase tracking-[0.25em] text-xs text-slate-400 font-black mb-3">
         {label}
       </p>
 
       <h2
-        className="text-4xl font-black leading-tight mb-3"
+        className="mb-2 text-4xl font-black leading-tight"
         style={{ color }}
       >
         {value}
