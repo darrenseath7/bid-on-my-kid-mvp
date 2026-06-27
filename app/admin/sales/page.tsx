@@ -122,16 +122,16 @@ export default function AdminSalesPage() {
           </div>
         </div>
 
-        <section className="min-w-0 px-4 py-5 md:px-6 lg:px-7 lg:py-6">
-          <div className="relative mb-5 overflow-hidden rounded-[30px] border border-white/10 bg-[#061124]/88 p-5 shadow-[0_28px_95px_rgba(0,0,0,0.45)]">
+        <section className="min-w-0 px-4 py-4 md:px-6 lg:px-6 lg:py-5">
+          <div className="relative mb-5 overflow-hidden rounded-[30px] border border-white/10 bg-[#061124]/88 p-5 md:p-6 shadow-[0_28px_95px_rgba(0,0,0,0.45)]">
             <img src="/bragwall-admin-paint-texture.png" alt="" className="pointer-events-none absolute right-[-70px] top-[-95px] h-[310px] w-[260px] object-contain opacity-28" aria-hidden="true" />
-            <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+            <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
             <div>
               <p className="mb-3 text-[10px] font-black uppercase tracking-[0.35em] text-[#ffc857]">
                 Sales / Invoices
               </p>
 
-              <h1 className="text-5xl lg:text-7xl font-black leading-none mb-4">
+              <h1 className="text-5xl lg:text-6xl font-black leading-none mb-4">
                 Winner records.
               </h1>
 
@@ -141,7 +141,7 @@ export default function AdminSalesPage() {
               </p>
             </div>
 
-            <div className="w-full space-y-3 rounded-[24px] border border-white/10 bg-white/[0.055] p-4 xl:w-[330px]">
+            <div className="w-full space-y-3 rounded-[24px] border border-white/10 bg-white/[0.055] p-3 xl:w-[330px]">
               <AdminAuctionSelector />
 
               <button
@@ -154,7 +154,7 @@ export default function AdminSalesPage() {
           </div>
         </div>
 
-          <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="grid md:grid-cols-3 gap-4 mb-5">
             <StatCard
               label="Total Sales"
               value={`R${totalRaised.toLocaleString()}`}
