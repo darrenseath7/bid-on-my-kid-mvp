@@ -116,11 +116,11 @@ export default function AdminDashboardPage() {
       <div className="fixed inset-0 pointer-events-none opacity-[0.055] bg-[linear-gradient(rgba(255,255,255,0.13)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.13)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
       <section className="relative h-screen p-2 md:p-3">
-        <div className="grid h-full overflow-hidden rounded-[26px] border border-white/10 bg-[#061124]/76 shadow-[0_30px_140px_rgba(0,0,0,0.74)] lg:grid-cols-[190px_1fr]">
+        <div className="grid h-full overflow-hidden rounded-[26px] border border-white/10 bg-[#061124]/76 shadow-[0_30px_140px_rgba(0,0,0,0.74)] lg:grid-cols-[180px_1fr]">
           <AdminSidebar />
 
-          <section className="min-w-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
-            <div className="mx-auto max-w-[1390px]">
+          <section className="min-w-0 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
+            <div className="max-w-[1390px]">
               <header className="mb-4 grid gap-4 xl:grid-cols-[1fr_410px] xl:items-start">
                 <div className="rounded-[26px] border border-white/10 bg-white/[0.035] p-5 md:p-6">
                   <p className="mb-2 text-[10px] font-black uppercase tracking-[0.34em] text-[#16d66d]">
@@ -534,3 +534,4 @@ function CardIcon() {
 function PhoneIcon() {
   return <IconSvg><rect x="7" y="2" width="10" height="20" rx="2" /><path d="M11 18h2" /></IconSvg>;
 }
+
