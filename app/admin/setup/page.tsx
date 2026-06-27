@@ -483,35 +483,30 @@ export default function AdminSetupPage() {
     }
   }
   return (
-    <main className="min-h-screen bg-[#020b18] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[#020b18] text-white">
+      <img
+        src="/bragwall-admin-paint-texture.png"
+        alt=""
+        className="pointer-events-none fixed right-[-80px] top-[120px] z-[1] hidden h-[560px] w-[460px] object-contain opacity-35 lg:block"
+        aria-hidden="true"
+      />
+      <img
+        src="/bragwall-admin-paint-texture.png"
+        alt=""
+        className="pointer-events-none fixed bottom-[-80px] left-[130px] z-[1] hidden h-[430px] w-[360px] rotate-[-10deg] object-contain opacity-24 xl:block"
+        aria-hidden="true"
+      />
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.15),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.13),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
       <div className="fixed inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
-      <div className="relative grid xl:grid-cols-[280px_1fr] min-h-screen">
-        <aside className="border-r border-white/10 bg-[#061124]/85 backdrop-blur-xl p-5 xl:sticky xl:top-0 xl:h-screen xl:overflow-y-auto">
-          <div className="rounded-[24px] border border-white/10 bg-[#020b18] shadow-2xl relative overflow-hidden px-4 py-5 mb-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(22,214,109,0.12),transparent_45%)]" />
-
-            <div className="relative text-center">
-              <div className="mx-auto flex items-center justify-center rounded-[18px] bg-white px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.32)]">
-                <img
-                  src="/bragwall-logo.png"
-                  alt="BragWall"
-                  className="h-14 w-auto object-contain"
-                />
-              </div>
-
-              <p className="mt-4 uppercase tracking-[0.28em] text-[9px] text-white/62 font-black">
-                Young Art • Big Pride
-              </p>
-            </div>
+      <div className="relative z-10 grid min-h-screen lg:grid-cols-[180px_1fr]">
+        <aside className="hidden min-h-0 border-r border-white/10 bg-[#061124]/95 lg:flex lg:h-screen lg:flex-col">
+          <div className="shrink-0 px-4 pb-4 pt-5">
+            <img src="/bragwall-logo.png" alt="BragWall" className="h-13 w-auto max-w-[118px] rounded-md bg-white p-1.5" />
+            <p className="mt-2 text-[7px] font-black uppercase tracking-[0.32em] text-white/42">Young Art - Big Pride</p>
           </div>
 
-          <div className="mb-5">
-            <AdminAuctionSelector />
-          </div>
-
-          <nav className="space-y-3 mb-6">
+          <nav className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-3 pb-4">
             <AdminNavLink href="/admin" label="Dashboard" icon="⌂" />
             <AdminNavLink
               href="/admin/setup"
@@ -524,25 +519,27 @@ export default function AdminSetupPage() {
             <AdminNavLink href={`/auction/${auctionCode}`} label="Parent View" icon="◌" />
           </nav>
 
-          <div className="rounded-[28px] bg-white/5 border border-white/10 p-4 mb-5">
+          <div className="mx-3 mb-3 shrink-0 rounded-[20px] border border-white/10 bg-white/[0.045] p-3">
             <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-3">
               Setup Progress
             </p>
 
-            <p className="text-3xl font-black text-[#16d66d]">
+            <p className="text-2xl font-black text-[#16d66d]">
               {artworks.length}
             </p>
 
-            <p className="text-white/50 text-sm font-bold mt-2">
+            <p className="mt-1 text-[11px] font-semibold text-white/45">
               artworks loaded for this auction
             </p>
           </div>
 
-          <AdminLogoutButton />
+          <div className="mx-3 mb-4 shrink-0 rounded-[20px] border border-white/10 bg-white/[0.045] p-2.5">
+            <AdminLogoutButton />
+          </div>
         </aside>
 
-        <section className="min-h-screen">
-          <header className="border-b border-white/10 bg-[#020b18]/70 backdrop-blur-xl p-5 lg:p-8">
+        <section className="min-h-screen min-w-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5 xl:px-7">
+          <header className="relative overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.045] p-5 shadow-2xl">
             <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
               <div>
                 <div className="inline-flex items-center gap-3 rounded-full bg-white/10 border border-white/10 px-4 py-3 mb-4">
@@ -552,18 +549,18 @@ export default function AdminSetupPage() {
                   </span>
                 </div>
 
-                <h1 className="text-5xl lg:text-7xl font-black leading-[0.9]">
+                <h1 className="text-4xl font-black leading-none tracking-[-0.05em] md:text-5xl">
                   Set up the school. Load the art.
                 </h1>
 
-                <p className="text-white/55 text-lg font-bold mt-3 max-w-4xl">
+                <p className="mt-2 max-w-4xl text-sm font-semibold leading-relaxed text-white/55">
                   Capture school payment details, set the bidding increment,
                   upload artwork, and manage sold or archived pieces from one
                   place.
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 min-w-full lg:min-w-[560px]">
+              <div className="grid min-w-full grid-cols-3 gap-3 lg:min-w-[430px]">
                 <MetricCard
                   label="Upcoming"
                   value={`${liveUpcomingArtworks.length}`}
@@ -578,12 +575,12 @@ export default function AdminSetupPage() {
             </div>
           </header>
 
-          <div className="grid 2xl:grid-cols-[0.92fr_1.08fr] gap-5 p-5 lg:p-8">
+          <div className="grid gap-5 py-5 2xl:grid-cols-[0.86fr_1.14fr]">
             <div className="space-y-5">
-              <section className="rounded-[36px] bg-white text-[#07152b] p-6 lg:p-7 shadow-2xl">
+              <section className="rounded-[28px] border border-white/10 bg-[#0b182b]/92 p-6 text-white shadow-2xl">
                 <div className="flex items-center justify-between gap-4 mb-7">
                   <div>
-                    <p className="uppercase tracking-[0.3em] text-xs text-slate-400 font-black mb-3">
+                    <p className="uppercase tracking-[0.3em] text-xs text-white/42 font-black mb-3">
                       School Setup
                     </p>
 
@@ -616,7 +613,7 @@ export default function AdminSetupPage() {
                     <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#16d66d]">
                       Parent auction link
                     </p>
-                    <p className="mt-1 break-all text-sm font-black text-[#07152b]">
+                    <p className="mt-1 break-all text-sm font-black text-white">
                       /auction/{profile.auction_code || auctionCode}
                     </p>
                   </div>
@@ -638,7 +635,7 @@ export default function AdminSetupPage() {
                       <select
                         value={String(profile.bid_increment || 100)}
                         onChange={(event) => updateBidIncrement(event.target.value)}
-                        className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base font-black text-[#07152b] outline-none focus:border-[#16d66d]"
+                        className="mt-2 w-full rounded-2xl border border-white/10 bg-[#061124]/80 px-4 py-3 text-base font-black text-white outline-none focus:border-[#16d66d]"
                       >
                         <option value="25">R25</option>
                         <option value="50">R50</option>
@@ -650,7 +647,7 @@ export default function AdminSetupPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+                    <label className="block text-sm font-black uppercase tracking-[0.2em] text-white/42 mb-3">
                       Collection Instructions
                     </label>
 
@@ -662,7 +659,7 @@ export default function AdminSetupPage() {
                           event.target.value
                         )
                       }
-                      className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg outline-none min-h-[150px]"
+                      className="min-h-[135px] w-full rounded-2xl border border-white/10 bg-[#061124]/80 px-5 py-4 text-base font-bold text-white outline-none focus:border-[#16d66d]/70"
                       placeholder="Artwork may be collected from the school office after payment confirmation."
                     />
                   </div>
@@ -670,17 +667,17 @@ export default function AdminSetupPage() {
                   <button
                     onClick={saveProfile}
                     disabled={savingProfile}
-                    className="w-full bg-[#07152b] text-white rounded-[24px] py-5 font-black text-xl shadow-xl disabled:opacity-50 hover:scale-[1.01] transition"
+                    className="w-full rounded-[20px] bg-[#16d66d] py-4 text-base font-black text-[#031124] shadow-xl transition hover:scale-[1.01] disabled:opacity-50"
                   >
                     {savingProfile ? "Saving Setup..." : "Save School Setup"}
                   </button>
                 </div>
               </section>
 
-              <section className="rounded-[36px] bg-white text-[#07152b] p-6 lg:p-7 shadow-2xl">
+              <section className="rounded-[28px] border border-white/10 bg-[#0b182b]/92 p-6 text-white shadow-2xl">
                 <div className="flex items-center justify-between gap-4 mb-7">
                   <div>
-                    <p className="uppercase tracking-[0.3em] text-xs text-slate-400 font-black mb-3">
+                    <p className="uppercase tracking-[0.3em] text-xs text-white/42 font-black mb-3">
                       New Artwork
                     </p>
 
@@ -715,11 +712,11 @@ export default function AdminSetupPage() {
                   />
 
                   <div>
-                    <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+                    <label className="block text-sm font-black uppercase tracking-[0.2em] text-white/42 mb-3">
                       Artwork Image
                     </label>
 
-                    <label className="block rounded-[28px] border-2 border-dashed border-slate-200 bg-[#fbf8f1] p-6 cursor-pointer hover:border-[#16b85d] transition">
+                    <label className="block cursor-pointer rounded-[24px] border-2 border-dashed border-white/12 bg-white/[0.04] p-5 transition hover:border-[#16b85d]">
                       <input
                         type="file"
                         accept="image/*"
@@ -730,7 +727,7 @@ export default function AdminSetupPage() {
                       />
 
                       <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-[24px] bg-white shadow flex items-center justify-center text-4xl shrink-0">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-white/10 text-3xl shadow">
                           🖼️
                         </div>
 
@@ -738,7 +735,7 @@ export default function AdminSetupPage() {
                           <p className="text-xl font-black">
                             {file ? file.name : "Choose artwork image"}
                           </p>
-                          <p className="text-slate-500 font-bold mt-1">
+                          <p className="mt-1 font-bold text-white/48">
                             Use a clear, bright photo of the child’s artwork.
                           </p>
                         </div>
@@ -751,8 +748,8 @@ export default function AdminSetupPage() {
                     onClick={() => setEnhanceArtwork(!enhanceArtwork)}
                     className={`w-full rounded-[28px] border-2 p-5 text-left transition ${
                       enhanceArtwork
-                        ? "border-[#16b85d] bg-[#eafff2]"
-                        : "border-slate-200 bg-white"
+                        ? "border-[#16b85d] bg-[#16d66d]/12"
+                        : "border-white/10 bg-white/[0.04]"
                     }`}
                   >
                     <div className="flex items-start gap-4">
@@ -760,7 +757,7 @@ export default function AdminSetupPage() {
                         className={`w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0 ${
                           enhanceArtwork
                             ? "bg-[#16b85d] text-white"
-                            : "bg-slate-100 text-slate-400"
+                            : "bg-white/10 text-white/40"
                         }`}
                       >
                         {enhanceArtwork ? "✓" : ""}
@@ -771,7 +768,7 @@ export default function AdminSetupPage() {
                           Enhance artwork for auction display
                         </p>
 
-                        <p className="text-slate-600 font-bold leading-relaxed">
+                        <p className="font-bold leading-relaxed text-white/58">
                           Keep the original safely stored, then create a
                           cleaner, brighter auction-ready version.
                         </p>
@@ -782,7 +779,7 @@ export default function AdminSetupPage() {
                   <button
                     onClick={uploadArtwork}
                     disabled={uploading}
-                    className="w-full bg-[#07152b] text-white rounded-[24px] py-5 font-black text-xl shadow-xl disabled:opacity-50 hover:scale-[1.01] transition"
+                    className="w-full rounded-[20px] bg-[#16d66d] py-4 text-base font-black text-[#031124] shadow-xl transition hover:scale-[1.01] disabled:opacity-50"
                   >
                     {uploading
                       ? enhanceArtwork
@@ -801,7 +798,7 @@ export default function AdminSetupPage() {
             </div>
 
             <div className="space-y-5">
-              <section className="rounded-[36px] bg-[#16d66d] text-[#07152b] p-7 shadow-2xl">
+              <section className="relative overflow-hidden rounded-[28px] border border-[#16d66d]/30 bg-[#16d66d]/90 p-7 text-[#07152b] shadow-2xl">
                 <p className="uppercase tracking-[0.3em] text-xs font-black mb-4">
                   School Preview
                 </p>
@@ -821,7 +818,7 @@ export default function AdminSetupPage() {
                   />
                 </div>
 
-                <div className="mt-5 bg-[#07152b] text-white rounded-[28px] p-6">
+                <div className="mt-5 bg-[#07152b] text-white rounded-[24px] p-5">
                   <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
                     Payment Reference
                   </p>
@@ -848,7 +845,7 @@ export default function AdminSetupPage() {
                       <p className="text-white/50 font-bold mt-2">{grade}</p>
                     </div>
 
-                    <div className="rounded-[24px] bg-[#ffc857] text-[#07152b] px-5 py-4 text-center shrink-0">
+                    <div className="rounded-[24px] bg-[#ffc857] text-white px-5 py-4 text-center shrink-0">
                       <p className="uppercase tracking-[0.25em] text-[9px] font-black opacity-70">
                         Artwork
                       </p>
@@ -861,8 +858,8 @@ export default function AdminSetupPage() {
                       <PremiumFrame src={previewUrl} alt="Artwork preview" />
 
                       <div className="mt-5 grid md:grid-cols-2 gap-4">
-                        <div className="bg-white text-[#07152b] rounded-[28px] p-5 shadow-xl">
-                          <p className="uppercase tracking-[0.25em] text-[10px] text-slate-400 font-black mb-3">
+                        <div className="bg-white text-white rounded-[28px] p-5 shadow-xl">
+                          <p className="uppercase tracking-[0.25em] text-[10px] text-white/42 font-black mb-3">
                             AI Story Preview
                           </p>
 
@@ -874,7 +871,7 @@ export default function AdminSetupPage() {
                         <div
                           className={`rounded-[28px] p-5 shadow-xl ${
                             enhanceArtwork
-                              ? "bg-[#16d66d] text-[#07152b]"
+                              ? "bg-[#16d66d] text-white"
                               : "bg-white/5 border border-white/10 text-white"
                           }`}
                         >
@@ -919,7 +916,7 @@ export default function AdminSetupPage() {
                     <button
                       onClick={archiveAllUnsoldArtworks}
                       disabled={liveUpcomingArtworks.length === 0}
-                      className="rounded-2xl bg-[#ffc857] text-[#07152b] px-5 py-4 font-black disabled:opacity-40"
+                      className="rounded-2xl bg-[#ffc857] text-white px-5 py-4 font-black disabled:opacity-40"
                     >
                       Archive Unsold
                     </button>
@@ -977,7 +974,7 @@ function AdminNavLink({
       href={href}
       className={`flex items-center gap-3 rounded-[22px] px-4 py-4 font-black transition ${
         active
-          ? "bg-[#16d66d] text-[#07152b]"
+          ? "bg-[#16d66d] text-white"
           : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
       }`}
     >
@@ -1027,14 +1024,14 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+      <label className="block text-sm font-black uppercase tracking-[0.2em] text-white/42 mb-3">
         {label}
       </label>
 
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg outline-none"
+        className="w-full rounded-2xl border border-white/10 bg-[#061124]/80 px-5 py-4 text-base font-bold text-white outline-none focus:border-[#16d66d]/70"
         placeholder={placeholder}
       />
     </div>
@@ -1054,7 +1051,7 @@ function NumberField({
 }) {
   return (
     <div>
-      <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+      <label className="block text-sm font-black uppercase tracking-[0.2em] text-white/42 mb-3">
         {label}
       </label>
 
@@ -1064,7 +1061,7 @@ function NumberField({
         step="1"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg outline-none"
+        className="w-full rounded-2xl border border-white/10 bg-[#061124]/80 px-5 py-4 text-base font-bold text-white outline-none focus:border-[#16d66d]/70"
         placeholder={placeholder}
       />
     </div>
@@ -1178,7 +1175,7 @@ function ArtworkRow({
                 className={`w-full h-full object-cover ${artwork.status === "sold" ? "opacity-60" : ""}`}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400">
+              <div className="w-full h-full flex items-center justify-center text-white/42">
                 🎨
               </div>
             )}
@@ -1228,8 +1225,8 @@ function ArtworkRow({
               onClick={() => onAction(artwork)}
               className={`mt-3 rounded-2xl px-4 py-2 text-sm font-black ${
                 actionLabel === "Restore"
-                  ? "bg-[#16d66d] text-[#07152b]"
-                  : "bg-[#ffc857] text-[#07152b]"
+                  ? "bg-[#16d66d] text-white"
+                  : "bg-[#ffc857] text-white"
               }`}
             >
               {actionLabel}
@@ -1246,11 +1243,11 @@ function StatusBadge({ status }: { status?: string | null }) {
 
   const styles =
     cleanStatus === "live"
-      ? "bg-[#16d66d] text-[#07152b]"
+      ? "bg-[#16d66d] text-white"
       : cleanStatus === "sold"
       ? "bg-[#ef2b20] text-white"
       : cleanStatus === "archived"
-      ? "bg-[#ffc857] text-[#07152b]"
+      ? "bg-[#ffc857] text-white"
       : "bg-white/10 text-white/70";
 
   return (
@@ -1271,7 +1268,7 @@ function EnhancementBadge({
 
   if (hasEnhancedImage || cleanStatus === "complete") {
     return (
-      <span className="inline-block rounded-full bg-[#16d66d] text-[#07152b] px-3 py-1 text-xs font-black">
+      <span className="inline-block rounded-full bg-[#16d66d] text-white px-3 py-1 text-xs font-black">
         ENHANCED
       </span>
     );
@@ -1279,7 +1276,7 @@ function EnhancementBadge({
 
   if (cleanStatus === "processing") {
     return (
-      <span className="inline-block rounded-full bg-[#ffc857] text-[#07152b] px-3 py-1 text-xs font-black">
+      <span className="inline-block rounded-full bg-[#ffc857] text-white px-3 py-1 text-xs font-black">
         ENHANCING
       </span>
     );
