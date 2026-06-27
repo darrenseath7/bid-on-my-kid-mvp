@@ -111,7 +111,19 @@ export default function AdminDashboardPage() {
   const progressPercent = Math.max(8, Math.round((setupProgress / 4) * 100));
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#020b18] text-white">
+    <main className="min-h-screen overflow-hidden bg-[#020b18] text-white relative overflow-hidden">
+      <img
+        src="/bragwall-admin-paint-texture.png"
+        alt=""
+        className="dashboard-visible-admin-paint-texture pointer-events-none fixed right-[40px] top-[230px] z-[1] hidden h-[520px] w-[420px] object-contain opacity-40 lg:block"
+        aria-hidden="true"
+      />
+      <img
+        src="/bragwall-admin-paint-texture.png"
+        alt=""
+        className="dashboard-visible-admin-paint-texture pointer-events-none fixed right-[110px] bottom-[80px] z-[1] hidden h-[420px] w-[340px] rotate-[-10deg] object-contain opacity-30 xl:block"
+        aria-hidden="true"
+      />
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_12%_10%,rgba(22,214,109,0.18),transparent_28%),radial-gradient(circle_at_88%_0%,rgba(255,200,87,0.11),transparent_30%),linear-gradient(180deg,#061124,#020b18_54%,#010712)]" />
       <div className="fixed inset-0 pointer-events-none opacity-[0.055] bg-[linear-gradient(rgba(255,255,255,0.13)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.13)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
