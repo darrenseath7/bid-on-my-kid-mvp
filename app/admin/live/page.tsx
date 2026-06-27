@@ -507,7 +507,7 @@ export default function AdminLivePage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#020b18] text-white flex items-center justify-center">
+      <main className="min-h-screen overflow-x-hidden bg-[#020b18] text-white flex items-center justify-center">
         <div className="text-center">
           <DarkLogoBlock compact />
           <p className="text-white/70 font-black mt-5">
@@ -519,7 +519,7 @@ export default function AdminLivePage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#020b18] text-white">
+    <main className="relative min-h-screen overflow-x-hidden overflow-hidden bg-[#020b18] text-white">
       <img
         src="/bragwall-admin-paint-texture.png"
         alt=""
@@ -936,7 +936,7 @@ export default function AdminLivePage() {
                       subtitle="Tap an artwork to move it live"
                       icon={<ArtworkIcon />}
                     >
-                      <div className="space-y-3 max-h-[275px] overflow-auto pr-1 bragwall-live-scroll">
+                      <div className="space-y-3 max-h-[275px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
                         {queuedArtworks.length === 0 && (
                           <p className="text-white/72 font-bold">
                             No queued artwork available. Sold and archived items are kept out of the live queue.
@@ -1002,7 +1002,7 @@ export default function AdminLivePage() {
                         subtitle={`${soldArtworks.length} completed with SOLD overlay`}
                         icon={<GavelIcon />}
                       >
-                        <div className="space-y-3 max-h-[210px] overflow-auto pr-1 bragwall-live-scroll">
+                        <div className="space-y-3 max-h-[210px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
                           {soldArtworks.map((artwork) => {
                             const displayUrl = getArtworkDisplayUrl(artwork);
 
@@ -1055,7 +1055,7 @@ export default function AdminLivePage() {
                         subtitle="Kept out of the live queue"
                         icon={<ArchiveIcon />}
                       >
-                        <div className="space-y-3 max-h-[170px] overflow-auto pr-1 bragwall-live-scroll">
+                        <div className="space-y-3 max-h-[170px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
                           {archivedArtworks.map((artwork) => (
                             <div
                               key={artwork.id}
@@ -1078,7 +1078,7 @@ export default function AdminLivePage() {
                       subtitle="Highest bids first"
                       icon={<CardIcon />}
                     >
-                      <div className="space-y-3 max-h-[245px] overflow-auto pr-1 bragwall-live-scroll">
+                      <div className="space-y-3 max-h-[245px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
                         {visibleBids.length === 0 && (
                           <p className="text-white/72 font-bold">No bids yet.</p>
                         )}
@@ -1124,7 +1124,7 @@ export default function AdminLivePage() {
                       subtitle="Latest auction events"
                       icon={<ActivityIcon />}
                     >
-                      <div className="space-y-3 max-h-[245px] overflow-auto pr-1 bragwall-live-scroll">
+                      <div className="space-y-3 max-h-[245px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
                         {activity.length === 0 && (
                           <p className="text-white/72 font-bold">
                             Activity will appear here.
