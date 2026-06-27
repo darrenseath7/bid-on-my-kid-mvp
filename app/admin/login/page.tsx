@@ -76,6 +76,24 @@ export default function AdminLoginPage() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.16),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
       <div className="absolute inset-0 opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
+      <div
+        className="admin-login-paint-accent pointer-events-none absolute left-[-180px] top-[90px] hidden h-[520px] w-[460px] -rotate-[12deg] bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.24] blur-[1px] brightness-125 saturate-150 md:block"
+        style={{
+          WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 72%)",
+          maskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 72%)",
+        }}
+        aria-hidden="true"
+      />
+
+      <div
+        className="admin-login-paint-accent pointer-events-none absolute right-[-210px] bottom-[80px] hidden h-[560px] w-[500px] rotate-[14deg] bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.20] blur-[1.5px] brightness-125 saturate-150 lg:block"
+        style={{
+          WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 74%)",
+          maskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 74%)",
+        }}
+        aria-hidden="true"
+      />
+
       <section className="relative mx-auto grid min-h-screen max-w-7xl items-center gap-8 px-5 py-6 md:px-8 md:py-8 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14">
         <div>
           <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-4 py-3">
