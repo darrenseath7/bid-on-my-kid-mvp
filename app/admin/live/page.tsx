@@ -529,7 +529,7 @@ export default function AdminLivePage() {
       <img
         src="/bragwall-admin-paint-texture.png"
         alt=""
-        className="live-visible-admin-paint-texture pointer-events-none fixed left-[210px] bottom-[-40px] z-[1] hidden h-[420px] w-[340px] rotate-[-10deg] object-contain opacity-24 xl:block"
+        className="live-visible-admin-paint-texture pointer-events-none fixed left-[260px] bottom-[-40px] z-[1] hidden h-[420px] w-[340px] rotate-[-10deg] object-contain opacity-24 xl:block"
         aria-hidden="true"
       />
 
@@ -565,8 +565,8 @@ export default function AdminLivePage() {
 
       <section className="relative z-10 min-h-screen p-3.5">
         <div className="min-h-[calc(100vh-28px)] rounded-[30px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.72)] overflow-visible">
-          <div className="grid min-h-[calc(100vh-28px)] grid-cols-[205px_1fr]">
-            <aside className="h-[calc(100vh-56px)] max-h-[calc(100vh-56px)] min-h-0 overflow-y-scroll overscroll-contain border-r border-white/10 bg-[#061124]/95 backdrop-blur-2xl p-4 pt-5 pr-3 flex flex-col [scrollbar-gutter:stable]">
+          <div className="grid min-h-[calc(100vh-28px)] grid-cols-[250px_1fr]">
+            <aside className="h-[calc(100vh-56px)] max-h-[calc(100vh-56px)] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain border-r border-white/10 bg-[#061124]/95 backdrop-blur-2xl p-4 pt-5 pr-4 flex flex-col [scrollbar-gutter:stable]">
               <div className="mt-4">
                 <AdminAuctionSelector />
               </div>
@@ -661,7 +661,7 @@ export default function AdminLivePage() {
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3.5 min-w-[620px] pt-3">
+                    <div className="grid grid-cols-4 gap-3 min-w-[560px] pt-3">
                       <TopMetric
                         label="Status"
                         value={formatStatus(statusLabel)}
@@ -780,7 +780,7 @@ export default function AdminLivePage() {
 
                             {auction?.status === "preparing_intro" && (
                               <div className="mt-3 rounded-2xl bg-[#ffc857]/15 border border-[#ffc857]/30 px-3 py-2">
-                                <p className="text-[10px] uppercase tracking-[0.22em] text-[#ffc857] font-black mb-1">
+                                <p className="text-[10.5px] uppercase tracking-[0.22em] text-[#ffc857] font-black mb-1">
                                   Preparing AI Voice
                                 </p>
                                 <p className="text-xs text-white/70 font-bold">
@@ -791,7 +791,7 @@ export default function AdminLivePage() {
 
                             {auction?.mc_audio_url && auction.status === "intro" && (
                               <div className="mt-3 rounded-2xl bg-[#16d66d]/15 border border-[#16d66d]/30 px-3 py-2">
-                                <p className="text-[10px] uppercase tracking-[0.22em] text-[#16d66d] font-black mb-1">
+                                <p className="text-[10.5px] uppercase tracking-[0.22em] text-[#16d66d] font-black mb-1">
                                   AI Voice Ready
                                 </p>
                                 <p className="text-xs text-white/70 font-bold">
