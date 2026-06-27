@@ -501,6 +501,27 @@ function HomepagePaintSplashes() {
   );
 }
 
+function SectionPaintAccent({
+  position = "right",
+}: {
+  position?: "left" | "right";
+}) {
+  const sideClass =
+    position === "left"
+      ? "left-[-120px] rotate-[12deg]"
+      : "right-[-120px] -rotate-[12deg]";
+
+  return (
+    <div
+      className={`pointer-events-none absolute top-[-70px] hidden h-[360px] w-[360px] ${sideClass} bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.20] blur-[1px] brightness-125 saturate-150 md:block`}
+      style={{
+        WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 72%)",
+        maskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 72%)",
+      }}
+      aria-hidden="true"
+    />
+  );
+}
 function DemoRequestModal({
   submitted,
   submitting,
@@ -988,6 +1009,7 @@ function IconSvg({ children, small = false, large = false }: { children: ReactNo
     </svg>
   );
 }
+
 
 
 
