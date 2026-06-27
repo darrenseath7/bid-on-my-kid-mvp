@@ -119,8 +119,8 @@ export default function AdminDashboardPage() {
         <div className="grid h-full overflow-hidden rounded-[26px] border border-white/10 bg-[#061124]/76 shadow-[0_30px_140px_rgba(0,0,0,0.74)] lg:grid-cols-[180px_1fr]">
           <AdminSidebar />
 
-          <section className="min-w-0 overflow-y-auto px-4 py-4 md:px-5 md:py-5">
-            <div className="max-w-[1390px]">
+          <section className="min-w-0 overflow-y-auto px-4 py-4 md:px-6 md:py-5 xl:px-7">
+            <div className="w-full max-w-none">
               <header className="mb-4 grid gap-4 xl:grid-cols-[1fr_410px] xl:items-start">
                 <div className="rounded-[26px] border border-white/10 bg-white/[0.035] p-5 md:p-6">
                   <p className="mb-2 text-[10px] font-black uppercase tracking-[0.34em] text-[#16d66d]">
@@ -210,7 +210,7 @@ export default function AdminDashboardPage() {
                 </section>
               </div>
 
-              <div className="mt-4 grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+              <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_1fr]">
                 <section className="rounded-[26px] border border-white/10 bg-[#07162b]/88 p-5 shadow-2xl md:p-6">
                   <div className="mb-4 flex items-center justify-between gap-4">
                     <div>
