@@ -519,7 +519,20 @@ export default function AdminLivePage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#020b18] text-white">
+    <main className="relative min-h-screen overflow-hidden bg-[#020b18] text-white">
+      <img
+        src="/bragwall-admin-paint-texture.png"
+        alt=""
+        className="live-visible-admin-paint-texture pointer-events-none fixed right-[28px] top-[170px] z-[1] hidden h-[560px] w-[440px] object-contain opacity-35 lg:block"
+        aria-hidden="true"
+      />
+      <img
+        src="/bragwall-admin-paint-texture.png"
+        alt=""
+        className="live-visible-admin-paint-texture pointer-events-none fixed left-[210px] bottom-[-40px] z-[1] hidden h-[420px] w-[340px] rotate-[-10deg] object-contain opacity-24 xl:block"
+        aria-hidden="true"
+      />
+
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -546,14 +559,14 @@ export default function AdminLivePage() {
       />
 
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_12%,rgba(22,214,109,0.2),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(255,200,87,0.14),transparent_30%),linear-gradient(135deg,#061124_0%,#020b18_48%,#111827_100%)]" />
-      <div className="fixed inset-0 pointer-events-none opacity-[0.055] bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center" />
+      <div className="fixed inset-0 pointer-events-none opacity-[0.055] bg-[url('/bragwall-admin-paint-texture.png')] bg-contain bg-no-repeat bg-right-top" />
       <div className="fixed inset-0 pointer-events-none bg-[#020b18]/72" />
       <div className="fixed inset-0 pointer-events-none opacity-[0.105] bg-[linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:72px_72px]" />
 
-      <section className="relative min-h-screen p-3.5">
+      <section className="relative z-10 min-h-screen p-3.5">
         <div className="min-h-[calc(100vh-28px)] rounded-[30px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.72)] overflow-visible">
-          <div className="grid min-h-[calc(100vh-28px)] grid-cols-[235px_1fr]">
-            <aside className="h-[calc(100vh-56px)] max-h-[calc(100vh-56px)] min-h-0 overflow-y-scroll overscroll-contain border-r border-white/10 bg-[#061124]/92 backdrop-blur-2xl p-4 pt-5 pr-3 flex flex-col [scrollbar-gutter:stable]">
+          <div className="grid min-h-[calc(100vh-28px)] grid-cols-[205px_1fr]">
+            <aside className="h-[calc(100vh-56px)] max-h-[calc(100vh-56px)] min-h-0 overflow-y-scroll overscroll-contain border-r border-white/10 bg-[#061124]/95 backdrop-blur-2xl p-4 pt-5 pr-3 flex flex-col [scrollbar-gutter:stable]">
               <div className="mt-4">
                 <AdminAuctionSelector />
               </div>
@@ -593,7 +606,7 @@ export default function AdminLivePage() {
               </nav>
 
               <div className="mt-auto rounded-[22px] border border-white/10 bg-[#020b18]/55 p-4 shadow-xl relative overflow-hidden">
-                <div className="absolute inset-0 opacity-[0.12] bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center" />
+                <div className="absolute inset-0 opacity-[0.12] bg-[url('/bragwall-admin-paint-texture.png')] bg-contain bg-no-repeat bg-right-top" />
                 <div className="absolute inset-0 bg-[#020b18]/78" />
                 <div className="relative">
                 <p className="uppercase tracking-[0.34em] text-[9px] text-white/55 font-black mb-3">
@@ -637,7 +650,7 @@ export default function AdminLivePage() {
                         </span>
                       </div>
 
-                      <h1 className="text-[54px] font-black leading-[0.9] tracking-[-0.065em]">
+                      <h1 className="text-[48px] font-black leading-[0.9] tracking-[-0.065em]">
                         Live <span className="text-[#16d66d]">control</span>{" "}
                         room.
                       </h1>
@@ -648,7 +661,7 @@ export default function AdminLivePage() {
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3.5 min-w-[690px] pt-3">
+                    <div className="grid grid-cols-4 gap-3.5 min-w-[620px] pt-3">
                       <TopMetric
                         label="Status"
                         value={formatStatus(statusLabel)}
@@ -681,10 +694,10 @@ export default function AdminLivePage() {
               </header>
 
               <div className="px-6 pb-5">
-                <div className="grid grid-cols-[1fr_330px] gap-4.5">
+                <div className="grid grid-cols-[1fr_360px] gap-4.5">
                   <div className="space-y-4.5">
                     <section className="rounded-[30px] border border-white/10 bg-white/[0.045] p-4.5 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
-                      <div className="grid grid-cols-[1fr_270px] gap-4 items-start">
+                      <div className="grid grid-cols-[1fr_300px] gap-4 items-start">
                         <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-5 shadow-2xl">
                           <div className="flex items-start justify-between gap-5 mb-4">
                             <div>
@@ -734,7 +747,7 @@ export default function AdminLivePage() {
                         </div>
 
                         <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-4 shadow-2xl flex flex-col relative overflow-hidden">
-                          <div className="absolute inset-0 pointer-events-none opacity-[0.08] bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center" />
+                          <div className="absolute right-[-50px] top-[-30px] h-[240px] w-[210px] pointer-events-none opacity-[0.28] bg-[url('/bragwall-admin-paint-texture.png')] bg-contain bg-no-repeat" />
                           <div className="absolute inset-0 pointer-events-none bg-[#061124]/78" />
                           <div className="relative flex flex-col h-full">
                           <div className="rounded-[24px] border border-[#ffc857]/32 bg-[radial-gradient(circle_at_top,rgba(211,108,255,0.24),transparent_36%),#020b18] p-5 text-center shadow-[0_0_45px_rgba(211,108,255,0.08)]">
