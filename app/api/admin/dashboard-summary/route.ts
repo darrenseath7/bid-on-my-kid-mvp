@@ -5,44 +5,11 @@ import {
   verifyAdminSessionToken,
 } from "@/lib/adminSession";
 
+export const dynamic = "force-dynamic";
+
 const DEFAULT_AUCTION_CODE = "demo";
 
-type ProfileRow = {
-  auction_code: string | null;
-  school_name: string | null;
-};
-
-type ArtworkRow = {
-  id: string;
-  auction_code: string | null;
-  child_name: string | null;
-  child_surname: string | null;
-  grade: string | null;
-  artwork_url: string | null;
-  status: string | null;
-  sold_amount: number | null;
-  winner_email: string | null;
-  created_at: string | null;
-};
-
-type LiveStateRow = {
-  auction_code: string | null;
-  status: string | null;
-  current_bid: number | null;
-  current_artwork_id: string | null;
-};
-
-function getSafeAuctionCode(value: unknown) {
-  const cleaned = String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-
-  return cleaned || DEFAULT_AUCTION_CODE;
-}
+type DataRow = Record<string, unknown>;
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -60,8 +27,8 @@ function getSupabaseAdmin() {
   });
 }
 
-async function requireAdmin(request: NextRequest) {
-  const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value || null;
+async function assertAdmin(request: NextRequest) {
+  const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
   const session = await verifyAdminSessionToken(token);
 
   if (!session) return null;
@@ -81,121 +48,155 @@ async function requireAdmin(request: NextRequest) {
   return session;
 }
 
-function normaliseMoney(value: number | null | undefined) {
-  const amount = Number(value || 0);
-  return Number.isFinite(amount) ? amount : 0;
+function cleanCode(value: unknown) {
+  const cleaned = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return cleaned || DEFAULT_AUCTION_CODE;
+}
+
+function cleanName(value: unknown) {
+  const trimmed = String(value || "").trim();
+  return trimmed || null;
+}
+
+function getNumber(value: unknown) {
+  const numberValue = Number(value || 0);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+function getString(value: unknown) {
+  return String(value || "").trim();
+}
+
+function formatActivityName(row: DataRow) {
+  const childName = getString(row.child_name);
+  const childSurname = getString(row.child_surname);
+  const combined = `${childName} ${childSurname}`.trim();
+
+  return combined || "Artwork";
+}
+
+function getCreatedAt(row: DataRow) {
+  return getString(row.created_at);
 }
 
 export async function GET(request: NextRequest) {
-  const adminSession = await requireAdmin(request);
+  const session = await assertAdmin(request);
 
-  if (!adminSession) {
+  if (!session) {
     return NextResponse.json({ error: "Admin login required." }, { status: 401 });
   }
 
   try {
-    const auctionCode = getSafeAuctionCode(request.nextUrl.searchParams.get("auctionCode"));
+    const auctionCode = cleanCode(request.nextUrl.searchParams.get("auctionCode"));
     const supabaseAdmin = getSupabaseAdmin();
 
     const [profilesResult, artworksResult, liveStatesResult] = await Promise.all([
-      supabaseAdmin
-        .from("demo_school_profile")
-        .select("auction_code,school_name")
-        .limit(1000),
-      supabaseAdmin
-        .from("demo_artworks")
-        .select(
-          [
-            "id",
-            "auction_code",
-            "child_name",
-            "child_surname",
-            "grade",
-            "artwork_url",
-            "status",
-            "sold_amount",
-            "winner_email",
-            "created_at",
-          ].join(",")
-        )
-        .limit(1000),
-      supabaseAdmin
-        .from("live_auction_state")
-        .select("auction_code,status,current_bid,current_artwork_id")
-        .limit(1000),
+      supabaseAdmin.from("demo_school_profile").select("*").limit(1000),
+      supabaseAdmin.from("demo_artworks").select("*").limit(2000),
+      supabaseAdmin.from("live_auction_state").select("*").limit(1000),
     ]);
 
-    if (profilesResult.error) throw profilesResult.error;
-    if (artworksResult.error) throw artworksResult.error;
-    if (liveStatesResult.error) throw liveStatesResult.error;
+    if (profilesResult.error) {
+      throw new Error(`School profile error: ${profilesResult.error.message}`);
+    }
 
-    const profiles = ((profilesResult.data || []) as unknown) as ProfileRow[];
-    const artworks = ((artworksResult.data || []) as unknown) as ArtworkRow[];
-    const liveStates = ((liveStatesResult.data || []) as unknown) as LiveStateRow[];
+    if (artworksResult.error) {
+      throw new Error(`Artwork summary error: ${artworksResult.error.message}`);
+    }
+
+    if (liveStatesResult.error) {
+      throw new Error(`Live room summary error: ${liveStatesResult.error.message}`);
+    }
+
+    const profiles = (profilesResult.data || []) as DataRow[];
+    const artworks = (artworksResult.data || []) as DataRow[];
+    const liveStates = (liveStatesResult.data || []) as DataRow[];
 
     const schoolNameByCode = new Map<string, string>();
 
     profiles.forEach((profile) => {
-      const code = getSafeAuctionCode(profile.auction_code);
-      const name = String(profile.school_name || "").trim();
+      const code = cleanCode(profile.auction_code);
+      const schoolName = cleanName(profile.school_name);
 
-      if (code && name) {
-        schoolNameByCode.set(code, name);
+      if (code && schoolName) {
+        schoolNameByCode.set(code, schoolName);
       }
     });
 
     artworks.forEach((artwork) => {
-      const code = getSafeAuctionCode(artwork.auction_code);
+      const code = cleanCode(artwork.auction_code);
+
       if (!schoolNameByCode.has(code)) {
         schoolNameByCode.set(code, code);
       }
     });
 
     liveStates.forEach((state) => {
-      const code = getSafeAuctionCode(state.auction_code);
+      const code = cleanCode(state.auction_code);
+
       if (!schoolNameByCode.has(code)) {
         schoolNameByCode.set(code, code);
       }
     });
 
     const currentArtworks = artworks.filter(
-      (artwork) => getSafeAuctionCode(artwork.auction_code) === auctionCode
+      (artwork) => cleanCode(artwork.auction_code) === auctionCode
     );
+
     const soldCurrentArtworks = currentArtworks.filter(
-      (artwork) => artwork.status === "sold"
+      (artwork) => getString(artwork.status).toLowerCase() === "sold"
     );
-    const unsoldCurrentArtworks = currentArtworks.filter(
-      (artwork) => artwork.status !== "sold" && artwork.status !== "archived"
-    );
+
+    const unsoldCurrentArtworks = currentArtworks.filter((artwork) => {
+      const status = getString(artwork.status).toLowerCase();
+      return status !== "sold" && status !== "archived";
+    });
+
     const currentLiveState =
-      liveStates.find((state) => getSafeAuctionCode(state.auction_code) === auctionCode) || null;
+      liveStates.find((state) => cleanCode(state.auction_code) === auctionCode) ||
+      null;
 
     const totalRaised = soldCurrentArtworks.reduce(
-      (total, artwork) => total + normaliseMoney(artwork.sold_amount),
+      (total, artwork) => total + getNumber(artwork.sold_amount),
       0
     );
 
     const allTotalRaised = artworks
-      .filter((artwork) => artwork.status === "sold")
-      .reduce((total, artwork) => total + normaliseMoney(artwork.sold_amount), 0);
+      .filter((artwork) => getString(artwork.status).toLowerCase() === "sold")
+      .reduce((total, artwork) => total + getNumber(artwork.sold_amount), 0);
 
-    const raisedBySchool = new Map<string, { code: string; name: string; total: number; sold: number }>();
+    const raisedBySchool = new Map<
+      string,
+      { code: string; name: string; total: number; sold: number }
+    >();
 
     artworks.forEach((artwork) => {
-      const code = getSafeAuctionCode(artwork.auction_code);
-      const existing = raisedBySchool.get(code) || {
-        code,
-        name: schoolNameByCode.get(code) || code,
-        total: 0,
-        sold: 0,
-      };
+      const code = cleanCode(artwork.auction_code);
 
-      if (artwork.status === "sold") {
-        existing.total += normaliseMoney(artwork.sold_amount);
-        existing.sold += 1;
+      if (!raisedBySchool.has(code)) {
+        raisedBySchool.set(code, {
+          code,
+          name: schoolNameByCode.get(code) || code,
+          total: 0,
+          sold: 0,
+        });
       }
 
-      raisedBySchool.set(code, existing);
+      const existing = raisedBySchool.get(code);
+
+      if (!existing) return;
+
+      if (getString(artwork.status).toLowerCase() === "sold") {
+        existing.total += getNumber(artwork.sold_amount);
+        existing.sold += 1;
+      }
     });
 
     const topSchools = Array.from(raisedBySchool.values())
@@ -204,18 +205,21 @@ export async function GET(request: NextRequest) {
 
     const recentActivity = currentArtworks
       .slice()
-      .sort((left, right) => String(right.created_at || "").localeCompare(String(left.created_at || "")))
+      .sort((left, right) => getCreatedAt(right).localeCompare(getCreatedAt(left)))
       .slice(0, 5)
-      .map((artwork) => ({
-        id: artwork.id,
-        message:
-          artwork.status === "sold"
-            ? `${artwork.child_name || "Artwork"} ${artwork.child_surname || ""}`.trim() +
-              ` sold for R${normaliseMoney(artwork.sold_amount).toLocaleString()}`
-            : `${artwork.child_name || "Artwork"} ${artwork.child_surname || ""}`.trim() +
-              " added to the auction",
-        status: artwork.status || "pending",
-      }));
+      .map((artwork) => {
+        const status = getString(artwork.status).toLowerCase();
+        const name = formatActivityName(artwork);
+
+        return {
+          id: getString(artwork.id) || `${name}-${Math.random()}`,
+          message:
+            status === "sold"
+              ? `${name} sold for R${getNumber(artwork.sold_amount).toLocaleString()}`
+              : `${name} added to the auction`,
+          status: status || "pending",
+        };
+      });
 
     return NextResponse.json({
       ok: true,
@@ -229,17 +233,22 @@ export async function GET(request: NextRequest) {
         liveRoomsCount: liveStates.length,
         totalRaised,
         allTotalRaised,
-        winnerEmailsCaptured: soldCurrentArtworks.filter((artwork) => artwork.winner_email).length,
-        winnerEmailsMissing: soldCurrentArtworks.filter((artwork) => !artwork.winner_email).length,
-        liveStatus: currentLiveState?.status || "waiting",
-        currentBid: normaliseMoney(currentLiveState?.current_bid),
+        winnerEmailsCaptured: soldCurrentArtworks.filter((artwork) =>
+          Boolean(cleanName(artwork.winner_email))
+        ).length,
+        winnerEmailsMissing: soldCurrentArtworks.filter(
+          (artwork) => !cleanName(artwork.winner_email)
+        ).length,
+        liveStatus: getString(currentLiveState?.status) || "waiting",
+        currentBid: getNumber(currentLiveState?.current_bid),
         topSchools,
         recentActivity,
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not load dashboard summary.";
+    const message =
+      error instanceof Error ? error.message : "Could not load dashboard summary.";
+
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-
