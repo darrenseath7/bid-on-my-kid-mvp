@@ -529,7 +529,7 @@ export default function AdminLivePage() {
       <img
         src="/bragwall-admin-paint-texture.png"
         alt=""
-        className="live-visible-admin-paint-texture pointer-events-none fixed left-[260px] bottom-[-40px] z-[1] hidden h-[420px] w-[340px] rotate-[-10deg] object-contain opacity-24 xl:block"
+        className="live-visible-admin-paint-texture pointer-events-none fixed left-[320px] bottom-[-40px] z-[1] hidden h-[420px] w-[340px] rotate-[-10deg] object-contain opacity-24 xl:block"
         aria-hidden="true"
       />
 
@@ -661,7 +661,7 @@ export default function AdminLivePage() {
                       </p>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3 min-w-[560px] pt-3">
+                    <div className="grid grid-cols-4 gap-3 min-w-0 pt-3">
                       <TopMetric
                         label="Status"
                         value={formatStatus(statusLabel)}
@@ -694,10 +694,10 @@ export default function AdminLivePage() {
               </header>
 
               <div className="px-6 pb-5">
-                <div className="grid grid-cols-[1fr_360px] gap-4.5">
+                <div className="grid grid-cols-[minmax(0,1fr)_330px] gap-4">
                   <div className="space-y-4.5">
                     <section className="rounded-[30px] border border-white/10 bg-white/[0.045] p-4.5 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
-                      <div className="grid grid-cols-[1fr_300px] gap-4 items-start">
+                      <div className="grid grid-cols-[minmax(0,1fr)_270px] gap-4 items-start">
                         <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-5 shadow-2xl">
                           <div className="flex items-start justify-between gap-5 mb-4">
                             <div>
@@ -780,7 +780,7 @@ export default function AdminLivePage() {
 
                             {auction?.status === "preparing_intro" && (
                               <div className="mt-3 rounded-2xl bg-[#ffc857]/15 border border-[#ffc857]/30 px-3 py-2">
-                                <p className="text-[10.5px] uppercase tracking-[0.22em] text-[#ffc857] font-black mb-1">
+                                <p className="text-[10px] uppercase tracking-[0.22em] text-[#ffc857] font-black mb-1">
                                   Preparing AI Voice
                                 </p>
                                 <p className="text-xs text-white/70 font-bold">
@@ -791,7 +791,7 @@ export default function AdminLivePage() {
 
                             {auction?.mc_audio_url && auction.status === "intro" && (
                               <div className="mt-3 rounded-2xl bg-[#16d66d]/15 border border-[#16d66d]/30 px-3 py-2">
-                                <p className="text-[10.5px] uppercase tracking-[0.22em] text-[#16d66d] font-black mb-1">
+                                <p className="text-[10px] uppercase tracking-[0.22em] text-[#16d66d] font-black mb-1">
                                   AI Voice Ready
                                 </p>
                                 <p className="text-xs text-white/70 font-bold">
@@ -847,7 +847,7 @@ export default function AdminLivePage() {
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-9 gap-3">
+                      <div className="grid grid-cols-3 gap-3 md:grid-cols-5 xl:grid-cols-9">
                         <ControlButton
                           label={busyAction ? "Preparing..." : "Start Intro"}
                           icon={<PlayIcon />}
@@ -974,12 +974,12 @@ export default function AdminLivePage() {
                                 </div>
 
                                 <div className="min-w-0 flex-1">
-                                  <p className="font-black truncate">
+                                  <p className="font-black min-w-0 truncate">
                                     {artwork.child_name} {artwork.child_surname}
                                   </p>
 
                                   <p
-                                    className={`text-xs font-bold truncate ${
+                                    className={`text-xs font-bold min-w-0 truncate ${
                                       active
                                         ? "text-[#07152b]/75"
                                         : "text-white/58"
@@ -1030,10 +1030,10 @@ export default function AdminLivePage() {
                                   </div>
 
                                   <div className="min-w-0 flex-1">
-                                    <p className="font-black truncate">
+                                    <p className="font-black min-w-0 truncate">
                                       {artwork.child_name} {artwork.child_surname}
                                     </p>
-                                    <p className="text-xs text-white/55 font-bold truncate">
+                                    <p className="text-xs text-white/55 font-bold min-w-0 truncate">
                                       {artwork.grade} • {artwork.winning_bidder || "winner recorded"}
                                     </p>
                                   </div>
@@ -1061,7 +1061,7 @@ export default function AdminLivePage() {
                               key={artwork.id}
                               className="rounded-[18px] bg-white/[0.045] border border-white/10 p-3"
                             >
-                              <p className="font-black truncate">
+                              <p className="font-black min-w-0 truncate">
                                 {artwork.child_name} {artwork.child_surname}
                               </p>
                               <p className="text-xs text-white/55 font-bold">
@@ -1094,7 +1094,7 @@ export default function AdminLivePage() {
                           >
                             <div className="flex items-center justify-between gap-3">
                               <div className="min-w-0">
-                                <p className="font-black truncate">
+                                <p className="font-black min-w-0 truncate">
                                   {index === 0 ? "👑 " : ""}
                                   {bid.bidder_name}
                                 </p>
@@ -1485,7 +1485,7 @@ function WhiteDataCard({
       </p>
 
       <p
-        className={`text-[28px] font-black leading-none truncate ${
+        className={`text-[28px] font-black leading-none min-w-0 truncate ${
           tone ? toneText(tone) : "text-[#07152b]"
         }`}
       >
@@ -1499,7 +1499,7 @@ function SmallInfo({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-[20px] bg-white/[0.075] border border-white/12 px-4 py-3.5 text-left shadow-xl min-h-[82px] flex items-center justify-between gap-3 hover:bg-white/[0.095] transition">
       <div className="min-w-0">
-        <p className="uppercase tracking-[0.16em] text-[8px] text-white/52 font-black mb-1.5 truncate">
+        <p className="uppercase tracking-[0.16em] text-[8px] text-white/52 font-black mb-1.5 min-w-0 truncate">
           {label}
         </p>
 
