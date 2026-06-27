@@ -378,7 +378,7 @@ function CompactAuctionSelector({ summary }: { summary: DashboardSummary }) {
 
 function AdminSidebar() {
   return (
-    <aside className="hidden min-h-0 border-r border-white/10 bg-[#061124]/95 lg:flex lg:h-full lg:flex-col">
+    <aside className="hidden min-h-0 border-r border-white/10 bg-[#061124]/95 lg:flex lg:h-screen lg:flex-col">
       <div className="shrink-0 px-4 pb-4 pt-5">
         <img src="/bragwall-logo.png" alt="BragWall" className="h-13 w-auto max-w-[118px] rounded-md bg-white p-1.5" />
         <p className="mt-2 text-[7px] font-black uppercase tracking-[0.32em] text-white/42">Young Art - Big Pride</p>
@@ -534,4 +534,5 @@ function CardIcon() {
 function PhoneIcon() {
   return <IconSvg><rect x="7" y="2" width="10" height="20" rx="2" /><path d="M11 18h2" /></IconSvg>;
 }
+
 
