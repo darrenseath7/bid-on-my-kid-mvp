@@ -798,8 +798,15 @@ export default function AdminSetupPage() {
             </div>
 
             <div className="space-y-5">
-              <section className="relative overflow-hidden rounded-[28px] border border-[#16d66d]/30 bg-[#16d66d]/90 p-7 text-[#07152b] shadow-2xl">
-                <p className="uppercase tracking-[0.3em] text-xs font-black mb-4">
+              <section className="relative overflow-hidden rounded-[28px] border border-[#16d66d]/25 bg-[#062d2b]/88 p-7 text-white shadow-2xl">
+                <img
+                  src="/bragwall-admin-paint-texture.png"
+                  alt=""
+                  className="pointer-events-none absolute right-[-70px] top-[-70px] h-[280px] w-[240px] object-contain opacity-45"
+                  aria-hidden="true"
+                />
+                <div className="relative z-10">
+                <p className="uppercase tracking-[0.3em] text-xs font-black text-[#16d66d] mb-4">
                   School Preview
                 </p>
 
@@ -818,7 +825,7 @@ export default function AdminSetupPage() {
                   />
                 </div>
 
-                <div className="mt-5 bg-[#07152b] text-white rounded-[24px] p-5">
+                <div className="mt-5 rounded-[24px] border border-white/10 bg-[#07152b] p-5 text-white">
                   <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
                     Payment Reference
                   </p>
@@ -827,6 +834,7 @@ export default function AdminSetupPage() {
                     {(profile.payment_reference_prefix || "BRAG") +
                       "-WinnerName"}
                   </p>
+                </div>
                 </div>
               </section>
 
@@ -858,7 +866,7 @@ export default function AdminSetupPage() {
                       <PremiumFrame src={previewUrl} alt="Artwork preview" />
 
                       <div className="mt-5 grid md:grid-cols-2 gap-4">
-                        <div className="bg-white text-white rounded-[28px] p-5 shadow-xl">
+                        <div className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5 text-white shadow-xl">
                           <p className="uppercase tracking-[0.25em] text-[10px] text-white/42 font-black mb-3">
                             AI Story Preview
                           </p>
@@ -891,7 +899,14 @@ export default function AdminSetupPage() {
                 </div>
               </section>
 
-              <section className="rounded-[34px] bg-[#061124]/90 border border-white/10 p-5 shadow-2xl">
+              <section className="relative overflow-hidden rounded-[34px] bg-[#061124]/90 border border-white/10 p-5 shadow-2xl">
+                <img
+                  src="/bragwall-admin-paint-texture.png"
+                  alt=""
+                  className="pointer-events-none absolute right-[-90px] bottom-[-110px] h-[320px] w-[270px] object-contain opacity-22"
+                  aria-hidden="true"
+                />
+                <div className="relative z-10">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
                   <div>
                     <p className="uppercase tracking-[0.3em] text-[10px] text-[#16d66d] font-black mb-2">
@@ -923,7 +938,7 @@ export default function AdminSetupPage() {
                   </div>
                 </div>
 
-                <div className="space-y-5 max-h-[900px] overflow-auto pr-1">
+                <div className="space-y-5 max-h-[760px] overflow-auto pr-1">
                   <ArtworkSection
                     title="Live / Upcoming Artworks"
                     subtitle="Artworks still available for the auction."
@@ -948,6 +963,7 @@ export default function AdminSetupPage() {
                     actionLabel="Restore"
                     onAction={restoreArtwork}
                   />
+                </div>
                 </div>
               </section>
             </div>
@@ -1070,12 +1086,12 @@ function NumberField({
 
 function PreviewCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-[#07152b]/10 rounded-[24px] p-5">
+    <div className="rounded-[24px] border border-white/10 bg-white/[0.06] p-5">
       <p className="uppercase tracking-[0.25em] text-xs font-black opacity-60 mb-3">
         {label}
       </p>
 
-      <p className="text-2xl font-black">{value || "-"}</p>
+      <p className="text-2xl font-black text-white">{value || "-"}</p>
     </div>
   );
 }
