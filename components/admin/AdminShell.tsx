@@ -37,6 +37,20 @@ export default function AdminShell({
       <img
         src="/bragwall-section-artwork-bg.jpg"
         alt=""
+        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[420px] top-[235px] z-[2] hidden h-[300px] w-[760px] rounded-[38px] object-cover opacity-50 saturate-125 contrast-110 lg:block"
+        aria-hidden="true"
+      />
+      <div
+        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[420px] top-[235px] z-[3] hidden h-[300px] w-[760px] rounded-[38px] bg-gradient-to-r from-[#071224] via-[#071224]/45 to-[#071224]/10 lg:block"
+        aria-hidden="true"
+      />
+      <div
+        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[420px] top-[235px] z-[4] hidden h-[300px] w-[760px] rounded-[38px] bg-gradient-to-b from-[#071224]/5 via-transparent to-[#071224] lg:block"
+        aria-hidden="true"
+      />
+      <img
+        src="/bragwall-section-artwork-bg.jpg"
+        alt=""
         className="admin-section-artwork-layer pointer-events-none fixed right-[36px] top-[165px] z-[2] hidden h-[360px] w-[520px] rounded-[34px] object-cover opacity-45 saturate-125 contrast-110 lg:block"
         aria-hidden="true"
       />
