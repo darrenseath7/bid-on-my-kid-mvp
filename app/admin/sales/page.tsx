@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import BrandHeader from "@/components/BrandHeader";
 import AdminAuctionSelector from "@/components/AdminAuctionSelector";
+import AdminShell from "@/components/admin/AdminShell";
+import AdminPanel from "@/components/admin/AdminPanel";
+import AdminStatCard from "@/components/admin/AdminStatCard";
 import { supabase } from "@/lib/supabase";
 import { useAdminAuctionCode } from "@/lib/useAdminAuctionCode";
 
@@ -104,113 +106,92 @@ export default function AdminSalesPage() {
   const emailsMissing = sales.filter((item) => !item.winner_email).length;
 
   return (
-    <main className="min-h-screen bg-[#07152b] text-white">
-      <div className="lg:grid lg:grid-cols-[280px_1fr] min-h-screen">
-        <AdminSidebar auctionCode={auctionCode} />
-
-
-        <div className="lg:hidden sticky top-0 z-40 border-b border-white/10 bg-[#061124]/95 px-4 py-4 backdrop-blur-xl">
-          <div className="bg-white rounded-2xl p-3 mb-4 w-fit">
-            <BrandHeader />
-          </div>
-
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            <MobileNavItem href="/admin" label="Dashboard" />
-            <MobileNavItem href="/admin/live" label="Live" />
-            <MobileNavItem href="/admin/setup" label="Artworks / Setup" />
-            <MobileNavItem href="/admin/sales" label="Sales" active />
-          </div>
-        </div>
-
-        <section className="min-w-0 px-4 py-4 md:px-6 lg:px-6 lg:py-5">
-          <div className="relative mb-5 overflow-hidden rounded-[30px] border border-white/10 bg-[#061124]/88 p-5 md:p-6 shadow-[0_28px_95px_rgba(0,0,0,0.45)]">
-            <img src="/bragwall-admin-paint-texture.png" alt="" className="pointer-events-none absolute right-[-70px] top-[-95px] h-[310px] w-[260px] object-contain opacity-28" aria-hidden="true" />
-            <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-            <div>
-              <p className="mb-3 text-[10px] font-black uppercase tracking-[0.35em] text-[#ffc857]">
-                Sales / Invoices
-              </p>
-
-              <h1 className="text-5xl lg:text-6xl font-black leading-none mb-4">
-                Winner records.
-              </h1>
-
-              <p className="max-w-3xl text-base font-semibold leading-relaxed text-white/58 md:text-lg">
-                Revisit sold artworks, winner emails, invoice requests,
-                payment follow-ups, and certificate release status.
-              </p>
-            </div>
-
-            <div className="w-full space-y-3 rounded-[24px] border border-white/10 bg-white/[0.055] p-3 xl:w-[330px]">
-              <AdminAuctionSelector />
-
-              <button
-                onClick={() => fetchSales()}
-                className="w-full rounded-2xl bg-[#16d66d] px-6 py-4 font-black text-[#07152b] shadow-[0_18px_44px_rgba(22,214,109,0.18)] transition hover:scale-[1.01]"
-              >
-                Refresh
-              </button>
-            </div>
+    <AdminShell
+      active="sales"
+      eyebrow="Sales / Invoices"
+      title="Winner records."
+      description="Track every sold artwork, winner email, invoice preview, certificate release, and payment follow-up from one clean control screen."
+      selector={
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.055] p-4 shadow-[0_22px_70px_rgba(0,0,0,0.28)]">
+          <p className="mb-3 text-[10px] font-black uppercase tracking-[0.28em] text-white/42">
+            Active auction
+          </p>
+          <div className="space-y-3">
+            <AdminAuctionSelector />
+            <button
+              type="button"
+              onClick={() => fetchSales()}
+              className="w-full rounded-[18px] bg-[#16d66d] px-5 py-3 text-sm font-black text-[#07152b] shadow-[0_18px_44px_rgba(22,214,109,0.18)] transition hover:scale-[1.01]"
+            >
+              Refresh records
+            </button>
           </div>
         </div>
+      }
+    >
+      <div className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-3">
+          <AdminStatCard
+            label="Total raised"
+            value={`R${totalRaised.toLocaleString()}`}
+            subtext="From sold artworks"
+            tone="green"
+            highlight
+          />
+          <AdminStatCard
+            label="Winner emails"
+            value={`${emailsCaptured}`}
+            subtext="Captured successfully"
+            tone="blue"
+          />
+          <AdminStatCard
+            label="Missing emails"
+            value={`${emailsMissing}`}
+            subtext="Need follow-up"
+            tone="yellow"
+          />
+        </div>
 
-          <div className="grid md:grid-cols-3 gap-4 mb-5">
-            <StatCard
-              label="Total Sales"
-              value={`R${totalRaised.toLocaleString()}`}
-              subtext="From sold artworks"
-              color="#16d66d"
-            />
+        <AdminPanel
+          eyebrow="Follow-up workflow"
+          title="Sold artworks"
+          description={`${sales.length} sold artwork record${sales.length === 1 ? "" : "s"} for this auction.`}
+          action={
+            <a
+              href="/admin/live"
+              className="inline-flex rounded-[18px] bg-[#16d66d] px-5 py-3 text-sm font-black text-[#07152b] shadow-[0_18px_44px_rgba(22,214,109,0.16)] transition hover:scale-[1.01]"
+            >
+              Back to Live Room
+            </a>
+          }
+          className="relative overflow-hidden"
+        >
+          <img
+            src="/bragwall-admin-paint-texture.png"
+            alt=""
+            className="pointer-events-none absolute right-[-110px] top-[-120px] z-0 h-[390px] w-[320px] object-contain opacity-24"
+            aria-hidden="true"
+          />
 
-            <StatCard
-              label="Winner Emails"
-              value={`${emailsCaptured}`}
-              subtext="Captured successfully"
-              color="#2878cf"
-            />
-
-            <StatCard
-              label="Missing Emails"
-              value={`${emailsMissing}`}
-              subtext="Need follow-up"
-              color="#ffc107"
-            />
-          </div>
-
-          <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.045] shadow-[0_35px_120px_rgba(0,0,0,0.45)]">
-            <div className="border-b border-white/10 bg-[#061124]/60 p-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <h2 className="text-2xl font-black md:text-3xl">Sold Artworks</h2>
-                <p className="text-white/40 mt-1">
-                  {sales.length} sold artwork records
+          <div className="relative z-10">
+            {loading ? (
+              <div className="rounded-[24px] border border-white/10 bg-white/[0.045] p-8 text-sm font-black text-white/48">
+                Loading sales records...
+              </div>
+            ) : sales.length === 0 ? (
+              <div className="rounded-[26px] border border-white/10 bg-white/[0.045] p-8">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.28em] text-[#ffc857]">
+                  Waiting for first sale
+                </p>
+                <h3 className="text-3xl font-black tracking-[-0.05em]">
+                  No sales recorded yet.
+                </h3>
+                <p className="mt-3 max-w-2xl text-base font-semibold leading-relaxed text-white/55">
+                  Sold artworks will appear here after an auction item is sold and the winning parent submits their email.
                 </p>
               </div>
-
-              <a
-                href="/admin/live"
-                className="w-fit rounded-2xl bg-[#16d66d] px-5 py-3 font-black text-[#07152b] shadow-[0_18px_44px_rgba(22,214,109,0.16)]"
-              >
-                Back to Live Room
-              </a>
-            </div>
-
-            {loading ? (
-              <div className="p-8 text-white/40">Loading sales...</div>
-            ) : sales.length === 0 ? (
-              <div className="p-8">
-                <div className="bg-white/5 border border-white/10 rounded-[28px] p-8">
-                  <h3 className="text-3xl font-black mb-3">
-                    No sales recorded yet.
-                  </h3>
-
-                  <p className="text-white/55 text-lg leading-relaxed">
-                    Sold artworks will appear here after the first auction item
-                    is sold and the winning parent submits their email.
-                  </p>
-                </div>
-              </div>
             ) : (
-              <div className="divide-y divide-white/10">
+              <div className="space-y-4">
                 {sales.map((item) => (
                   <SaleCard
                     key={item.id}
@@ -221,10 +202,10 @@ export default function AdminSalesPage() {
                 ))}
               </div>
             )}
-          </section>
-        </section>
+          </div>
+        </AdminPanel>
       </div>
-    </main>
+    </AdminShell>
   );
 }
 
@@ -284,8 +265,8 @@ function SaleCard({
   }
 
   return (
-    <div className="p-4 lg:p-5">
-      <div className="grid gap-5 lg:grid-cols-[150px_minmax(0,1fr)]">
+    <div className="rounded-[26px] border border-white/10 bg-white/[0.052] p-4 shadow-[0_20px_70px_rgba(0,0,0,0.22)] lg:p-5">
+      <div className="grid gap-5 lg:grid-cols-[160px_minmax(0,1fr)]">
         <div className="rounded-[26px] bg-gradient-to-br from-[#70420f] to-[#2a1707] p-3 shadow-[0_20px_55px_rgba(0,0,0,0.28)]">
           <div className="bg-gradient-to-br from-[#f6e7b8] via-[#cfa95f] to-[#8c6528] p-2 rounded-[20px]">
             <div className="bg-[#f8f5ef] rounded-[14px] p-2">
