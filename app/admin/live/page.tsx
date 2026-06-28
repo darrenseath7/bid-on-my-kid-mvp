@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import AdminLogoutButton from "@/components/AdminLogoutButton";
 import AdminAuctionSelector from "@/components/AdminAuctionSelector";
+import AdminShell from "@/components/admin/AdminShell";
 import { supabase } from "@/lib/supabase";
 import { useAdminAuctionCode } from "@/lib/useAdminAuctionCode";
 
@@ -519,659 +520,551 @@ export default function AdminLivePage() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-x-hidden overflow-hidden bg-[#020b18] text-white">
-      <img
-        src="/bragwall-admin-paint-texture.png"
-        alt=""
-        className="live-visible-admin-paint-texture pointer-events-none fixed right-[28px] top-[170px] z-[1] hidden h-[560px] w-[440px] object-contain opacity-35 lg:block"
-        aria-hidden="true"
-      />
-      <img
-        src="/bragwall-admin-paint-texture.png"
-        alt=""
-        className="live-visible-admin-paint-texture pointer-events-none fixed left-[320px] bottom-[-40px] z-[1] hidden h-[420px] w-[340px] rotate-[-10deg] object-contain opacity-24 xl:block"
-        aria-hidden="true"
-      />
+    <AdminShell
+      active="live"
+      eyebrow="BragWall Live Room"
+      title="Live Room"
+      description="Run artwork intros, bidding rhythm, SOLD moments, and the parent screen from one polished auction cockpit."
+      status={<StatusBadge status={statusLabel} />}
+      selector={
+        <div className="rounded-[24px] border border-white/10 bg-white/[0.055] p-4 shadow-[0_18px_55px_rgba(0,0,0,0.28)]">
+          <AdminAuctionSelector />
+          <a
+            href={`/auction/${auctionCode}`}
+            className="mt-3 block rounded-[18px] border border-white/10 bg-white/[0.06] px-4 py-3 text-center text-sm font-black text-white/72 transition hover:bg-white/[0.1] hover:text-white"
+          >
+            Parent view: /auction/{auctionCode}
+          </a>
+        </div>
+      }
+    >
+<style
+  dangerouslySetInnerHTML={{
+    __html: `
+      .bragwall-live-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255,255,255,0.18) transparent;
+      }
+      .bragwall-live-scroll::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      .bragwall-live-scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .bragwall-live-scroll::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.16);
+        border-radius: 999px;
+      }
+      .bragwall-live-scroll::-webkit-scrollbar-thumb:hover {
+        background: rgba(255,255,255,0.28);
+      }
+    `,
+  }}
+/>
 
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            .bragwall-live-scroll {
-              scrollbar-width: thin;
-              scrollbar-color: rgba(255,255,255,0.18) transparent;
-            }
-            .bragwall-live-scroll::-webkit-scrollbar {
-              width: 8px;
-              height: 8px;
-            }
-            .bragwall-live-scroll::-webkit-scrollbar-track {
-              background: transparent;
-            }
-            .bragwall-live-scroll::-webkit-scrollbar-thumb {
-              background: rgba(255,255,255,0.16);
-              border-radius: 999px;
-            }
-            .bragwall-live-scroll::-webkit-scrollbar-thumb:hover {
-              background: rgba(255,255,255,0.28);
-            }
-          `,
-        }}
-      />
+      <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <TopMetric
+          label="Status"
+          value={formatStatus(statusLabel)}
+          icon={<ClockIcon />}
+          tone="purple"
+        />
+        <TopMetric
+          label="Current Bid"
+          value={`R${Number(auction?.current_bid || 0).toLocaleString()}`}
+          icon={<MoneyIcon />}
+          tone="green"
+        />
+        <TopMetric
+          label="Bid Step"
+          value={`R${bidIncrement.toLocaleString()}`}
+          icon={<ArrowUpIcon />}
+          tone="yellow"
+        />
+        <TopMetric
+          label="Bidders"
+          value={`${uniqueBidderCount}`}
+          icon={<PeopleIcon />}
+          tone="blue"
+        />
+      </div>
 
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_12%,rgba(22,214,109,0.2),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(255,200,87,0.14),transparent_30%),linear-gradient(135deg,#061124_0%,#020b18_48%,#111827_100%)]" />
-      <div className="fixed inset-0 pointer-events-none opacity-[0.055] bg-[url('/bragwall-admin-paint-texture.png')] bg-contain bg-no-repeat bg-right-top" />
-      <div className="fixed inset-0 pointer-events-none bg-[#020b18]/72" />
-      <div className="fixed inset-0 pointer-events-none opacity-[0.105] bg-[linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:72px_72px]" />
-
-      <section className="relative z-10 min-h-screen p-3.5">
-        <div className="min-h-[calc(100vh-28px)] rounded-[30px] border border-white/10 bg-white/[0.035] shadow-[0_30px_120px_rgba(0,0,0,0.72)] overflow-visible">
-          <div className="grid min-h-[calc(100vh-28px)] grid-cols-[250px_1fr]">
-            <aside className="h-[calc(100vh-56px)] max-h-[calc(100vh-56px)] min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain border-r border-white/10 bg-[#061124]/95 backdrop-blur-2xl p-4 pt-5 pr-4 flex flex-col [scrollbar-gutter:stable]">
-              <div className="mt-4">
-                <AdminAuctionSelector />
-              </div>
-
-              <nav className="space-y-2.5 mt-4">
-                <SidebarLink
-                  href="/admin"
-                  label="Dashboard"
-                  icon={<HomeIcon />}
-                  tone="yellow"
-                />
-                <SidebarLink
-                  href="/admin/setup"
-                  label="Add School & Artwork"
-                  icon={<PaletteIcon />}
-                  tone="purple"
-                />
-                <SidebarLink
-                  href="/admin/live"
-                  label="Live Room"
-                  icon={<GavelIcon />}
-                  tone="green"
-                  active
-                />
-                <SidebarLink
-                  href="/admin/sales"
-                  label="Sales Records"
-                  icon={<CardIcon />}
-                  tone="blue"
-                />
-                <SidebarLink
-                  href={`/auction/${auctionCode}`}
-                  label="Parent View"
-                  icon={<PhoneIcon />}
-                  tone="purple"
-                />
-              </nav>
-
-              <div className="mt-auto rounded-[22px] border border-white/10 bg-[#020b18]/55 p-4 shadow-xl relative overflow-hidden">
-                <div className="absolute inset-0 opacity-[0.12] bg-[url('/bragwall-admin-paint-texture.png')] bg-contain bg-no-repeat bg-right-top" />
-                <div className="absolute inset-0 bg-[#020b18]/78" />
-                <div className="relative">
-                <p className="uppercase tracking-[0.34em] text-[9px] text-white/55 font-black mb-3">
-                  Auction Code
+      <div className="space-y-4">
+  <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
+    <div className="space-y-4">
+      <section className="rounded-[30px] border border-white/10 bg-white/[0.045] p-5 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
+        <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_300px] 2xl:items-start">
+          <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-5 mb-4">
+              <div>
+                <p className="uppercase tracking-[0.35em] text-[8px] text-[#16d66d] font-black mb-3">
+                  On Stage
                 </p>
 
-                <p className="text-[30px] font-black text-[#16d66d] leading-none">
-                  {auctionCode.toUpperCase()}
+                <h2 className="text-[38px] font-black leading-none tracking-[-0.045em]">
+                  {currentArtwork
+                    ? `${currentArtwork.child_name} ${currentArtwork.child_surname}`
+                    : "No artwork selected"}
+                </h2>
+
+                <p className="text-white/65 text-base font-bold mt-2">
+                  {currentArtwork?.grade ||
+                    "Upload artwork to begin"}
                 </p>
-
-                <p className="text-white/58 text-xs font-bold mt-3 leading-relaxed">
-                  Parent access: /auction/{auctionCode}
-                </p>
-                </div>
               </div>
 
-              <div className="mt-4">
-                <AdminLogoutButton />
+              <StatusBadge status={statusLabel} />
+            </div>
+
+            <ArtworkStage artwork={currentArtwork} />
+
+            <div className="mt-3.5 grid grid-cols-3 gap-3">
+              <WhiteDataCard
+                label="Highest Bid"
+                value={`R${Number(
+                  auction?.current_bid || 0
+                ).toLocaleString()}`}
+                tone="green"
+              />
+
+              <WhiteDataCard
+                label="Leading Bidder"
+                value={auction?.leading_bidder || "No bids yet"}
+                alignRight
+              />
+
+              <WhiteDataCard
+                label="Bidders"
+                value={`${uniqueBidderCount}`}
+                tone="blue"
+                alignRight
+              />
+            </div>
+          </div>
+
+          <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-4 shadow-2xl flex flex-col relative overflow-hidden">
+            <div className="absolute right-[-50px] top-[-30px] h-[240px] w-[210px] pointer-events-none opacity-[0.28] bg-[url('/bragwall-admin-paint-texture.png')] bg-contain bg-no-repeat" />
+            <div className="absolute inset-0 pointer-events-none bg-[#061124]/78" />
+            <div className="relative flex flex-col h-full">
+            <div className="rounded-[24px] border border-[#ffc857]/32 bg-[radial-gradient(circle_at_top,rgba(211,108,255,0.24),transparent_36%),#020b18] p-5 text-center shadow-[0_0_45px_rgba(211,108,255,0.08)]">
+              <div className="mx-auto mb-4 h-[86px] w-[86px] rounded-[24px] border border-[#d36cff]/45 bg-[#d36cff]/12 text-[#f2c8ff] flex items-center justify-center shadow-[0_0_36px_rgba(211,108,255,0.18)]">
+                <LargeGavelIcon />
               </div>
-            </aside>
 
-            <section className="h-full overflow-y-auto bragwall-live-scroll">
-              <header className="px-6 pt-5 pb-4">
-                <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[#061124]/86 p-5.5 shadow-[0_28px_85px_rgba(0,0,0,0.42)]">
-                  <div className="absolute inset-0 pointer-events-none opacity-[0.11] bg-[url('/bragwall-hero-paint-hands.jpg')] bg-cover bg-center" />
-                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[#061124] via-[#061124]/92 to-[#061124]/74" />
-                  <div className="absolute right-0 top-0 h-full w-[42%] pointer-events-none bg-[radial-gradient(circle_at_72%_24%,rgba(255,200,87,0.16),transparent_34%),radial-gradient(circle_at_55%_70%,rgba(22,214,109,0.16),transparent_36%)]" />
+              <p className="text-[#ffc857] text-[38px] font-black leading-none tracking-[-0.055em]">
+                {statusLabel === "sold" ? "SOLD!" : "LIVE"}
+              </p>
 
-                  <div className="relative flex items-start justify-between gap-8">
-                    <div>
-                      <div className="inline-flex items-center gap-3 rounded-full border border-white/12 bg-white/10 px-5 py-2 shadow-xl mb-4">
-                        <span
-                          className={`h-2.5 w-2.5 rounded-full ${
-                            isLive
-                              ? "bg-[#16d66d] shadow-[0_0_18px_rgba(22,214,109,0.9)]"
-                              : "bg-[#ffc857] shadow-[0_0_18px_rgba(255,200,87,0.7)]"
-                          }`}
-                        />
-                        <span className="uppercase tracking-[0.35em] text-[9px] font-black text-white/72">
-                          BragWall Live Room
-                        </span>
-                      </div>
+              <p className="text-white/72 text-sm font-bold mt-3">
+                Next ask: R{nextBidAmount.toLocaleString()}
+              </p>
+            </div>
 
-                      <h1 className="text-[48px] font-black leading-[0.9] tracking-[-0.065em]">
-                        Live <span className="text-[#16d66d]">control</span>{" "}
-                        room.
-                      </h1>
+            <div className="mt-3.5 rounded-[22px] bg-white text-[#07152b] p-4 shadow-xl max-h-[210px] overflow-y-auto bragwall-live-scroll">
+              <p className="uppercase tracking-[0.28em] text-[8px] text-slate-400 font-black mb-2.5 sticky top-0 bg-white pb-2">
+                AI Auction MC
+              </p>
 
-                      <p className="max-w-4xl text-white/72 text-base leading-relaxed font-medium mt-3">
-                        Run artwork intros, bidding rhythm, SOLD moments, and
-                        the parent screen from one polished BragWall cockpit.
-                      </p>
-                    </div>
+              <p className="text-[15px] font-black leading-snug">
+                “
+                {auction?.mc_commentary ||
+                  currentArtwork?.ai_story ||
+                  currentArtwork?.ai_intro ||
+                  "Welcome to BragWall. The auction is waiting to begin."}
+                ”
+              </p>
 
-                    <div className="grid grid-cols-4 gap-3 min-w-0 pt-3">
-                      <TopMetric
-                        label="Status"
-                        value={formatStatus(statusLabel)}
-                        icon={<ClockIcon />}
-                        tone="purple"
-                      />
-                      <TopMetric
-                        label="Current Bid"
-                        value={`R${Number(
-                          auction?.current_bid || 0
-                        ).toLocaleString()}`}
-                        icon={<MoneyIcon />}
-                        tone="green"
-                      />
-                      <TopMetric
-                        label="Bid Step"
-                        value={`R${bidIncrement.toLocaleString()}`}
-                        icon={<ArrowUpIcon />}
-                        tone="yellow"
-                      />
-                      <TopMetric
-                        label="Bidders"
-                        value={`${uniqueBidderCount}`}
-                        icon={<PeopleIcon />}
-                        tone="blue"
-                      />
-                    </div>
-                  </div>
+              {auction?.status === "preparing_intro" && (
+                <div className="mt-3 rounded-2xl bg-[#ffc857]/15 border border-[#ffc857]/30 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-[#ffc857] font-black mb-1">
+                    Preparing AI Voice
+                  </p>
+                  <p className="text-xs text-white/70 font-bold">
+                    Parent bidding is locked while the MC intro is generated.
+                  </p>
                 </div>
-              </header>
+              )}
 
-              <div className="px-6 pb-5">
-                <div className="grid grid-cols-[minmax(0,1fr)_330px] gap-4">
-                  <div className="space-y-4.5">
-                    <section className="rounded-[30px] border border-white/10 bg-white/[0.045] p-4.5 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
-                      <div className="grid grid-cols-[minmax(0,1fr)_270px] gap-4 items-start">
-                        <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-5 shadow-2xl">
-                          <div className="flex items-start justify-between gap-5 mb-4">
-                            <div>
-                              <p className="uppercase tracking-[0.35em] text-[8px] text-[#16d66d] font-black mb-3">
-                                On Stage
-                              </p>
-
-                              <h2 className="text-[38px] font-black leading-none tracking-[-0.045em]">
-                                {currentArtwork
-                                  ? `${currentArtwork.child_name} ${currentArtwork.child_surname}`
-                                  : "No artwork selected"}
-                              </h2>
-
-                              <p className="text-white/65 text-base font-bold mt-2">
-                                {currentArtwork?.grade ||
-                                  "Upload artwork to begin"}
-                              </p>
-                            </div>
-
-                            <StatusBadge status={statusLabel} />
-                          </div>
-
-                          <ArtworkStage artwork={currentArtwork} />
-
-                          <div className="mt-3.5 grid grid-cols-3 gap-3">
-                            <WhiteDataCard
-                              label="Highest Bid"
-                              value={`R${Number(
-                                auction?.current_bid || 0
-                              ).toLocaleString()}`}
-                              tone="green"
-                            />
-
-                            <WhiteDataCard
-                              label="Leading Bidder"
-                              value={auction?.leading_bidder || "No bids yet"}
-                              alignRight
-                            />
-
-                            <WhiteDataCard
-                              label="Bidders"
-                              value={`${uniqueBidderCount}`}
-                              tone="blue"
-                              alignRight
-                            />
-                          </div>
-                        </div>
-
-                        <div className="rounded-[28px] bg-[#061124]/95 border border-white/12 p-4 shadow-2xl flex flex-col relative overflow-hidden">
-                          <div className="absolute right-[-50px] top-[-30px] h-[240px] w-[210px] pointer-events-none opacity-[0.28] bg-[url('/bragwall-admin-paint-texture.png')] bg-contain bg-no-repeat" />
-                          <div className="absolute inset-0 pointer-events-none bg-[#061124]/78" />
-                          <div className="relative flex flex-col h-full">
-                          <div className="rounded-[24px] border border-[#ffc857]/32 bg-[radial-gradient(circle_at_top,rgba(211,108,255,0.24),transparent_36%),#020b18] p-5 text-center shadow-[0_0_45px_rgba(211,108,255,0.08)]">
-                            <div className="mx-auto mb-4 h-[86px] w-[86px] rounded-[24px] border border-[#d36cff]/45 bg-[#d36cff]/12 text-[#f2c8ff] flex items-center justify-center shadow-[0_0_36px_rgba(211,108,255,0.18)]">
-                              <LargeGavelIcon />
-                            </div>
-
-                            <p className="text-[#ffc857] text-[38px] font-black leading-none tracking-[-0.055em]">
-                              {statusLabel === "sold" ? "SOLD!" : "LIVE"}
-                            </p>
-
-                            <p className="text-white/72 text-sm font-bold mt-3">
-                              Next ask: R{nextBidAmount.toLocaleString()}
-                            </p>
-                          </div>
-
-                          <div className="mt-3.5 rounded-[22px] bg-white text-[#07152b] p-4 shadow-xl max-h-[210px] overflow-y-auto bragwall-live-scroll">
-                            <p className="uppercase tracking-[0.28em] text-[8px] text-slate-400 font-black mb-2.5 sticky top-0 bg-white pb-2">
-                              AI Auction MC
-                            </p>
-
-                            <p className="text-[15px] font-black leading-snug">
-                              “
-                              {auction?.mc_commentary ||
-                                currentArtwork?.ai_story ||
-                                currentArtwork?.ai_intro ||
-                                "Welcome to BragWall. The auction is waiting to begin."}
-                              ”
-                            </p>
-
-                            {auction?.status === "preparing_intro" && (
-                              <div className="mt-3 rounded-2xl bg-[#ffc857]/15 border border-[#ffc857]/30 px-3 py-2">
-                                <p className="text-[10px] uppercase tracking-[0.22em] text-[#ffc857] font-black mb-1">
-                                  Preparing AI Voice
-                                </p>
-                                <p className="text-xs text-white/70 font-bold">
-                                  Parent bidding is locked while the MC intro is generated.
-                                </p>
-                              </div>
-                            )}
-
-                            {auction?.mc_audio_url && auction.status === "intro" && (
-                              <div className="mt-3 rounded-2xl bg-[#16d66d]/15 border border-[#16d66d]/30 px-3 py-2">
-                                <p className="text-[10px] uppercase tracking-[0.22em] text-[#16d66d] font-black mb-1">
-                                  AI Voice Ready
-                                </p>
-                                <p className="text-xs text-white/70 font-bold">
-                                  Parent devices will play the generated MC intro.
-                                </p>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="mt-auto grid grid-cols-2 gap-3 pt-4">
-                            <SmallInfo
-                              label="Queue"
-                              value={`${queuedArtworks.length}`}
-                            />
-                            <SmallInfo
-                              label="Sold"
-                              value={`${soldArtworks.length}`}
-                            />
-                            <SmallInfo
-                              label="Archived"
-                              value={`${archivedArtworks.length}`}
-                            />
-                            <SmallInfo
-                              label="Bidders"
-                              value={`${uniqueBidderCount}`}
-                            />
-                          </div>
-                          </div>
-                        </div>
-                      </div>
-                    </section>
-
-                    <section className="rounded-[28px] bg-[#061124]/95 border border-white/10 p-4 shadow-2xl">
-                      <div className="flex items-center justify-between gap-4 mb-4">
-                        <div>
-                          <p className="uppercase tracking-[0.35em] text-[8px] text-[#16d66d] font-black mb-2">
-                            Live Controls
-                          </p>
-
-                          <h3 className="text-[28px] font-black leading-none tracking-[-0.03em]">
-                            Auction rhythm
-                          </h3>
-                        </div>
-
-                        <button
-                          onClick={() => loadEverything()}
-                          className="rounded-[18px] bg-white/5 border border-white/10 px-5 py-3 font-black hover:bg-white/10 transition"
-                        >
-                          <span className="inline-flex align-middle mr-2">
-                            <RefreshIcon />
-                          </span>
-                          Refresh
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-3 md:grid-cols-5 xl:grid-cols-9">
-                        <ControlButton
-                          label={busyAction ? "Preparing..." : "Start Intro"}
-                          icon={<PlayIcon />}
-                          onClick={startAuction}
-                          disabled={Boolean(busyAction)}
-                          tone="green"
-                        />
-                        <ControlButton
-                          label="Pause"
-                          icon={<PauseIcon />}
-                          onClick={pauseAuction}
-                          disabled={Boolean(busyAction)}
-                          tone="white"
-                        />
-                        <ControlButton
-                          label="Resume"
-                          icon={<PlayIcon />}
-                          onClick={resumeAuction}
-                          disabled={Boolean(busyAction)}
-                          tone="white"
-                        />
-                        <ControlButton
-                          label="Going Once"
-                          iconText="1"
-                          onClick={markGoingOnce}
-                          disabled={Boolean(busyAction)}
-                          tone="yellow"
-                        />
-                        <ControlButton
-                          label="Going Twice"
-                          iconText="2"
-                          onClick={markGoingTwice}
-                          disabled={Boolean(busyAction)}
-                          tone="red"
-                        />
-                        <ControlButton
-                          label="SOLD"
-                          icon={<GavelIcon />}
-                          onClick={markSold}
-                          disabled={Boolean(busyAction)}
-                          tone="sold"
-                        />
-                        <ControlButton
-                          label="Archive Unsold"
-                          iconText="A"
-                          onClick={archiveUnsoldArtwork}
-                          disabled={Boolean(busyAction) || !currentArtwork || currentArtwork.status === "sold"}
-                          tone="purple"
-                        />
-                        <ControlButton
-                          label="Next Artwork"
-                          iconText="NEXT"
-                          onClick={moveToNextArtwork}
-                          disabled={Boolean(busyAction) || !nextArtwork}
-                          tone="blue"
-                        />
-                        <ControlButton
-                          label="Reset"
-                          icon={<RefreshIcon />}
-                          onClick={resetAuction}
-                          disabled={Boolean(busyAction)}
-                          tone="white"
-                        />
-                      </div>
-
-                      <div className="mt-3 flex items-center justify-between gap-3 rounded-[20px] bg-white/[0.04] border border-white/10 px-4 py-3">
-                        <button
-                          onClick={clearBids}
-                          disabled={Boolean(busyAction)}
-                          className="text-white/76 font-black hover:text-white disabled:opacity-40"
-                        >
-                          Clear Current Bids
-                        </button>
-
-                        <p className="text-white/45 text-sm font-bold">
-                          Manual override controls are available if automation
-                          needs help.
-                        </p>
-                      </div>
-                    </section>
-                  </div>
-
-                  <aside className="space-y-4.5">
-                    <SidePanel
-                      title="Artwork Queue"
-                      subtitle="Tap an artwork to move it live"
-                      icon={<ArtworkIcon />}
-                    >
-                      <div className="space-y-3 max-h-[275px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
-                        {queuedArtworks.length === 0 && (
-                          <p className="text-white/72 font-bold">
-                            No queued artwork available. Sold and archived items are kept out of the live queue.
-                          </p>
-                        )}
-
-                        {queuedArtworks.map((artwork) => {
-                          const displayUrl = getArtworkDisplayUrl(artwork);
-                          const active = currentArtwork?.id === artwork.id;
-
-                          return (
-                            <button
-                              key={artwork.id}
-                              onClick={() => moveToArtwork(artwork)}
-                              disabled={busyAction === `move-${artwork.id}`}
-                              className={`w-full text-left rounded-[20px] p-3 border transition ${
-                                active
-                                  ? "bg-[#16d66d] text-[#07152b] border-[#16d66d] shadow-[0_0_28px_rgba(22,214,109,0.22)]"
-                                  : "bg-white/[0.045] text-white border-white/10 hover:bg-white/10"
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-[16px] overflow-hidden bg-white shrink-0">
-                                  {displayUrl ? (
-                                    <img
-                                      src={displayUrl}
-                                      alt="Artwork thumbnail"
-                                      className="w-full h-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                      <PaletteIcon />
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="min-w-0 flex-1">
-                                  <p className="font-black min-w-0 truncate">
-                                    {artwork.child_name} {artwork.child_surname}
-                                  </p>
-
-                                  <p
-                                    className={`text-xs font-bold min-w-0 truncate ${
-                                      active
-                                        ? "text-[#07152b]/75"
-                                        : "text-white/58"
-                                    }`}
-                                  >
-                                    {artwork.grade} •{" "}
-                                    {artwork.status || "queued"}
-                                  </p>
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </SidePanel>
-
-                    {soldArtworks.length > 0 && (
-                      <SidePanel
-                        title="Sold Artworks"
-                        subtitle={`${soldArtworks.length} completed with SOLD overlay`}
-                        icon={<GavelIcon />}
-                      >
-                        <div className="space-y-3 max-h-[210px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
-                          {soldArtworks.map((artwork) => {
-                            const displayUrl = getArtworkDisplayUrl(artwork);
-
-                            return (
-                              <div
-                                key={artwork.id}
-                                className="rounded-[18px] bg-white/[0.055] border border-[#ffc857]/25 p-3"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="relative w-14 h-14 rounded-[16px] overflow-hidden bg-white shrink-0">
-                                    {displayUrl ? (
-                                      <img
-                                        src={displayUrl}
-                                        alt="Sold artwork thumbnail"
-                                        className="w-full h-full object-cover opacity-70"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                        <PaletteIcon />
-                                      </div>
-                                    )}
-                                    <div className="absolute inset-x-[-8px] top-1/2 -translate-y-1/2 rotate-[-14deg] bg-[#ef2b20] py-0.5 text-center text-[9px] font-black text-white shadow-lg">
-                                      SOLD
-                                    </div>
-                                  </div>
-
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-black min-w-0 truncate">
-                                      {artwork.child_name} {artwork.child_surname}
-                                    </p>
-                                    <p className="text-xs text-white/55 font-bold min-w-0 truncate">
-                                      {artwork.grade} • {artwork.winning_bidder || "winner recorded"}
-                                    </p>
-                                  </div>
-
-                                  <p className="text-[#16d66d] font-black shrink-0">
-                                    R{Number(artwork.sold_amount || 0).toLocaleString()}
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </SidePanel>
-                    )}
-
-                    {archivedArtworks.length > 0 && (
-                      <SidePanel
-                        title="Archived / Unsold"
-                        subtitle="Kept out of the live queue"
-                        icon={<ArchiveIcon />}
-                      >
-                        <div className="space-y-3 max-h-[170px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
-                          {archivedArtworks.map((artwork) => (
-                            <div
-                              key={artwork.id}
-                              className="rounded-[18px] bg-white/[0.045] border border-white/10 p-3"
-                            >
-                              <p className="font-black min-w-0 truncate">
-                                {artwork.child_name} {artwork.child_surname}
-                              </p>
-                              <p className="text-xs text-white/55 font-bold">
-                                {artwork.grade} - archived unsold
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </SidePanel>
-                    )}
-
-                    <SidePanel
-                      title="Live Feed"
-                      subtitle="Highest bids first"
-                      icon={<CardIcon />}
-                    >
-                      <div className="space-y-3 max-h-[245px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
-                        {visibleBids.length === 0 && (
-                          <p className="text-white/72 font-bold">No bids yet.</p>
-                        )}
-
-                        {visibleBids.map((bid, index) => (
-                          <div
-                            key={bid.id}
-                            className={`rounded-[18px] p-3 border ${
-                              index === 0
-                                ? "bg-white text-[#07152b] border-white shadow-xl"
-                                : "bg-white/[0.045] text-white border-white/10"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="font-black min-w-0 truncate">
-                                  {index === 0 ? "👑 " : ""}
-                                  {bid.bidder_name}
-                                </p>
-
-                                <p
-                                  className={`text-xs font-bold ${
-                                    index === 0
-                                      ? "text-slate-500"
-                                      : "text-white/55"
-                                  }`}
-                                >
-                                  {formatTime(bid.created_at)}
-                                </p>
-                              </div>
-
-                              <p className="text-2xl font-black text-[#16d66d]">
-                                R{Number(bid.amount).toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </SidePanel>
-
-                    <SidePanel
-                      title="Activity Log"
-                      subtitle="Latest auction events"
-                      icon={<ActivityIcon />}
-                    >
-                      <div className="space-y-3 max-h-[245px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
-                        {activity.length === 0 && (
-                          <p className="text-white/72 font-bold">
-                            Activity will appear here.
-                          </p>
-                        )}
-
-                        {activity.map((item) => (
-                          <div
-                            key={item.id}
-                            className="rounded-[18px] bg-white/[0.045] border border-white/10 p-3"
-                          >
-                            <p className="font-bold text-white/80 leading-snug">
-                              {item.message}
-                            </p>
-
-                            <p className="text-xs text-white/55 font-bold mt-2">
-                              {formatTime(item.created_at)}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </SidePanel>
-                  </aside>
+              {auction?.mc_audio_url && auction.status === "intro" && (
+                <div className="mt-3 rounded-2xl bg-[#16d66d]/15 border border-[#16d66d]/30 px-3 py-2">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-[#16d66d] font-black mb-1">
+                    AI Voice Ready
+                  </p>
+                  <p className="text-xs text-white/70 font-bold">
+                    Parent devices will play the generated MC intro.
+                  </p>
                 </div>
+              )}
+            </div>
 
-                <div className="mt-4.5 rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-3.5 flex items-center justify-between shadow-xl">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[#16d66d]">
-                      <ShieldIcon />
-                    </span>
-                    <p className="text-white/65 font-bold">
-                      Tip: use Add School & Artwork to load school details,
-                      bid increments, and artwork before going live.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-[#16d66d] font-black">
-                    <ShieldIcon />
-                    Auction cockpit ready
-                  </div>
-                </div>
-              </div>
-            </section>
+            <div className="mt-auto grid grid-cols-2 gap-3 pt-4">
+              <SmallInfo
+                label="Queue"
+                value={`${queuedArtworks.length}`}
+              />
+              <SmallInfo
+                label="Sold"
+                value={`${soldArtworks.length}`}
+              />
+              <SmallInfo
+                label="Archived"
+                value={`${archivedArtworks.length}`}
+              />
+              <SmallInfo
+                label="Bidders"
+                value={`${uniqueBidderCount}`}
+              />
+            </div>
+            </div>
           </div>
         </div>
       </section>
-    </main>
+
+      <section className="rounded-[28px] bg-[#061124]/95 border border-white/10 p-4 shadow-2xl">
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <p className="uppercase tracking-[0.35em] text-[8px] text-[#16d66d] font-black mb-2">
+              Live Controls
+            </p>
+
+            <h3 className="text-[28px] font-black leading-none tracking-[-0.03em]">
+              Auction rhythm
+            </h3>
+          </div>
+
+          <button
+            onClick={() => loadEverything()}
+            className="rounded-[18px] bg-white/5 border border-white/10 px-5 py-3 font-black hover:bg-white/10 transition"
+          >
+            <span className="inline-flex align-middle mr-2">
+              <RefreshIcon />
+            </span>
+            Refresh
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 md:grid-cols-5 xl:grid-cols-9">
+          <ControlButton
+            label={busyAction ? "Preparing..." : "Start Intro"}
+            icon={<PlayIcon />}
+            onClick={startAuction}
+            disabled={Boolean(busyAction)}
+            tone="green"
+          />
+          <ControlButton
+            label="Pause"
+            icon={<PauseIcon />}
+            onClick={pauseAuction}
+            disabled={Boolean(busyAction)}
+            tone="white"
+          />
+          <ControlButton
+            label="Resume"
+            icon={<PlayIcon />}
+            onClick={resumeAuction}
+            disabled={Boolean(busyAction)}
+            tone="white"
+          />
+          <ControlButton
+            label="Going Once"
+            iconText="1"
+            onClick={markGoingOnce}
+            disabled={Boolean(busyAction)}
+            tone="yellow"
+          />
+          <ControlButton
+            label="Going Twice"
+            iconText="2"
+            onClick={markGoingTwice}
+            disabled={Boolean(busyAction)}
+            tone="red"
+          />
+          <ControlButton
+            label="SOLD"
+            icon={<GavelIcon />}
+            onClick={markSold}
+            disabled={Boolean(busyAction)}
+            tone="sold"
+          />
+          <ControlButton
+            label="Archive Unsold"
+            iconText="A"
+            onClick={archiveUnsoldArtwork}
+            disabled={Boolean(busyAction) || !currentArtwork || currentArtwork.status === "sold"}
+            tone="purple"
+          />
+          <ControlButton
+            label="Next Artwork"
+            iconText="NEXT"
+            onClick={moveToNextArtwork}
+            disabled={Boolean(busyAction) || !nextArtwork}
+            tone="blue"
+          />
+          <ControlButton
+            label="Reset"
+            icon={<RefreshIcon />}
+            onClick={resetAuction}
+            disabled={Boolean(busyAction)}
+            tone="white"
+          />
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-[20px] bg-white/[0.04] border border-white/10 px-4 py-3">
+          <button
+            onClick={clearBids}
+            disabled={Boolean(busyAction)}
+            className="text-white/76 font-black hover:text-white disabled:opacity-40"
+          >
+            Clear Current Bids
+          </button>
+
+          <p className="text-white/45 text-sm font-bold">
+            Manual override controls are available if automation
+            needs help.
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <aside className="space-y-4">
+      <SidePanel
+        title="Artwork Queue"
+        subtitle="Tap an artwork to move it live"
+        icon={<ArtworkIcon />}
+      >
+        <div className="space-y-3 max-h-[275px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
+          {queuedArtworks.length === 0 && (
+            <p className="text-white/72 font-bold">
+              No queued artwork available. Sold and archived items are kept out of the live queue.
+            </p>
+          )}
+
+          {queuedArtworks.map((artwork) => {
+            const displayUrl = getArtworkDisplayUrl(artwork);
+            const active = currentArtwork?.id === artwork.id;
+
+            return (
+              <button
+                key={artwork.id}
+                onClick={() => moveToArtwork(artwork)}
+                disabled={busyAction === `move-${artwork.id}`}
+                className={`w-full text-left rounded-[20px] p-3 border transition ${
+                  active
+                    ? "bg-[#16d66d] text-[#07152b] border-[#16d66d] shadow-[0_0_28px_rgba(22,214,109,0.22)]"
+                    : "bg-white/[0.045] text-white border-white/10 hover:bg-white/10"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-[16px] overflow-hidden bg-white shrink-0">
+                    {displayUrl ? (
+                      <img
+                        src={displayUrl}
+                        alt="Artwork thumbnail"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                        <PaletteIcon />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="font-black min-w-0 truncate">
+                      {artwork.child_name} {artwork.child_surname}
+                    </p>
+
+                    <p
+                      className={`text-xs font-bold min-w-0 truncate ${
+                        active
+                          ? "text-[#07152b]/75"
+                          : "text-white/58"
+                      }`}
+                    >
+                      {artwork.grade} •{" "}
+                      {artwork.status || "queued"}
+                    </p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </SidePanel>
+
+      {soldArtworks.length > 0 && (
+        <SidePanel
+          title="Sold Artworks"
+          subtitle={`${soldArtworks.length} completed with SOLD overlay`}
+          icon={<GavelIcon />}
+        >
+          <div className="space-y-3 max-h-[210px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
+            {soldArtworks.map((artwork) => {
+              const displayUrl = getArtworkDisplayUrl(artwork);
+
+              return (
+                <div
+                  key={artwork.id}
+                  className="rounded-[18px] bg-white/[0.055] border border-[#ffc857]/25 p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-14 h-14 rounded-[16px] overflow-hidden bg-white shrink-0">
+                      {displayUrl ? (
+                        <img
+                          src={displayUrl}
+                          alt="Sold artwork thumbnail"
+                          className="w-full h-full object-cover opacity-70"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-400">
+                          <PaletteIcon />
+                        </div>
+                      )}
+                      <div className="absolute inset-x-[-8px] top-1/2 -translate-y-1/2 rotate-[-14deg] bg-[#ef2b20] py-0.5 text-center text-[9px] font-black text-white shadow-lg">
+                        SOLD
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="font-black min-w-0 truncate">
+                        {artwork.child_name} {artwork.child_surname}
+                      </p>
+                      <p className="text-xs text-white/55 font-bold min-w-0 truncate">
+                        {artwork.grade} • {artwork.winning_bidder || "winner recorded"}
+                      </p>
+                    </div>
+
+                    <p className="text-[#16d66d] font-black shrink-0">
+                      R{Number(artwork.sold_amount || 0).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </SidePanel>
+      )}
+
+      {archivedArtworks.length > 0 && (
+        <SidePanel
+          title="Archived / Unsold"
+          subtitle="Kept out of the live queue"
+          icon={<ArchiveIcon />}
+        >
+          <div className="space-y-3 max-h-[170px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
+            {archivedArtworks.map((artwork) => (
+              <div
+                key={artwork.id}
+                className="rounded-[18px] bg-white/[0.045] border border-white/10 p-3"
+              >
+                <p className="font-black min-w-0 truncate">
+                  {artwork.child_name} {artwork.child_surname}
+                </p>
+                <p className="text-xs text-white/55 font-bold">
+                  {artwork.grade} - archived unsold
+                </p>
+              </div>
+            ))}
+          </div>
+        </SidePanel>
+      )}
+
+      <SidePanel
+        title="Live Feed"
+        subtitle="Highest bids first"
+        icon={<CardIcon />}
+      >
+        <div className="space-y-3 max-h-[245px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
+          {visibleBids.length === 0 && (
+            <p className="text-white/72 font-bold">No bids yet.</p>
+          )}
+
+          {visibleBids.map((bid, index) => (
+            <div
+              key={bid.id}
+              className={`rounded-[18px] p-3 border ${
+                index === 0
+                  ? "bg-white text-[#07152b] border-white shadow-xl"
+                  : "bg-white/[0.045] text-white border-white/10"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-black min-w-0 truncate">
+                    {index === 0 ? "👑 " : ""}
+                    {bid.bidder_name}
+                  </p>
+
+                  <p
+                    className={`text-xs font-bold ${
+                      index === 0
+                        ? "text-slate-500"
+                        : "text-white/55"
+                    }`}
+                  >
+                    {formatTime(bid.created_at)}
+                  </p>
+                </div>
+
+                <p className="text-2xl font-black text-[#16d66d]">
+                  R{Number(bid.amount).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SidePanel>
+
+      <SidePanel
+        title="Activity Log"
+        subtitle="Latest auction events"
+        icon={<ActivityIcon />}
+      >
+        <div className="space-y-3 max-h-[245px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
+          {activity.length === 0 && (
+            <p className="text-white/72 font-bold">
+              Activity will appear here.
+            </p>
+          )}
+
+          {activity.map((item) => (
+            <div
+              key={item.id}
+              className="rounded-[18px] bg-white/[0.045] border border-white/10 p-3"
+            >
+              <p className="font-bold text-white/80 leading-snug">
+                {item.message}
+              </p>
+
+              <p className="text-xs text-white/55 font-bold mt-2">
+                {formatTime(item.created_at)}
+              </p>
+            </div>
+          ))}
+        </div>
+      </SidePanel>
+    </aside>
+  </div>
+
+  <div className="mt-4 rounded-[22px] border border-white/10 bg-white/[0.04] px-5 py-3.5 flex items-center justify-between shadow-xl">
+    <div className="flex items-center gap-3">
+      <span className="text-[#16d66d]">
+        <ShieldIcon />
+      </span>
+      <p className="text-white/65 font-bold">
+        Tip: use Add School & Artwork to load school details,
+        bid increments, and artwork before going live.
+      </p>
+    </div>
+
+    <div className="flex items-center gap-3 text-[#16d66d] font-black">
+      <ShieldIcon />
+      Auction cockpit ready
+    </div>
+  </div>
+</div>
+    </AdminShell>
   );
 }
 
