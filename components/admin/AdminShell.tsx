@@ -34,6 +34,22 @@ export default function AdminShell({
 }: AdminShellProps) {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#020b18] text-white">
+      <img
+        src="/bragwall-section-artwork-bg.jpg"
+        alt=""
+        className="admin-section-artwork-layer pointer-events-none fixed right-[36px] top-[165px] z-[2] hidden h-[360px] w-[520px] rounded-[34px] object-cover opacity-45 saturate-125 contrast-110 lg:block"
+        aria-hidden="true"
+      />
+      <div
+        className="admin-section-artwork-layer pointer-events-none fixed right-[36px] top-[165px] z-[3] hidden h-[360px] w-[520px] rounded-[34px] bg-gradient-to-r from-[#071224] via-[#071224]/55 to-transparent lg:block"
+        aria-hidden="true"
+      />
+      <img
+        src="/bragwall-section-artwork-bg.jpg"
+        alt=""
+        className="admin-section-artwork-layer pointer-events-none fixed right-[90px] bottom-[70px] z-[2] hidden h-[280px] w-[420px] rotate-[-5deg] rounded-[30px] object-cover opacity-25 saturate-125 contrast-110 xl:block"
+        aria-hidden="true"
+      />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_12%_8%,rgba(22,214,109,0.20),transparent_26%),radial-gradient(circle_at_85%_6%,rgba(255,200,87,0.12),transparent_30%),linear-gradient(180deg,#071327,#020b18_58%,#010712)]" />
       <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.055] bg-[linear-gradient(rgba(255,255,255,0.13)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.13)_1px,transparent_1px)] bg-[size:44px_44px]" />
       <img
