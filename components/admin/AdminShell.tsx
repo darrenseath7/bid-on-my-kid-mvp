@@ -37,31 +37,31 @@ export default function AdminShell({
       <img
         src="/bragwall-section-artwork-bg.jpg"
         alt=""
-        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[420px] top-[235px] z-[2] hidden h-[330px] w-[840px] rounded-[38px] object-cover opacity-78 saturate-150 contrast-125 lg:block"
+        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[560px] top-[225px] z-[2] hidden h-[330px] w-[840px] rounded-[38px] object-cover opacity-78 saturate-150 contrast-125 lg:block"
         aria-hidden="true"
       />
       <div
-        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[420px] top-[235px] z-[3] hidden h-[330px] w-[840px] rounded-[38px] bg-gradient-to-r from-[#071224] via-[#071224]/18 to-transparent lg:block"
+        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[560px] top-[225px] z-[3] hidden h-[330px] w-[840px] rounded-[38px] bg-gradient-to-r from-[#071224] via-[#071224]/18 to-transparent lg:block"
         aria-hidden="true"
       />
       <div
-        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[420px] top-[235px] z-[4] hidden h-[330px] w-[840px] rounded-[38px] bg-gradient-to-b from-transparent via-transparent to-[#071224]/35 lg:block"
+        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[560px] top-[225px] z-[4] hidden h-[330px] w-[840px] rounded-[38px] bg-gradient-to-b from-transparent via-transparent to-[#071224]/35 lg:block"
         aria-hidden="true"
       />
       <img
         src="/bragwall-section-artwork-bg.jpg"
         alt=""
-        className="admin-section-artwork-layer pointer-events-none fixed right-[36px] top-[165px] z-[2] hidden h-[390px] w-[590px] rounded-[34px] object-cover opacity-78 saturate-150 contrast-125 lg:block"
+        className="admin-section-artwork-layer pointer-events-none fixed right-[22px] top-[175px] z-[2] hidden h-[390px] w-[590px] rounded-[34px] object-cover opacity-78 saturate-150 contrast-125 lg:block"
         aria-hidden="true"
       />
       <div
-        className="admin-section-artwork-layer pointer-events-none fixed right-[36px] top-[165px] z-[3] hidden h-[390px] w-[590px] rounded-[34px] bg-gradient-to-r from-[#071224] via-[#071224]/22 to-transparent lg:block"
+        className="admin-section-artwork-layer pointer-events-none fixed right-[22px] top-[175px] z-[3] hidden h-[390px] w-[590px] rounded-[34px] bg-gradient-to-r from-[#071224] via-[#071224]/22 to-transparent lg:block"
         aria-hidden="true"
       />
       <img
         src="/bragwall-section-artwork-bg.jpg"
         alt=""
-        className="admin-section-artwork-layer pointer-events-none fixed right-[90px] bottom-[70px] z-[2] hidden h-[280px] w-[420px] rotate-[-5deg] rounded-[30px] object-cover opacity-45 saturate-150 contrast-125 xl:block"
+        className="admin-section-artwork-layer pointer-events-none fixed right-[38px] bottom-[55px] z-[2] hidden h-[280px] w-[420px] rotate-[-5deg] rounded-[30px] object-cover opacity-45 saturate-150 contrast-125 xl:block"
         aria-hidden="true"
       />
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_12%_8%,rgba(22,214,109,0.20),transparent_26%),radial-gradient(circle_at_85%_6%,rgba(255,200,87,0.12),transparent_30%),linear-gradient(180deg,#071327,#020b18_58%,#010712)]" />
@@ -195,4 +195,5 @@ function CardIcon() {
 function PhoneIcon() {
   return <Icon><rect x="7" y="2" width="10" height="20" rx="2" /><path d="M11 18h2" /></Icon>;
 }
+
 
