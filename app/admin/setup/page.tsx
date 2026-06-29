@@ -843,6 +843,8 @@ export default function AdminSetupPage() {
     </AdminShell>
   );
 
+}
+
 function Field({
   label,
   value,
@@ -1132,5 +1134,3 @@ function EnhancementBadge({
     </span>
   );
 }
-}
-
