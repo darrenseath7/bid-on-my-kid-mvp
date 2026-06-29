@@ -497,41 +497,80 @@ function InvoicePreview({
   winnerEmail: string;
   artworkName: string;
 }) {
+  const paymentReference = artworkName || `${item.child_name} ${item.child_surname}`.trim() || winnerName;
+
   return (
-    <div className="rounded-[28px] border border-slate-200 bg-slate-50 p-5 lg:p-8">
-      <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-        <div>
-          <p className="text-sm font-black uppercase tracking-[0.22em] text-[#16d66d]">
-            BragWall Fundraiser
-          </p>
-          <h4 className="mt-2 text-4xl font-black">Invoice Request</h4>
-          <p className="mt-2 max-w-xl text-base font-bold text-slate-500">
-            Admin follow-up document for the winning parent. No email is sent automatically yet.
-          </p>
-        </div>
-        <div className="rounded-3xl bg-white p-4 shadow-sm">
-          <img src="/bragwall-logo.png" alt="BragWall" className="h-16 w-auto object-contain" />
-        </div>
-      </div>
+    <div className="relative overflow-hidden rounded-[32px] border border-[#d6a94a]/55 bg-[#fffaf0] p-5 shadow-[0_28px_80px_rgba(7,21,43,0.16)] lg:p-8">
+      <img
+        src="/bragwall-paint-splatter.jpg"
+        alt=""
+        className="pointer-events-none absolute right-[-130px] top-[-130px] h-[380px] w-[380px] rounded-full object-cover opacity-28 saturate-150 contrast-125"
+        aria-hidden="true"
+      />
+      <img
+        src="/bragwall-paint-splatter.jpg"
+        alt=""
+        className="pointer-events-none absolute bottom-[-170px] left-[-150px] h-[360px] w-[360px] rounded-full object-cover opacity-18 saturate-150 contrast-125"
+        aria-hidden="true"
+      />
 
-      <div className="grid gap-5 lg:grid-cols-[220px_1fr]">
-        <div className="rounded-[24px] border border-[#d6a94a] bg-[#fff8e2] p-4">
-          <img src={item.artwork_url} alt="" className="h-52 w-full rounded-2xl bg-white object-contain" />
+      <div className="relative z-[2]">
+        <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.22em] text-[#16a064]">
+              BragWall Winning Bid Invoice
+            </p>
+            <h4 className="mt-2 text-4xl font-black text-[#07152b] lg:text-5xl">
+              Congratulations on your winning bid
+            </h4>
+            <p className="mt-4 max-w-2xl text-lg font-bold leading-relaxed text-slate-600">
+              What a proud moment — you have just helped celebrate a young artist while supporting their school.
+            </p>
+          </div>
+          <div className="rounded-3xl bg-white/92 p-4 shadow-sm ring-1 ring-slate-200">
+            <img src="/bragwall-logo.png" alt="BragWall" className="h-16 w-auto object-contain" />
+          </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <DocumentInfo label="Winner" value={winnerName} />
-          <DocumentInfo label="Winner Email" value={winnerEmail} />
-          <DocumentInfo label="Artwork" value={artworkName} />
-          <DocumentInfo label="Grade" value={item.grade || "Not captured"} />
-          <DocumentInfo label="Amount Due" value={`R${amount.toLocaleString()}`} strong />
-          <DocumentInfo label="Status" value="Invoice requested for admin follow-up" />
-        </div>
-      </div>
+        <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+          <div className="rounded-[28px] border border-[#d6a94a] bg-white/80 p-4 shadow-sm">
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Winning Artwork</p>
+            <img src={item.artwork_url} alt="" className="h-56 w-full rounded-2xl bg-white object-contain" />
+          </div>
 
-      <div className="mt-6 rounded-[24px] bg-[#07152b] p-5 text-white">
-        <p className="text-xs font-black uppercase tracking-[0.25em] text-white/45">Payment Reference</p>
-        <p className="mt-2 text-2xl font-black">BRAG-{winnerName.replace(/\s+/g, "")}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            <DocumentInfo label="Winner" value={winnerName} />
+            <DocumentInfo label="Winner Email" value={winnerEmail} />
+            <DocumentInfo label="Child / Artwork Reference" value={artworkName} />
+            <DocumentInfo label="Grade" value={item.grade || "Not captured"} />
+            <DocumentInfo label="Amount Due" value={`R${amount.toLocaleString()}`} strong />
+            <DocumentInfo label="Status" value="Invoice requested for admin follow-up" />
+          </div>
+        </div>
+
+        <div className="mt-7 grid gap-5 lg:grid-cols-[1fr_0.85fr]">
+          <div className="rounded-[28px] bg-[#07152b] p-6 text-white shadow-xl">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-white/45">Payment Details</p>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <PaymentLine label="Bank" value="Discovery Bank" />
+              <PaymentLine label="Branch Code" value="697000" />
+              <PaymentLine label="Account Type" value="Cheque account" />
+              <PaymentLine label="Account Number" value="1234567890" />
+              <PaymentLine label="Reference" value={paymentReference} highlight />
+              <PaymentLine label="Amount" value={`R${amount.toLocaleString()}`} highlight />
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-[#16d66d]/30 bg-white/88 p-6 shadow-sm">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-[#16a064]">Important</p>
+            <p className="mt-3 text-lg font-black leading-relaxed text-[#07152b]">
+              Please use the child’s name and surname as your payment reference so we can match your payment quickly.
+            </p>
+            <p className="mt-4 text-sm font-bold leading-relaxed text-slate-500">
+              Your winning bid amount has pulled through from the sold auction record. The school can confirm collection once payment is received.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -551,34 +590,81 @@ function CertificatePreview({
   certificateReleased: boolean;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-[#d6a94a] bg-[#fff8e2] p-5 lg:p-8">
+    <div className="relative overflow-hidden rounded-[34px] border border-[#d6a94a] bg-[#fff8e2] p-5 shadow-[0_30px_90px_rgba(112,66,15,0.18)] lg:p-8">
+      <img
+        src="/bragwall-paint-splatter.jpg"
+        alt=""
+        className="pointer-events-none absolute left-1/2 top-[-190px] h-[520px] w-[520px] -translate-x-1/2 rounded-full object-cover opacity-24 saturate-150 contrast-125"
+        aria-hidden="true"
+      />
+      <div className="pointer-events-none absolute inset-4 rounded-[28px] border-4 border-[#d6a94a]/45" aria-hidden="true" />
+
       {!certificateReleased && (
-        <div className="absolute right-5 top-5 rounded-full bg-[#ffc857] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#07152b]">
+        <div className="absolute right-5 top-5 z-[3] rounded-full bg-[#ffc857] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#07152b]">
           Admin preview - locked
         </div>
       )}
 
-      <div className="mx-auto max-w-3xl text-center">
-        <img src="/bragwall-logo.png" alt="BragWall" className="mx-auto mb-5 h-20 w-auto object-contain" />
-        <p className="text-sm font-black uppercase tracking-[0.3em] text-[#16a064]">Certificate of Bragging Rights</p>
-        <h4 className="mt-4 text-4xl font-black lg:text-6xl">{artworkName}</h4>
+      <div className="relative z-[2] mx-auto max-w-3xl text-center">
+        <div className="mx-auto mb-6 inline-flex rounded-3xl bg-white/90 p-4 shadow-sm ring-1 ring-[#d6a94a]/35">
+          <img src="/bragwall-logo.png" alt="BragWall" className="h-20 w-auto object-contain" />
+        </div>
+
+        <p className="text-sm font-black uppercase tracking-[0.32em] text-[#16a064]">Certificate of BragWall Pride</p>
+        <h4 className="mt-4 text-4xl font-black leading-tight text-[#07152b] lg:text-6xl">{artworkName}</h4>
         <p className="mt-3 text-xl font-black text-slate-600">{item.grade || "Young Artist"}</p>
 
-        <div className="mx-auto my-8 max-w-sm rounded-[28px] border-[10px] border-[#d6a94a] bg-white p-4 shadow-xl">
+        <div className="mx-auto my-8 max-w-sm rounded-[30px] border-[10px] border-[#d6a94a] bg-white p-4 shadow-2xl">
           <img src={item.artwork_url} alt="" className="h-64 w-full rounded-2xl object-contain" />
         </div>
 
-        <p className="text-lg font-bold leading-relaxed text-slate-600">
-          This certifies that <span className="font-black text-[#07152b]">{winnerName}</span> proudly won this original young artist masterpiece for <span className="font-black text-[#07152b]">R{amount.toLocaleString()}</span> in support of the school fundraiser.
-        </p>
+        <div className="rounded-[28px] bg-white/88 p-6 shadow-sm ring-1 ring-[#d6a94a]/25">
+          <p className="text-xl font-black leading-relaxed text-[#07152b]">
+            Awarded to {artworkName}
+          </p>
+          <p className="mt-4 text-lg font-bold leading-relaxed text-slate-600">
+            For creating an artwork that inspired excitement, pride, and generous support during the BragWall auction.
+          </p>
+          <p className="mt-4 text-lg font-bold leading-relaxed text-slate-600">
+            Your creativity helped make this school fundraising night truly special.
+          </p>
+        </div>
 
-        <div className="mt-8 rounded-[24px] bg-white p-5 shadow-sm">
+        <div className="mt-7 grid gap-4 md:grid-cols-2">
+          <div className="rounded-[24px] bg-[#07152b] p-5 text-white">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-white/45">Winning Parent</p>
+            <p className="mt-2 text-2xl font-black">{winnerName}</p>
+          </div>
+          <div className="rounded-[24px] bg-[#16d66d] p-5 text-[#07152b]">
+            <p className="text-xs font-black uppercase tracking-[0.25em] text-[#07152b]/55">Winning Bid</p>
+            <p className="mt-2 text-3xl font-black">R{amount.toLocaleString()}</p>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-[24px] bg-white/88 p-5 shadow-sm">
           <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400">Certificate Status</p>
           <p className={`mt-2 text-2xl font-black ${certificateReleased ? "text-[#16d66d]" : "text-[#b38300]"}`}>
             {certificateReleased ? "Released after payment" : "Locked until payment is confirmed"}
           </p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function PaymentLine({
+  label,
+  value,
+  highlight = false,
+}: {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div className={highlight ? "rounded-2xl bg-[#16d66d] p-4 text-[#07152b]" : "rounded-2xl bg-white/8 p-4"}>
+      <p className={highlight ? "text-[10px] font-black uppercase tracking-[0.22em] text-[#07152b]/55" : "text-[10px] font-black uppercase tracking-[0.22em] text-white/40"}>{label}</p>
+      <p className="mt-2 break-words text-xl font-black">{value || "-"}</p>
     </div>
   );
 }

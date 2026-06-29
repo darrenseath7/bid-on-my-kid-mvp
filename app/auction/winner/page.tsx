@@ -66,9 +66,7 @@ export default function WinnerPage() {
     );
   }
 
-  const paymentReference = `${school.payment_reference_prefix || "BRAG"}-${
-    auction.leading_bidder || "Winner"
-  }`;
+  const paymentReference = `${auction.child_name || ""} ${auction.child_surname || ""}`.trim() || auction.leading_bidder || "Winner";
 
   return (
     <main className="min-h-screen bg-[#fbf8f1] text-[#07152b] py-8 px-5">
@@ -93,8 +91,20 @@ export default function WinnerPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-[42px] overflow-hidden border border-black/5 shadow-[0_40px_100px_rgba(0,0,0,0.1)]">
-          <div className="bg-[#07152b] text-white p-8 lg:p-14">
+        <div className="relative overflow-hidden bg-white rounded-[42px] border border-black/5 shadow-[0_40px_100px_rgba(0,0,0,0.1)]">
+          <img
+            src="/bragwall-paint-splatter.jpg"
+            alt=""
+            className="pointer-events-none absolute right-[-170px] top-[-150px] h-[520px] w-[520px] rounded-full object-cover opacity-24 saturate-150 contrast-125"
+            aria-hidden="true"
+          />
+          <img
+            src="/bragwall-paint-splatter.jpg"
+            alt=""
+            className="pointer-events-none absolute bottom-[-190px] left-[-170px] h-[460px] w-[460px] rounded-full object-cover opacity-16 saturate-150 contrast-125"
+            aria-hidden="true"
+          />
+          <div className="relative z-[2] bg-[#07152b] text-white p-8 lg:p-14">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
               <div>
                 <p className="uppercase tracking-[0.35em] text-xs text-white/40 font-black mb-5">
@@ -106,8 +116,8 @@ export default function WinnerPage() {
                 </h1>
 
                 <p className="text-2xl text-white/70 max-w-2xl leading-relaxed">
-                  Congratulations on winning this original school masterpiece
-                  and supporting young creativity.
+                  Congratulations on your winning bid. What a proud moment —
+                  you have helped celebrate a young artist while supporting their school.
                 </p>
               </div>
 
@@ -133,7 +143,7 @@ export default function WinnerPage() {
             </div>
           </div>
 
-          <div className="p-8 lg:p-12">
+          <div className="relative z-[2] p-8 lg:p-12">
             <div className="grid xl:grid-cols-[1fr_0.9fr] gap-10">
               <div>
                 <div className="mb-8">
@@ -160,9 +170,13 @@ export default function WinnerPage() {
                   <div className="space-y-5">
                     <DetailRow label="School" value={school.school_name} />
                     <DetailRow label="Reference" value={paymentReference} />
+                    <DetailRow label="Bank" value="Discovery Bank" />
+                    <DetailRow label="Branch Code" value="697000" />
+                    <DetailRow label="Account Type" value="Cheque account" />
+                    <DetailRow label="Account Number" value="1234567890" />
                     <DetailRow
-                      label="Payment"
-                      value="Invoice details are sent separately by the school."
+                      label="Amount Due"
+                      value={`R${auction.current_bid.toLocaleString()}`}
                     />
                   </div>
                 </div>
@@ -184,7 +198,8 @@ export default function WinnerPage() {
 
                   <p className="text-2xl font-black leading-relaxed">
                     Thank you for supporting creativity, confidence, and your
-                    school community.
+                    school community. Your winning bid created a proud moment
+                    for a young artist.
                   </p>
                 </div>
 
