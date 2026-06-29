@@ -80,22 +80,6 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen overflow-hidden scroll-smooth bg-[#020b18] text-white relative">
-      <img
-        src="/bragwall-paint-splatter.jpg"
-        alt=""
-        className="homepage-visible-paint-splatter pointer-events-none absolute left-[-95px] top-[520px] z-[1] h-[250px] w-[250px] rounded-full object-cover opacity-45 blur-[0.5px] saturate-150 contrast-125 sm:left-[-120px] sm:h-[340px] sm:w-[340px] md:top-[560px] lg:left-[-170px] lg:top-[610px] lg:h-[430px] lg:w-[430px]"
-        aria-hidden="true"
-      />
-      <img
-        src="/bragwall-paint-splatter.jpg"
-        alt=""
-        className="homepage-visible-paint-splatter pointer-events-none absolute right-[-105px] top-[470px] z-[1] h-[260px] w-[260px] rounded-full object-cover opacity-38 blur-[0.5px] saturate-150 contrast-125 sm:right-[-125px] sm:h-[350px] sm:w-[350px] md:top-[560px] lg:right-[-170px] lg:top-[590px] lg:h-[440px] lg:w-[440px]"
-        aria-hidden="true"
-      />
-      <div
-        className="homepage-visible-paint-splatter pointer-events-none absolute left-0 top-[480px] z-[2] h-[360px] w-full bg-gradient-to-b from-[#071224] via-[#071224]/35 to-[#071224] sm:top-[520px] lg:top-[560px]"
-        aria-hidden="true"
-      />
       <HomepagePaintSplashes />
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_12%,rgba(22,214,109,0.18),transparent_31%),radial-gradient(circle_at_80%_12%,rgba(255,200,87,0.13),transparent_33%),radial-gradient(circle_at_50%_86%,rgba(11,99,206,0.16),transparent_40%),linear-gradient(180deg,#061124,#020b18_56%,#010712)]" />
       <div className="fixed inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.14)_1px,transparent_1px)] bg-[size:56px_56px]" />
