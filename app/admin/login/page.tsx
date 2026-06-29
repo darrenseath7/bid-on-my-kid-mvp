@@ -72,12 +72,28 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#020b18] text-white">
+    <main className="min-h-screen overflow-hidden bg-[#020b18] text-white relative">
+      <img
+        src="/bragwall-paint-splatter.jpg"
+        alt=""
+        className="login-visible-paint-splatter pointer-events-none absolute left-[-105px] top-[90px] z-[1] h-[290px] w-[290px] rounded-full object-cover opacity-48 blur-[0.5px] saturate-150 contrast-125 sm:h-[360px] sm:w-[360px] lg:left-[-145px] lg:top-[110px] lg:h-[460px] lg:w-[460px]"
+        aria-hidden="true"
+      />
+      <img
+        src="/bragwall-paint-splatter.jpg"
+        alt=""
+        className="login-visible-paint-splatter pointer-events-none absolute right-[-115px] bottom-[80px] z-[1] h-[300px] w-[300px] rounded-full object-cover opacity-44 blur-[0.5px] saturate-150 contrast-125 sm:h-[370px] sm:w-[370px] lg:right-[-155px] lg:bottom-[100px] lg:h-[470px] lg:w-[470px]"
+        aria-hidden="true"
+      />
+      <div
+        className="login-visible-paint-splatter pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(circle_at_0%_25%,rgba(7,18,36,0.12),rgba(7,18,36,0.92)_34%,transparent_62%),radial-gradient(circle_at_100%_74%,rgba(7,18,36,0.08),rgba(7,18,36,0.9)_32%,transparent_62%)]"
+        aria-hidden="true"
+      />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.16),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.14),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
       <div className="absolute inset-0 opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
       <div
-        className="admin-login-paint-accent pointer-events-none absolute left-[-180px] top-[90px] hidden h-[520px] w-[460px] -rotate-[12deg] bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.24] blur-[1px] brightness-125 saturate-150 md:block"
+        className="admin-login-paint-accent pointer-events-none absolute left-[-180px] top-[90px] hidden h-[520px] w-[460px] -rotate-[12deg] bg-[url('/bragwall-paint-splatter.jpg')] bg-cover bg-center opacity-[0.24] blur-[1px] brightness-125 saturate-150 md:block"
         style={{
           WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 72%)",
           maskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 72%)",
@@ -86,7 +102,7 @@ export default function AdminLoginPage() {
       />
 
       <div
-        className="admin-login-paint-accent pointer-events-none absolute right-[-210px] bottom-[80px] hidden h-[560px] w-[500px] rotate-[14deg] bg-[url('/paintbrush.jpg')] bg-cover bg-center opacity-[0.20] blur-[1.5px] brightness-125 saturate-150 lg:block"
+        className="admin-login-paint-accent pointer-events-none absolute right-[-210px] bottom-[80px] hidden h-[560px] w-[500px] rotate-[14deg] bg-[url('/bragwall-paint-splatter.jpg')] bg-cover bg-center opacity-[0.20] blur-[1.5px] brightness-125 saturate-150 lg:block"
         style={{
           WebkitMaskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 74%)",
           maskImage: "radial-gradient(circle at center, black 0%, black 42%, transparent 74%)",

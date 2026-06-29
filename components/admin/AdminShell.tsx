@@ -67,13 +67,13 @@ export default function AdminShell({
       <div className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(circle_at_12%_8%,rgba(22,214,109,0.20),transparent_26%),radial-gradient(circle_at_85%_6%,rgba(255,200,87,0.12),transparent_30%),linear-gradient(180deg,#071327,#020b18_58%,#010712)]" />
       <div className="pointer-events-none fixed inset-0 z-0 opacity-[0.055] bg-[linear-gradient(rgba(255,255,255,0.13)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.13)_1px,transparent_1px)] bg-[size:44px_44px]" />
       <img
-        src="/bragwall-admin-paint-texture.png"
+        src="/bragwall-paint-splatter.jpg"
         alt=""
         className="pointer-events-none fixed right-[-72px] top-[168px] z-[1] hidden h-[560px] w-[450px] object-contain opacity-42 lg:block"
         aria-hidden="true"
       />
       <img
-        src="/bragwall-admin-paint-texture.png"
+        src="/bragwall-paint-splatter.jpg"
         alt=""
         className="pointer-events-none fixed bottom-[-120px] left-[212px] z-[1] hidden h-[500px] w-[410px] rotate-[-10deg] object-contain opacity-30 xl:block"
         aria-hidden="true"
@@ -100,7 +100,7 @@ export default function AdminShell({
             <div className="shrink-0 space-y-3 px-4 pb-4">
               <div className="relative overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.045] p-4">
                 <img
-                  src="/bragwall-admin-paint-texture.png"
+                  src="/bragwall-paint-splatter.jpg"
                   alt=""
                   className="pointer-events-none absolute right-[-26px] top-[-38px] h-28 w-24 object-contain opacity-40"
                   aria-hidden="true"
