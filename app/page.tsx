@@ -170,6 +170,18 @@ export default function HomePage() {
                 <HeroPoint icon={<HeartIcon />} title="Stronger" text="Communities" />
               </div>
             </div>
+              <div className="homepage-mobile-paint-after-hero-stats relative z-[4] my-8 overflow-hidden rounded-[30px] border border-[#16d66d]/25 bg-[#071224] shadow-[0_22px_70px_rgba(0,0,0,0.42)] md:hidden">
+                <img
+                  src="/bragwall-paint-splatter.jpg"
+                  alt=""
+                  className="h-[145px] w-full object-cover opacity-90 saturate-150 contrast-125"
+                  aria-hidden="true"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#071224]/60 via-[#071224]/12 to-[#071224]/20" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#071224]/64" />
+              </div>
+
+
 
             <HeroImageCard
               videoRef={founderVideoRef}
@@ -185,6 +197,18 @@ export default function HomePage() {
           <div className="overflow-hidden rounded-[40px] border border-[#16d66d]/26 bg-[radial-gradient(circle_at_16%_18%,rgba(22,214,109,0.18),transparent_34%),radial-gradient(circle_at_84%_6%,rgba(255,200,87,0.16),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.07),rgba(11,99,206,0.10))] p-5 shadow-[0_26px_90px_rgba(0,0,0,0.36)] md:p-7 lg:p-8">
             <div className="grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
               <div>
+                <div className="homepage-mobile-paint-before-live-demo relative z-[4] mb-8 overflow-hidden rounded-[30px] border border-[#16d66d]/25 bg-[#071224] shadow-[0_22px_70px_rgba(0,0,0,0.42)] md:hidden">
+                  <img
+                    src="/bragwall-paint-splatter.jpg"
+                    alt=""
+                    className="h-[155px] w-full object-cover opacity-90 saturate-150 contrast-125"
+                    aria-hidden="true"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#071224]/54 via-[#071224]/10 to-[#071224]/24" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#071224]/68" />
+                </div>
+
+
                 <SectionKicker>Live product demo</SectionKicker>
                 <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
                   Watch the auction room come alive.
@@ -451,20 +475,7 @@ export default function HomePage() {
 
       {isDemoOpen ? (
         <DemoRequestModal submitted={demoSubmitted} submitting={demoSubmitting} error={demoSubmitError} onClose={closeDemoForm} onSubmit={handleDemoSubmit} />
-      ) : null}
-    
-              <div className="homepage-mobile-splatter-after-stats relative z-[4] my-8 overflow-hidden rounded-[30px] border border-[#16d66d]/30 bg-[#071224] shadow-[0_22px_70px_rgba(0,0,0,0.42)] md:hidden">
-                <img
-                  src="/bragwall-paint-splatter.jpg"
-                  alt=""
-                  className="h-[190px] w-full object-cover opacity-90 saturate-150 contrast-125"
-                  aria-hidden="true"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#071224]/62 via-[#071224]/16 to-[#071224]/18" />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#071224]/68" />
-              </div>
-
-</main>
+      ) : null}</main>
   );
 }
 
