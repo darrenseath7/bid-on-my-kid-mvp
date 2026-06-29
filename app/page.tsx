@@ -452,7 +452,19 @@ export default function HomePage() {
       {isDemoOpen ? (
         <DemoRequestModal submitted={demoSubmitted} submitting={demoSubmitting} error={demoSubmitError} onClose={closeDemoForm} onSubmit={handleDemoSubmit} />
       ) : null}
-    </main>
+    
+              <div className="homepage-mobile-splatter-after-stats relative z-[4] my-8 overflow-hidden rounded-[30px] border border-[#16d66d]/30 bg-[#071224] shadow-[0_22px_70px_rgba(0,0,0,0.42)] md:hidden">
+                <img
+                  src="/bragwall-paint-splatter.jpg"
+                  alt=""
+                  className="h-[190px] w-full object-cover opacity-90 saturate-150 contrast-125"
+                  aria-hidden="true"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#071224]/62 via-[#071224]/16 to-[#071224]/18" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#071224]/68" />
+              </div>
+
+</main>
   );
 }
 
