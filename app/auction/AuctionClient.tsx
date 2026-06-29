@@ -141,6 +141,29 @@ export default function DemoAuctionPage({
       ? "1 active bidder"
       : `${uniqueBidderCount} active bidders`;
 
+  const soldArtworksForTotal = useMemo(() => {
+    return artworks.filter((artwork) => {
+      const soldAmount = Number(artwork.sold_amount || 0);
+      const status = String(artwork.status || "").toLowerCase();
+
+      return status === "sold" || soldAmount > 0;
+    });
+  }, [artworks]);
+
+  const soldArtworksTotal = useMemo(() => {
+    return soldArtworksForTotal.reduce(
+      (total, artwork) => total + Number(artwork.sold_amount || 0),
+      0
+    );
+  }, [soldArtworksForTotal]);
+
+  const parentRaisedTotal = Math.max(
+    Number(auction?.total_raised || 0),
+    soldArtworksTotal
+  );
+
+  const parentSoldCount = soldArtworksForTotal.length;
+
   const nextBidAmount = useMemo(() => {
     return Math.max(
       Number(auction?.next_bid_amount || 0),
@@ -1064,6 +1087,12 @@ export default function DemoAuctionPage({
                 Tonight we turn school artwork into a live fundraising event — with proud parents, competitive grandparents, and masterpieces that deserve prime fridge-door real estate.
               </p>
 
+              <ParentRaisedTotalCard
+                totalRaised={parentRaisedTotal}
+                soldCount={parentSoldCount}
+                light
+              />
+
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -1145,6 +1174,13 @@ export default function DemoAuctionPage({
           <div className="text-7xl mb-4">🎉</div>
           <h1 className="text-5xl font-black text-[#ffc857] mb-4">Auction complete</h1>
           <p className="text-xl font-bold text-white/80 leading-relaxed">Thank you for supporting the young artists and the school fundraiser.</p>
+          <div className="mt-6">
+            <ParentRaisedTotalCard
+              totalRaised={parentRaisedTotal}
+              soldCount={parentSoldCount}
+              compact
+            />
+          </div>
           <button onClick={() => setGalleryOpen(true)} className="mt-6 rounded-[24px] bg-[#16d66d] px-6 py-4 font-black text-[#07152b]">View Gallery</button>
           <GalleryModal open={galleryOpen} onClose={() => setGalleryOpen(false)} artworks={artworks} />
         </div>
@@ -1171,6 +1207,14 @@ export default function DemoAuctionPage({
               src="/bragwall-logo.png"
               alt="BragWall"
               className="mx-auto h-14 w-auto object-contain"
+            />
+          </div>
+
+          <div className="mb-4">
+            <ParentRaisedTotalCard
+              totalRaised={parentRaisedTotal}
+              soldCount={parentSoldCount}
+              light
             />
           </div>
 
@@ -1271,6 +1315,14 @@ export default function DemoAuctionPage({
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="relative z-10 mx-auto w-full max-w-md px-4 py-2">
+        <ParentRaisedTotalCard
+          totalRaised={parentRaisedTotal}
+          soldCount={parentSoldCount}
+          compact
+        />
       </div>
 
       <AnimatePresence>
@@ -1787,6 +1839,81 @@ export default function DemoAuctionPage({
         </div>
       )}
     </main>
+  );
+}
+
+function ParentRaisedTotalCard({
+  totalRaised,
+  soldCount,
+  compact = false,
+  light = false,
+}: {
+  totalRaised: number;
+  soldCount: number;
+  compact?: boolean;
+  light?: boolean;
+}) {
+  const soldLabel =
+    soldCount === 1 ? "1 artwork sold so far" : `${soldCount} artworks sold so far`;
+
+  if (light) {
+    return (
+      <div className="rounded-[24px] border-2 border-[#16d66d]/18 bg-[#07152b] p-3 text-white shadow-[0_14px_34px_rgba(7,21,43,0.18)]">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.28em] text-[#16d66d]">
+              Raised tonight
+            </p>
+            <p className="mt-1 text-3xl font-black leading-none text-[#ffc857]">
+              R{totalRaised.toLocaleString()}
+            </p>
+          </div>
+
+          <div className="rounded-[18px] border border-white/10 bg-white/10 px-3 py-2 text-right">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+              Sold
+            </p>
+            <p className="text-lg font-black text-white">{soldCount}</p>
+          </div>
+        </div>
+
+        <p className="mt-2 text-[11px] font-extrabold text-white/70">
+          {soldLabel} for this school auction.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={
+        compact
+          ? "rounded-[22px] border border-[#16d66d]/24 bg-[#07152b]/92 px-4 py-3 text-white shadow-[0_14px_34px_rgba(7,21,43,0.18)]"
+          : "rounded-[28px] border border-[#16d66d]/24 bg-[#07152b]/92 p-4 text-white shadow-[0_18px_44px_rgba(7,21,43,0.22)]"
+      }
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-[9px] font-black uppercase tracking-[0.28em] text-[#16d66d]">
+            Raised tonight
+          </p>
+          <p className="mt-1 text-3xl font-black leading-none text-[#ffc857]">
+            R{totalRaised.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="rounded-[18px] border border-white/10 bg-white/10 px-3 py-2 text-right">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/45">
+            Sold
+          </p>
+          <p className="text-lg font-black text-white">{soldCount}</p>
+        </div>
+      </div>
+
+      <p className="mt-2 text-[11px] font-extrabold text-white/68">
+        {soldLabel} for this school auction.
+      </p>
+    </div>
   );
 }
 
