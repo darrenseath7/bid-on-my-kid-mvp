@@ -768,8 +768,27 @@ function HeroImageCard({
 
 function ContentPanel({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-[34px] border border-white/10 bg-white/[0.045] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:p-9 lg:p-10">
-      {children}
+    <div className="relative overflow-hidden rounded-[34px] border border-white/10 bg-white/[0.045] p-7 shadow-[0_24px_80px_rgba(0,0,0,0.28)] md:p-9 lg:p-10">
+      <img
+        src="/bragwall-paint-splatter.jpg"
+        alt=""
+        className="homepage-desktop-content-panel-splatter pointer-events-none absolute right-[-80px] top-[-55px] z-[1] hidden h-[360px] w-[360px] rounded-full object-cover opacity-46 saturate-150 contrast-125 blur-[0.3px] md:block lg:right-[-105px] lg:h-[460px] lg:w-[460px]"
+        aria-hidden="true"
+      />
+
+      <img
+        src="/bragwall-paint-splatter.jpg"
+        alt=""
+        className="homepage-desktop-content-panel-splatter pointer-events-none absolute right-[10%] bottom-[-115px] z-[1] hidden h-[300px] w-[500px] rotate-[-5deg] rounded-[38px] object-cover opacity-30 saturate-150 contrast-125 blur-[0.3px] lg:block"
+        aria-hidden="true"
+      />
+
+      <div
+        className="pointer-events-none absolute inset-0 z-[2] hidden bg-gradient-to-r from-[#071224]/72 via-[#071224]/24 to-[#071224]/8 md:block"
+        aria-hidden="true"
+      />
+
+      <div className="relative z-[5]">{children}</div>
     </div>
   );
 }
