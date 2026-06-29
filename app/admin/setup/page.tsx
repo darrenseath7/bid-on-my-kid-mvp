@@ -274,15 +274,9 @@ export default function AdminSetupPage() {
   }
 
   function updateSchoolName(value: string) {
-    const suggestedSlug = sanitizeAuctionCode(value);
-
     setProfile((current) => ({
       ...current,
       school_name: value,
-      auction_code:
-        !current.auction_code || current.auction_code === DEFAULT_AUCTION_CODE
-          ? suggestedSlug
-          : current.auction_code,
     }));
   }
 
@@ -867,8 +861,12 @@ function Field({
       </label>
 
       <input
+        type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
         className="w-full rounded-2xl border border-white/10 bg-[#061124]/80 px-5 py-4 text-base font-bold text-white outline-none focus:border-[#16d66d]/70"
         placeholder={placeholder}
       />
