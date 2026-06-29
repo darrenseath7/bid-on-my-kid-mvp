@@ -204,12 +204,6 @@ export default function HomePage() {
               <div className="relative">
                 <div className="absolute -inset-4 rounded-[38px] bg-[radial-gradient(circle_at_50%_38%,rgba(22,214,109,0.22),transparent_58%)] blur-2xl" />
                 <div className="relative overflow-hidden rounded-[34px] border border-white/12 bg-[#020b18] p-3 shadow-[0_34px_110px_rgba(0,0,0,0.55)]">
-      <img
-        src="/bragwall-paint-splatter.jpg"
-        alt=""
-        className="homepage-mobile-content-panel-circle pointer-events-none absolute right-[-70px] top-[-55px] z-[1] h-[190px] w-[190px] rounded-full object-cover opacity-0 saturate-150 contrast-125 blur-[0.2px] md:hidden"
-        aria-hidden="true"
-      />
                   <div className="flex items-center justify-between gap-4 rounded-t-[24px] border border-white/10 border-b-0 bg-white/[0.055] px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
@@ -268,6 +262,12 @@ export default function HomePage() {
           <ContentPanel>
             <div className="max-w-3xl">
               <SectionKicker>For schools</SectionKicker>
+            <img
+              src="/bragwall-paint-splatter.jpg"
+              alt=""
+              className="homepage-mobile-circle-for-schools pointer-events-none absolute right-[-68px] top-[28px] z-[1] h-[190px] w-[190px] rounded-full object-cover opacity-44 saturate-150 contrast-125 blur-[0.2px] md:hidden"
+              aria-hidden="true"
+            />
               <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
                 Your students create it. Your community celebrates it. Your school benefits from it.
               </h2>
@@ -327,6 +327,12 @@ export default function HomePage() {
         <section id="how-it-works" className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-8 md:px-8 lg:px-10">
           <ContentPanel>
             <SectionKicker>How it works</SectionKicker>
+            <img
+              src="/bragwall-paint-splatter.jpg"
+              alt=""
+              className="homepage-mobile-circle-how-it-works pointer-events-none absolute right-[-70px] top-[34px] z-[1] h-[190px] w-[190px] rounded-full object-cover opacity-44 saturate-150 contrast-125 blur-[0.2px] md:hidden"
+              aria-hidden="true"
+            />
             <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
               Fun. Effective. Fundraising.
             </h2>
@@ -376,6 +382,12 @@ export default function HomePage() {
           <ContentPanel>
             <div className="max-w-5xl">
               <SectionKicker>About us</SectionKicker>
+            <img
+              src="/bragwall-paint-splatter.jpg"
+              alt=""
+              className="homepage-mobile-circle-about-us pointer-events-none absolute right-[-72px] top-[34px] z-[1] h-[190px] w-[190px] rounded-full object-cover opacity-44 saturate-150 contrast-125 blur-[0.2px] md:hidden"
+              aria-hidden="true"
+            />
               <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
                 Every piece of art tells a story. Here is ours.
               </h2>
@@ -454,21 +466,7 @@ export default function HomePage() {
 
       {isDemoOpen ? (
         <DemoRequestModal submitted={demoSubmitted} submitting={demoSubmitting} error={demoSubmitError} onClose={closeDemoForm} onSubmit={handleDemoSubmit} />
-      ) : null}        <style jsx global>{`
-          @media (max-width: 767px) {
-            section:nth-of-type(even) .homepage-mobile-content-panel-circle {
-              opacity: 0.44;
-            }
-
-            section:nth-of-type(4n) .homepage-mobile-content-panel-circle {
-              top: auto;
-              bottom: -58px;
-              right: -62px;
-              opacity: 0.38;
-            }
-          }
-        `}</style>
-</main>
+      ) : null}</main>
   );
 }
 
