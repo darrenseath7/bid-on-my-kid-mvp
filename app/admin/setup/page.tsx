@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import AdminAuctionSelector from "@/components/AdminAuctionSelector";
 import AdminShell from "@/components/admin/AdminShell";
 import AdminPanel from "@/components/admin/AdminPanel";
@@ -129,6 +129,7 @@ export default function AdminSetupPage() {
   const [grade, setGrade] = useState("Grade 3");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [isArtworkDragging, setIsArtworkDragging] = useState(false);
   const [enhanceArtwork, setEnhanceArtwork] = useState(true);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -350,6 +351,11 @@ export default function AdminSetupPage() {
     setSavingProfile(false);
   }
   function handleFileChange(selectedFile: File | null) {
+    if (selectedFile && !selectedFile.type.startsWith("image/")) {
+      setMessage("Please choose an image file for the artwork.");
+      return;
+    }
+
     setFile(selectedFile);
 
     if (previewUrl) {
@@ -358,8 +364,26 @@ export default function AdminSetupPage() {
 
     if (selectedFile) {
       setPreviewUrl(URL.createObjectURL(selectedFile));
+      setMessage("");
     } else {
       setPreviewUrl("");
+    }
+  }
+
+  function handleArtworkDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setIsArtworkDragging(false);
+
+    const selectedFile = event.dataTransfer.files?.[0] || null;
+
+    if (!selectedFile) return;
+
+    handleFileChange(selectedFile);
+  }
+
+  function handleArtworkDragLeave(event: DragEvent<HTMLLabelElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setIsArtworkDragging(false);
     }
   }
 
@@ -640,19 +664,57 @@ export default function AdminSetupPage() {
                 <label className="mb-3 block text-[11px] font-black uppercase tracking-[0.22em] text-white/42">
                   Artwork Image
                 </label>
-                <label className="block cursor-pointer rounded-[22px] border border-dashed border-white/15 bg-white/[0.04] p-4 transition hover:border-[#16d66d]/70 hover:bg-white/[0.06]">
+                <label
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsArtworkDragging(true);
+                  }}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    setIsArtworkDragging(true);
+                  }}
+                  onDragLeave={handleArtworkDragLeave}
+                  onDrop={handleArtworkDrop}
+                  className={`group block cursor-pointer rounded-[26px] border border-dashed p-5 transition ${
+                    isArtworkDragging
+                      ? "border-[#16d66d] bg-[#16d66d]/12 shadow-[0_0_42px_rgba(22,214,109,0.18)]"
+                      : "border-white/15 bg-white/[0.04] hover:border-[#16d66d]/70 hover:bg-white/[0.06]"
+                  }`}
+                >
                   <input
                     type="file"
                     accept="image/*"
                     onChange={(event) => handleFileChange(event.target.files?.[0] || null)}
                     className="hidden"
                   />
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[18px] bg-white/10 text-3xl shadow">🖼️</div>
-                    <div className="min-w-0">
-                      <p className="truncate text-lg font-black">{file ? file.name : "Choose artwork image"}</p>
-                      <p className="mt-1 text-sm font-bold text-white/48">Use a clear, bright photo of the child’s artwork.</p>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-white/10 text-4xl shadow transition group-hover:scale-[1.03]">
+                      🖼️
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lg font-black">
+                        {file ? "Artwork ready to upload" : isArtworkDragging ? "Drop artwork image here" : "Drag artwork here or click to browse"}
+                      </p>
+                      <p className="mt-1 truncate text-sm font-black text-[#16d66d]/90">
+                        {file ? file.name : "JPG, PNG, WEBP or HEIC artwork photo"}
+                      </p>
+                      <p className="mt-2 text-sm font-bold leading-relaxed text-white/48">
+                        Use a clear, bright photo. You can drop a file into this box or click anywhere here to choose one.
+                      </p>
+                    </div>
+                    {file ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          handleFileChange(null);
+                        }}
+                        className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-white/72 transition hover:border-[#ffc857]/60 hover:text-[#ffc857]"
+                      >
+                        Replace
+                      </button>
+                    ) : null}
                   </div>
                 </label>
               </div>
