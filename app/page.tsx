@@ -776,15 +776,8 @@ function ContentPanel({ children }: { children: ReactNode }) {
         aria-hidden="true"
       />
 
-      <img
-        src="/bragwall-paint-splatter.jpg"
-        alt=""
-        className="homepage-desktop-content-panel-splatter pointer-events-none absolute right-[10%] bottom-[-115px] z-[1] hidden h-[300px] w-[500px] rotate-[-5deg] rounded-[38px] object-cover opacity-30 saturate-150 contrast-125 blur-[0.3px] lg:block"
-        aria-hidden="true"
-      />
-
       <div
-        className="pointer-events-none absolute inset-0 z-[2] hidden bg-gradient-to-r from-[#071224]/72 via-[#071224]/24 to-[#071224]/8 md:block"
+        className="pointer-events-none absolute inset-0 z-[2] hidden bg-gradient-to-r from-[#071224]/70 via-[#071224]/22 to-[#071224]/8 md:block"
         aria-hidden="true"
       />
 
