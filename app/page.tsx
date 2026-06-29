@@ -169,21 +169,7 @@ export default function HomePage() {
                 <HeroPoint icon={<ChartIcon />} title="R50k" text="raised to date" />
                 <HeroPoint icon={<HeartIcon />} title="Stronger" text="Communities" />
               </div>
-            </div>
-              <div className="homepage-mobile-paint-after-hero-stats relative z-[4] my-8 overflow-hidden rounded-[30px] border border-[#16d66d]/25 bg-[#071224] shadow-[0_22px_70px_rgba(0,0,0,0.42)] md:hidden">
-                <img
-                  src="/bragwall-paint-splatter.jpg"
-                  alt=""
-                  className="h-[145px] w-full object-cover opacity-90 saturate-150 contrast-125"
-                  aria-hidden="true"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#071224]/60 via-[#071224]/12 to-[#071224]/20" />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#071224]/64" />
-              </div>
-
-
-
-            <HeroImageCard
+            </div><HeroImageCard
               videoRef={founderVideoRef}
               isPlaying={isFounderVideoPlaying}
               onPlayClick={playFounderVideo}
@@ -196,20 +182,7 @@ export default function HomePage() {
         <section id="workflow-demo" className="scroll-mt-28 mx-auto max-w-[1480px] px-5 py-8 md:px-8 lg:px-10">
           <div className="overflow-hidden rounded-[40px] border border-[#16d66d]/26 bg-[radial-gradient(circle_at_16%_18%,rgba(22,214,109,0.18),transparent_34%),radial-gradient(circle_at_84%_6%,rgba(255,200,87,0.16),transparent_28%),linear-gradient(135deg,rgba(255,255,255,0.07),rgba(11,99,206,0.10))] p-5 shadow-[0_26px_90px_rgba(0,0,0,0.36)] md:p-7 lg:p-8">
             <div className="grid items-center gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-              <div>
-                <div className="homepage-mobile-paint-before-live-demo relative z-[4] mb-8 overflow-hidden rounded-[30px] border border-[#16d66d]/25 bg-[#071224] shadow-[0_22px_70px_rgba(0,0,0,0.42)] md:hidden">
-                  <img
-                    src="/bragwall-paint-splatter.jpg"
-                    alt=""
-                    className="h-[155px] w-full object-cover opacity-90 saturate-150 contrast-125"
-                    aria-hidden="true"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#071224]/54 via-[#071224]/10 to-[#071224]/24" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#071224]/68" />
-                </div>
-
-
-                <SectionKicker>Live product demo</SectionKicker>
+              <div><SectionKicker>Live product demo</SectionKicker>
                 <h2 className="text-4xl font-black leading-[0.98] tracking-[-0.055em] md:text-5xl">
                   Watch the auction room come alive.
                 </h2>
@@ -231,6 +204,12 @@ export default function HomePage() {
               <div className="relative">
                 <div className="absolute -inset-4 rounded-[38px] bg-[radial-gradient(circle_at_50%_38%,rgba(22,214,109,0.22),transparent_58%)] blur-2xl" />
                 <div className="relative overflow-hidden rounded-[34px] border border-white/12 bg-[#020b18] p-3 shadow-[0_34px_110px_rgba(0,0,0,0.55)]">
+      <img
+        src="/bragwall-paint-splatter.jpg"
+        alt=""
+        className="homepage-mobile-content-panel-circle pointer-events-none absolute right-[-70px] top-[-55px] z-[1] h-[190px] w-[190px] rounded-full object-cover opacity-0 saturate-150 contrast-125 blur-[0.2px] md:hidden"
+        aria-hidden="true"
+      />
                   <div className="flex items-center justify-between gap-4 rounded-t-[24px] border border-white/10 border-b-0 bg-white/[0.055] px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
@@ -475,7 +454,21 @@ export default function HomePage() {
 
       {isDemoOpen ? (
         <DemoRequestModal submitted={demoSubmitted} submitting={demoSubmitting} error={demoSubmitError} onClose={closeDemoForm} onSubmit={handleDemoSubmit} />
-      ) : null}</main>
+      ) : null}        <style jsx global>{`
+          @media (max-width: 767px) {
+            section:nth-of-type(even) .homepage-mobile-content-panel-circle {
+              opacity: 0.44;
+            }
+
+            section:nth-of-type(4n) .homepage-mobile-content-panel-circle {
+              top: auto;
+              bottom: -58px;
+              right: -62px;
+              opacity: 0.38;
+            }
+          }
+        `}</style>
+</main>
   );
 }
 
