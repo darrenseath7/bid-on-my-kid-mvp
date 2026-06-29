@@ -35,9 +35,9 @@ export default function AdminShell({
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#020b18] text-white">
       <img
-        src="/bragwall-section-artwork-bg.jpg"
+        src="/bragwall-paint-splatter.jpg"
         alt=""
-        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[560px] top-[225px] z-[2] hidden h-[330px] w-[840px] rounded-[38px] object-cover opacity-78 saturate-150 contrast-125 lg:block"
+        className="admin-blank-space-artwork-layer pointer-events-none fixed left-[560px] top-[225px] z-[2] hidden h-[330px] w-[840px] rounded-[38px] object-cover opacity-70 saturate-150 contrast-125 lg:block"
         aria-hidden="true"
       />
       <div
@@ -49,9 +49,9 @@ export default function AdminShell({
         aria-hidden="true"
       />
       <img
-        src="/bragwall-section-artwork-bg.jpg"
+        src="/bragwall-paint-splatter.jpg"
         alt=""
-        className="admin-section-artwork-layer pointer-events-none fixed right-[22px] top-[175px] z-[2] hidden h-[390px] w-[590px] rounded-[34px] object-cover opacity-78 saturate-150 contrast-125 lg:block"
+        className="admin-section-artwork-layer pointer-events-none fixed right-[22px] top-[175px] z-[2] hidden h-[390px] w-[590px] rounded-[34px] object-cover opacity-70 saturate-150 contrast-125 lg:block"
         aria-hidden="true"
       />
       <div
@@ -59,7 +59,7 @@ export default function AdminShell({
         aria-hidden="true"
       />
       <img
-        src="/bragwall-section-artwork-bg.jpg"
+        src="/bragwall-paint-splatter.jpg"
         alt=""
         className="admin-section-artwork-layer pointer-events-none fixed right-[38px] bottom-[55px] z-[2] hidden h-[280px] w-[420px] rotate-[-5deg] rounded-[30px] object-cover opacity-45 saturate-150 contrast-125 xl:block"
         aria-hidden="true"
@@ -195,5 +195,6 @@ function CardIcon() {
 function PhoneIcon() {
   return <Icon><rect x="7" y="2" width="10" height="20" rx="2" /><path d="M11 18h2" /></Icon>;
 }
+
 
 
