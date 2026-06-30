@@ -12,7 +12,7 @@ const MIN_MC_INTRO_SECONDS = 28;
 const MAX_MC_INTRO_SECONDS = 45;
 const MC_WORDS_PER_SECOND = 2.25;
 const MC_INTRO_PADDING_SECONDS = 4;
-const NO_BID_UNSOLD_SECONDS = 45;
+const NO_BID_UNSOLD_SECONDS = 15;
 
 type AuctionState = {
   auction_code: string;
@@ -122,17 +122,24 @@ function getMcIntroText(artwork: Artwork) {
 
 function normalizeMcIntroOpening(text: string, sortOrder?: number | null) {
   const order = Number(sortOrder || 0);
-  const cleanText = String(text || "").replace(/\s+/g, " ").trim();
+  const isLaterArtwork = Number.isFinite(order) && order > 1;
+  let firstUpSeen = false;
 
-  if (!Number.isFinite(order) || order <= 1) {
-    return cleanText;
-  }
+  return String(text || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\bfirst\s+up(?:\s+tonight)?\b/gi, (match) => {
+      if (!isLaterArtwork && !firstUpSeen) {
+        firstUpSeen = true;
+        return match;
+      }
 
-  return cleanText
-    .replace(/^first up tonight[,.!:\-]?\s*/i, "Next on the easel, ")
-    .replace(/^first up[,.!:\-]?\s*/i, "Next on the easel, ")
-    .replace(/^first artwork[,.!:\-]?\s*/i, "Our next young artist, ")
-    .replace(/^first piece[,.!:\-]?\s*/i, "Our next masterpiece, ")
+      return "Next on the easel";
+    })
+    .replace(/\bfirst\s+artwork\b/gi, isLaterArtwork ? "next artwork" : "artwork")
+    .replace(/\bfirst\s+piece\b/gi, isLaterArtwork ? "next piece" : "piece")
+    .replace(/\b(next on the easel)([,.!:\-]?\s+)(?:next on the easel\b[,.!:\-]?\s*)+/gi, "$1$2")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -566,7 +573,7 @@ export async function POST(request: Request) {
             current_bid: 0,
             leading_bidder: "No bids yet",
             mc_audio_url: null,
-            mc_commentary: `${currentArtwork.child_name} ${currentArtwork.child_surname} received no bids and is now available from the gallery after the auction. Auction complete.`,
+            mc_commentary: `No bids received for ${currentArtwork.child_name} ${currentArtwork.child_surname}. This artwork has been archived as unsold and is available from the gallery after the auction. Auction complete.`,
             updated_at: new Date().toISOString(),
           })
           .eq("auction_code", auctionCode)
@@ -576,7 +583,7 @@ export async function POST(request: Request) {
           .maybeSingle();
 
         if (error) return jsonError(error.message, 500);
-        await addActivity(supabaseAdmin, auctionCode, `Archived unsold artwork: ${currentArtwork.child_name} ${currentArtwork.child_surname}`);
+        await addActivity(supabaseAdmin, auctionCode, `No bids received. Archived unsold artwork: ${currentArtwork.child_name} ${currentArtwork.child_surname}`);
         return NextResponse.json({ action: "unsold_complete", auction: updatedAuction || auction });
       }
 
@@ -600,7 +607,7 @@ export async function POST(request: Request) {
           winner_email: null,
           winner_email_submitted_at: null,
           mc_audio_url: null,
-          mc_commentary: `${currentArtwork.child_name} ${currentArtwork.child_surname} received no bids and is now available from the gallery after the auction. Next artwork starts shortly.`,
+          mc_commentary: `No bids received for ${currentArtwork.child_name} ${currentArtwork.child_surname}. This artwork has been archived as unsold and is available from the gallery after the auction. Next artwork starts shortly.`,
           updated_at: new Date().toISOString(),
         })
         .eq("auction_code", auctionCode)
@@ -610,7 +617,7 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (error) return jsonError(error.message, 500);
-      await addActivity(supabaseAdmin, auctionCode, `Archived unsold artwork: ${currentArtwork.child_name} ${currentArtwork.child_surname}`);
+      await addActivity(supabaseAdmin, auctionCode, `No bids received. Archived unsold artwork: ${currentArtwork.child_name} ${currentArtwork.child_surname}`);
       return NextResponse.json({ action: "unsold_next_artwork_countdown", auction: updatedAuction || auction });
     }
 

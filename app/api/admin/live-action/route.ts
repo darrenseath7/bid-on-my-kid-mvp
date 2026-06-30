@@ -117,17 +117,24 @@ function getMcIntroText(artwork: Artwork) {
 
 function normalizeMcIntroOpening(text: string, sortOrder?: number | null) {
   const order = Number(sortOrder || 0);
-  const cleanText = String(text || "").replace(/\s+/g, " ").trim();
+  const isLaterArtwork = Number.isFinite(order) && order > 1;
+  let firstUpSeen = false;
 
-  if (!Number.isFinite(order) || order <= 1) {
-    return cleanText;
-  }
+  return String(text || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\bfirst\s+up(?:\s+tonight)?\b/gi, (match) => {
+      if (!isLaterArtwork && !firstUpSeen) {
+        firstUpSeen = true;
+        return match;
+      }
 
-  return cleanText
-    .replace(/^first up tonight[,.!:\-]?\s*/i, "Next on the easel, ")
-    .replace(/^first up[,.!:\-]?\s*/i, "Next on the easel, ")
-    .replace(/^first artwork[,.!:\-]?\s*/i, "Our next young artist, ")
-    .replace(/^first piece[,.!:\-]?\s*/i, "Our next masterpiece, ")
+      return "Next on the easel";
+    })
+    .replace(/\bfirst\s+artwork\b/gi, isLaterArtwork ? "next artwork" : "artwork")
+    .replace(/\bfirst\s+piece\b/gi, isLaterArtwork ? "next piece" : "piece")
+    .replace(/\b(next on the easel)([,.!:\-]?\s+)(?:next on the easel\b[,.!:\-]?\s*)+/gi, "$1$2")
+    .replace(/\s+/g, " ")
     .trim();
 }
 

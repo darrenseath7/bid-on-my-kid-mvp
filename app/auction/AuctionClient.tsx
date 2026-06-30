@@ -871,7 +871,7 @@ export default function DemoAuctionPage({
       return;
     }
 
-    if (auction.current_bid <= 0) return;
+    if (auction.current_bid <= 0 && auction.status !== "open") return;
     if (auction.status === "waiting" || auction.status === "complete") return;
     if (!isAuctionOpenForBids) return;
 
@@ -2173,7 +2173,7 @@ function GalleryModal({
                         </p>
 
                         <p className="text-sm font-black leading-relaxed">
-                          This artwork did not receive a live bid. Please speak to the school or BragWall team after the auction if you would like to purchase it.
+                          No bids were received during the live round. This artwork has been archived as unsold and remains available after the auction. Please speak to the school or BragWall team if you would like to purchase it.
                         </p>
                       </div>
                     )}
