@@ -1111,6 +1111,20 @@ function getArtworkDisplayUrl(artwork: Artwork | null) {
   return artwork.enhanced_artwork_url || artwork.artwork_url || "";
 }
 
+function isCompletedSalesArtwork(artwork: Artwork | null | undefined) {
+  if (!artwork) return false;
+
+  const status = String(artwork.status || "").trim();
+
+  return (
+    status === "sold" ||
+    status === "after_auction_request" ||
+    Boolean(artwork.invoice_email_requested_at) ||
+    Boolean(artwork.sold_amount) ||
+    Boolean(artwork.winner_email)
+  );
+}
+
 function getCurrentArtwork(
   auction: AuctionState | null,
   artworks: Artwork[]
@@ -1127,7 +1141,7 @@ function getCurrentArtwork(
       );
     });
 
-    if (matchedArtwork) return matchedArtwork;
+    if (matchedArtwork && !isCompletedSalesArtwork(matchedArtwork)) return matchedArtwork;
   }
 
   const activeArtworks = artworks.filter((item) => {

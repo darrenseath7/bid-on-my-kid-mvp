@@ -245,6 +245,39 @@ function getCurrentArtwork(auction: AuctionState | null, artworks: Artwork[]) {
   );
 }
 
+function isCompletedSalesArtwork(artwork: Artwork | null | undefined) {
+  if (!artwork) return false;
+
+  const status = String(artwork.status || "").trim();
+
+  return (
+    status === "sold" ||
+    status === "after_auction_request" ||
+    Boolean(artwork.invoice_email_requested_at) ||
+    Boolean(artwork.sold_amount) ||
+    Boolean(artwork.winner_email)
+  );
+}
+
+function findArtworkForAuctionState(auction: AuctionState, artworks: Artwork[]) {
+  const artworkId = String((auction as unknown as { artwork_id?: string | null }).artwork_id || "").trim();
+
+  if (artworkId) {
+    const byId = artworks.find((item) => item.id === artworkId);
+    if (byId) return byId;
+  }
+
+  return (
+    artworks.find((item) => {
+      return (
+        item.child_name === auction.child_name &&
+        item.child_surname === auction.child_surname &&
+        item.grade === auction.grade
+      );
+    }) || null
+  );
+}
+
 function getNextArtwork(currentArtwork: Artwork | null, artworks: Artwork[]) {
   const activeQueue = artworks.filter((item) => !item.invoice_email_requested_at && item.status !== "sold" && item.status !== "archived" && item.status !== "after_auction_request");
   const sorted = [...activeQueue].sort((a, b) => {
@@ -419,6 +452,47 @@ export async function POST(request: Request) {
     if (!auction) return jsonError("Auction state not found.", 404);
 
     const status = String(auction.status || "").trim();
+
+    if (status !== "sold") {
+      const stateArtworks = await fetchArtworks(supabaseAdmin, auctionCode);
+      const currentStateArtwork = findArtworkForAuctionState(auction, stateArtworks);
+
+      if (isCompletedSalesArtwork(currentStateArtwork)) {
+        const bidIncrement = await fetchBidIncrement(supabaseAdmin, auctionCode);
+
+        const { data: clearedAuction, error: clearError } = await supabaseAdmin
+          .from("live_auction_state")
+          .update({
+            child_name: "",
+            child_surname: "",
+            grade: "",
+            artwork_url: "",
+            artwork_id: null,
+            current_bid: 0,
+            leading_bidder: "No bids yet",
+            status: "waiting",
+            status_deadline: null,
+            bid_pause_until: null,
+            next_bid_amount: bidIncrement,
+            last_bid_at: null,
+            winner_email: null,
+            winner_email_submitted_at: null,
+            mc_commentary: "Welcome to BragWall. The auction is waiting to begin.",
+            mc_audio_url: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("auction_code", auctionCode)
+          .select("*")
+          .maybeSingle();
+
+        if (clearError) return jsonError(clearError.message, 500);
+
+        return NextResponse.json({
+          action: "cleared_completed_current_artwork",
+          auction: clearedAuction || auction,
+        });
+      }
+    }
     const currentBid = toNumber(auction.current_bid);
     const leadingBidder = String(auction.leading_bidder || "").trim();
     const now = Date.now();
