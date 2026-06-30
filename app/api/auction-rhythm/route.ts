@@ -710,7 +710,8 @@ export async function POST(request: Request) {
         .from("demo_artworks")
         .update({ status: "sold", sold_amount: currentBid, winning_bidder: leadingBidder })
         .eq("auction_code", auctionCode)
-        .eq("status", "live");
+        .eq("status", "live")
+        .is("invoice_email_requested_at", null);
 
       await addActivity(supabaseAdmin, auctionCode, `SOLD to ${leadingBidder} for R${currentBid.toLocaleString()}`);
       return NextResponse.json({ action: "sold", auction: updatedAuction });
