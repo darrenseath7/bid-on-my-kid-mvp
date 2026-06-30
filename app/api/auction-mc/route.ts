@@ -66,19 +66,7 @@ function getOpening(artworkNumber: number, artistName: string, gradeText: string
     return "First up tonight, we have " + artistName + gradeText + ".";
   }
 
-  if (artworkNumber === 2) {
-    return "Next in the auction, we have " + artistName + gradeText + ".";
-  }
-
-  if (artworkNumber === 3) {
-    return "Our next masterpiece comes from " + artistName + gradeText + ".";
-  }
-
-  if (artworkNumber === 4) {
-    return "Now in the auction, we have " + artistName + gradeText + ".";
-  }
-
-  return "Next in line, we have " + artistName + gradeText + ".";
+  return "Next in the auction, we have " + artistName + gradeText + ".";
 }
 
 function getArtworkMiddle(fallbackPreview?: string) {
