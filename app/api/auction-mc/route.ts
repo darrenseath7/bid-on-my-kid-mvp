@@ -58,7 +58,7 @@ async function createIntro(body: AuctionMcRequest, apiKey: string) {
     "Use 35 to 48 words. Make it warm, funny, proud, premium, and slightly cheeky. " +
     "Describe the artwork feeling, colours, imagination, family excitement, and young artist confidence. " +
     "Banned words and phrases: first, first up, first up tonight, first artwork, first piece, welcome, next on the easel, coming up now, countdown, bidding opens. " +
-    "Do not repeat the artist name. Do not repeat phrases. " +
+    "Do not repeat the artist name. Do not mention the grade. Do not start with we have, now taking the spotlight, next on the easel, coming up now, or our next young artist. Do not repeat phrases. " +
     "Artist: " +
     artistName +
     ". Grade: " +
@@ -75,7 +75,7 @@ async function createIntro(body: AuctionMcRequest, apiKey: string) {
       {
         role: "system",
         content:
-          "You write only the middle section of a school art auction MC intro. Never use the words first, welcome, countdown, or bidding.",
+          "You write only the middle section of a school art auction MC intro. Never write an opening sentence. Never use first, welcome, countdown, bidding, next on the easel, coming up now, now taking the spotlight, or we have.",
       },
       {
         role: "user",
@@ -221,9 +221,16 @@ function cleanMiddle(value: string) {
     .replace(/\bfirst\s+masterpiece\b/gi, "masterpiece")
     .replace(/\bfirst\b/gi, "")
     .replace(/\bwelcome\b/gi, "")
+    .replace(/^\s*now\s+taking\s+the\s+spotlight,?\s+we\s+have\s+[^.?!]+[.?!]\s*/i, "")
+    .replace(/^\s*next\s+on\s+the\s+easel,?\s+we\s+have\s+[^.?!]+[.?!]\s*/i, "")
+    .replace(/^\s*coming\s+up\s+now,?\s+we\s+have\s+[^.?!]+[.?!]\s*/i, "")
+    .replace(/^\s*our\s+next\s+young\s+artist\s+is\s+[^.?!]+[.?!]\s*/i, "")
+    .replace(/^\s*let\s+us\s+bring\s+up\s+the\s+next\s+masterpiece\s+from\s+[^.?!]+[.?!]\s*/i, "")
     .replace(/\bnext\s+on\s+the\s+easel\b[,.!:\-]?\s*/gi, "")
     .replace(/\bcoming\s+up\s+now\b[,.!:\-]?\s*/gi, "")
     .replace(/\bour\s+next\s+young\s+artist\s+is\b[,.!:\-]?\s*/gi, "")
+    .replace(/\bnow\s+taking\s+the\s+spotlight\b[,.!:\-]?\s*/gi, "")
+    .replace(/\blet\s+us\s+bring\s+up\s+the\s+next\s+masterpiece\s+from\b[,.!:\-]?\s*/gi, "")
     .replace(/\bparents,?\s+get\s+ready\b[,.!:\-]?\s*/gi, "")
     .replace(/\bthe\s+countdown\s+is\s+coming\b[,.!:\-]?\s*/gi, "")
     .replace(/\bbidding\s+opens\b[,.!:\-]?\s*/gi, "")
