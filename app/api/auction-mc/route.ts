@@ -56,7 +56,7 @@ async function createIntro(body: AuctionMcRequest, apiKey: string) {
     "Write ONLY the middle section of a South African school art auction MC intro. " +
     "Do not write an opening line. Do not write a closing line. " +
     "Use 35 to 48 words. Make it warm, funny, proud, premium, and slightly cheeky. " +
-    "Describe the artwork feeling, colours, imagination, family excitement, and young artist confidence. " +
+    "Start directly by describing the artwork. Describe the artwork feeling, colours, imagination, family excitement, and young artist confidence. " +
     "Banned words and phrases: first, first up, first up tonight, first artwork, first piece, welcome, next on the easel, coming up now, countdown, bidding opens. " +
     "Do not repeat the artist name. Do not mention the grade. Do not start with we have, now taking the spotlight, next on the easel, coming up now, or our next young artist. Do not repeat phrases. " +
     "Artist: " +
@@ -244,8 +244,60 @@ function removeAiGeneratedOpeningSentence(value: string, artistName?: string) {
   return text;
 }
 
-function cleanMiddle(value: string, artistName?: string) {
-  let text = removeAiGeneratedOpeningSentence(String(value || ""), artistName)
+function removeAnyAiIntroSentences(value: string, artistName?: string, grade?: string) {
+  const text = String(value || "").trim();
+  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
+
+  const cleanArtistName = String(artistName || "").toLowerCase().trim();
+  const cleanGrade = String(grade || "").toLowerCase().trim();
+
+  const kept = sentences.filter((sentence, index) => {
+    const lower = sentence.toLowerCase();
+
+    const mentionsArtist =
+      cleanArtistName.length > 0 && lower.includes(cleanArtistName);
+
+    const mentionsGrade =
+      lower.includes("grade ") ||
+      (cleanGrade.length > 0 && lower.includes(cleanGrade));
+
+    const soundsLikeOpener =
+      lower.includes("we have") ||
+      lower.includes("first up") ||
+      lower.includes("next on the easel") ||
+      lower.includes("coming up now") ||
+      lower.includes("now taking the spotlight") ||
+      lower.includes("our next young artist") ||
+      lower.includes("let us bring up") ||
+      lower.includes("bring up the next") ||
+      lower.includes("spotlight") ||
+      lower.includes("easel");
+
+    // The first AI sentence is the most likely place for a duplicate intro.
+    // Drop it if it smells even slightly like an opener.
+    if (index === 0 && (mentionsArtist || mentionsGrade || soundsLikeOpener)) {
+      return false;
+    }
+
+    // Also remove any later sentence that repeats the artist or grade.
+    if (mentionsArtist || mentionsGrade || soundsLikeOpener) {
+      return false;
+    }
+
+    return true;
+  });
+
+  const cleaned = kept.join(" ").replace(/\s+/g, " ").trim();
+
+  if (!cleaned) {
+    return getFallbackMiddle();
+  }
+
+  return cleaned;
+}
+
+function cleanMiddle(value: string, artistName?: string, grade?: string) {
+  let text = removeAnyAiIntroSentences(String(value || ""), artistName, grade)
     .replace(/\bfirst\s+up(?:\s+tonight)?\b[,.!:\-]?\s*/gi, "")
     .replace(/\bfirst\s+artwork\b/gi, "artwork")
     .replace(/\bfirst\s+piece\b/gi, "piece")
