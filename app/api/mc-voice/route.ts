@@ -277,28 +277,21 @@ function makeSafeFilePart(value: string) {
 
 function buildMcScript({
   sourceText,
-  childName,
-  grade,
 }: {
   sourceText: string;
   childName: string;
   grade: string;
 }) {
-  const cleanStory = makeStoryMoreSpoken(sourceText, childName, grade);
-  const intro = buildArtworkHandover(childName, grade);
-  const outro = `Get ready. Bidding opens after the countdown.`;
-
-  // Keep the MC voice aligned with the exact intro shown on Admin Live.
-  // Do not add random extra auctioneer phrases, and do not introduce the
-  // student/grade more than once. Keep it close to a 30-second spoken intro.
-  return limitWords(removeConsecutiveDuplicateWords(`${intro} ${cleanStory} ${outro}`), 90);
-}
-
-function buildArtworkHandover(childName: string, grade: string) {
-  const artist = childName || "our young artist";
-  const gradeText = grade && grade !== "the school" ? ` from ${grade}` : "";
-
-  return `First up tonight, we have ${artist}${gradeText}.`;
+  // IMPORTANT:
+  // app/api/auction-mc/route.ts already creates the complete MC script.
+  // This voice route must NOT add another child intro or closing line.
+  // It should only speak the exact script it receives.
+  return limitWords(
+    removeConsecutiveDuplicateWords(
+      ensureSentenceEnds(String(sourceText || "").replace(/\s+/g, " ").trim())
+    ),
+    90
+  );
 }
 
 function makeStoryMoreSpoken(sourceText: string, childName: string, grade: string) {
