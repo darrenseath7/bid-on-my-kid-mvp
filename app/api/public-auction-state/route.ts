@@ -68,6 +68,7 @@ type RawAuctionState = {
   last_bid_at?: string | null;
   winner_email?: string | null;
   winner_email_submitted_at?: string | null;
+  updated_at?: string | null;
 };
 
 type RawBid = {
@@ -118,6 +119,7 @@ function sanitizeAuction(auction: RawAuctionState | null) {
     winner_email_submitted: Boolean(
       auction.winner_email || auction.winner_email_submitted_at
     ),
+    updated_at: auction.updated_at || null,
   };
 }
 
@@ -163,7 +165,7 @@ export async function GET(request: NextRequest) {
       supabase
         .from("live_auction_state")
         .select(
-          "auction_code,artwork_id,child_name,child_surname,grade,artwork_url,current_bid,leading_bidder,status,total_raised,status_deadline,mc_commentary,mc_audio_url,bid_pause_until,next_bid_amount,last_bid_at,winner_email,winner_email_submitted_at"
+          "auction_code,artwork_id,child_name,child_surname,grade,artwork_url,current_bid,leading_bidder,status,total_raised,status_deadline,mc_commentary,mc_audio_url,bid_pause_until,next_bid_amount,last_bid_at,winner_email,winner_email_submitted_at,updated_at"
         )
         .eq("auction_code", auctionCode)
         .maybeSingle<RawAuctionState>(),

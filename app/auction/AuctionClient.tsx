@@ -22,6 +22,7 @@ type AuctionState = {
   winner_email?: string | null;
   winner_email_submitted_at?: string | null;
   winner_email_submitted?: boolean | null;
+  updated_at?: string | null;
 };
 
 type Bid = {
@@ -75,6 +76,15 @@ function normalizeAuctionCode(value?: string) {
     .replace(/^-|-$/g, "");
 
   return normalized || DEFAULT_AUCTION_CODE;
+}
+
+function getIntroElapsedSeconds(auction: AuctionState | null) {
+  if (!auction || auction.status !== "intro" || !auction.updated_at) return 0;
+
+  const startedAt = new Date(auction.updated_at).getTime();
+  if (!Number.isFinite(startedAt) || startedAt <= 0) return 0;
+
+  return Math.max(0, Math.floor((Date.now() - startedAt) / 1000));
 }
 
 type DemoAuctionPageProps = {
@@ -509,7 +519,7 @@ export default function DemoAuctionPage({
 
     const introKey = [
       auction.artwork_id || auction.artwork_url || "artwork",
-      auction.status_deadline || "deadline",
+      auction.updated_at || auction.status_deadline || "intro-start",
       mcAudioUrl,
     ].join("|");
 
@@ -526,6 +536,26 @@ export default function DemoAuctionPage({
       audio.preload = "auto";
       (audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
       audio.volume = 1;
+
+      const elapsedSeconds = getIntroElapsedSeconds(auction);
+      if (elapsedSeconds > 1) {
+        audio.currentTime = elapsedSeconds;
+      }
+
+      audio.onloadedmetadata = () => {
+        const syncedElapsedSeconds = getIntroElapsedSeconds(auction);
+        const duration = Number(audio.duration || 0);
+
+        if (duration > 0 && syncedElapsedSeconds >= duration - 1) {
+          setIntroAudioStatus("finished");
+          void openBiddingAfterIntro("audio-finished");
+          return;
+        }
+
+        if (syncedElapsedSeconds > 1 && (!audio.currentTime || audio.currentTime < syncedElapsedSeconds - 1)) {
+          audio.currentTime = Math.min(syncedElapsedSeconds, Math.max(0, duration - 1));
+        }
+      };
 
       audio.onplay = () => {
         setIntroAudioStatus("playing");
@@ -2061,6 +2091,7 @@ function GalleryModal({
               {artworks.map((artwork) => {
                 const imageUrl = getArtworkDisplayUrl(artwork);
                 const isSoldArtwork = artwork.status === "sold";
+                const isArchivedArtwork = artwork.status === "archived";
                 const isLiveArtwork = artwork.status === "live";
 
                 return (
@@ -2112,6 +2143,8 @@ function GalleryModal({
                         className={`rounded-2xl px-3 py-2 text-center shrink-0 ${
                           isSoldArtwork
                             ? "bg-[#ffc857] text-[#07152b]"
+                            : isArchivedArtwork
+                            ? "bg-[#ff6b8a] text-white"
                             : isLiveArtwork
                             ? "bg-[#16d66d] text-[#07152b]"
                             : "bg-[#07152b] text-white"
@@ -2124,12 +2157,26 @@ function GalleryModal({
                         <p className="font-black text-sm">
                           {isSoldArtwork
                             ? "Sold"
+                            : isArchivedArtwork
+                            ? "Available"
                             : isLiveArtwork
                             ? "Live"
                             : "Upcoming"}
                         </p>
                       </div>
                     </div>
+
+                    {isArchivedArtwork && (
+                      <div className="mt-4 rounded-[22px] bg-[#ff6b8a]/12 border border-[#ff6b8a]/25 text-[#07152b] p-4">
+                        <p className="uppercase tracking-[0.25em] text-[9px] text-[#ef2b20] font-black mb-2">
+                          Available after auction
+                        </p>
+
+                        <p className="text-sm font-black leading-relaxed">
+                          This artwork did not receive a live bid. Please speak to the school or BragWall team after the auction if you would like to purchase it.
+                        </p>
+                      </div>
+                    )}
 
                     {isSoldArtwork && (
                       <div className="mt-4 rounded-[22px] bg-[#07152b] text-white p-4">

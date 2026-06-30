@@ -53,7 +53,8 @@ Rules:
 - Do not repeat phrases, names, or words awkwardly.
 - Do not use the word “welcome”. The separate Welcome MC already welcomes the room.
 - Do not start with “Welcome”, “Welcome welcome”, or “Welcome to”.
-- Start with a specific artwork handover such as “First up tonight”, “Next on the easel”, or “Eyes on this masterpiece”.
+- If Artwork order is 1 or not provided, you may start with “First up tonight”.
+- If Artwork order is 2 or higher, NEVER say “first up”, “first artwork”, or “first piece”. Start with “Next on the easel”, “Coming up now”, “Eyes on this masterpiece”, or “Our next young artist”.
 - End by building anticipation for bidding after the countdown.
 
 Artist:
@@ -127,7 +128,7 @@ Create a funny celebratory sold message.
 
     const generatedText = cleanMcIntroText(
       completion.choices[0].message.content ||
-        "First up tonight, this artwork is ready for its moment in the spotlight. Bidding is about to heat up beautifully."
+        getFallbackIntroOpening(sortOrder)
     );
 
     return Response.json({
@@ -141,6 +142,16 @@ Create a funny celebratory sold message.
       { status: 500 }
     );
   }
+}
+
+function getFallbackIntroOpening(sortOrder: unknown) {
+  const order = Number(sortOrder || 0);
+
+  if (Number.isFinite(order) && order > 1) {
+    return "Next on the easel, this artwork is ready for its moment in the spotlight. Bidding is about to heat up beautifully.";
+  }
+
+  return "First up tonight, this artwork is ready for its moment in the spotlight. Bidding is about to heat up beautifully.";
 }
 
 function cleanMcIntroText(value: string) {

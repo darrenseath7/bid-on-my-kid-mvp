@@ -12,6 +12,7 @@ const MIN_MC_INTRO_SECONDS = 28;
 const MAX_MC_INTRO_SECONDS = 45;
 const MC_WORDS_PER_SECOND = 2.25;
 const MC_INTRO_PADDING_SECONDS = 4;
+const NO_BID_UNSOLD_SECONDS = 45;
 
 type AuctionState = {
   auction_code: string;
@@ -29,6 +30,7 @@ type AuctionState = {
   next_bid_amount?: number | null;
   winner_email?: string | null;
   winner_email_submitted_at?: string | null;
+  updated_at?: string | null;
 };
 
 type Artwork = {
@@ -118,6 +120,22 @@ function getMcIntroText(artwork: Artwork) {
   return "full of colour, imagination, and proper young-artist confidence.";
 }
 
+function normalizeMcIntroOpening(text: string, sortOrder?: number | null) {
+  const order = Number(sortOrder || 0);
+  const cleanText = String(text || "").replace(/\s+/g, " ").trim();
+
+  if (!Number.isFinite(order) || order <= 1) {
+    return cleanText;
+  }
+
+  return cleanText
+    .replace(/^first up tonight[,.!:\-]?\s*/i, "Next on the easel, ")
+    .replace(/^first up[,.!:\-]?\s*/i, "Next on the easel, ")
+    .replace(/^first artwork[,.!:\-]?\s*/i, "Our next young artist, ")
+    .replace(/^first piece[,.!:\-]?\s*/i, "Our next masterpiece, ")
+    .trim();
+}
+
 async function generateAiMcIntroText(
   request: Request,
   artwork: Artwork,
@@ -145,13 +163,13 @@ async function generateAiMcIntroText(
     const text = String(result?.text || "").replace(/\s+/g, " ").trim();
 
     if (response.ok && text) {
-      return text;
+      return normalizeMcIntroOpening(text, artwork.sort_order);
     }
   } catch (error) {
     console.warn("AI MC intro generation failed; using artwork story fallback.", error);
   }
 
-  return fallbackPreview;
+  return normalizeMcIntroOpening(fallbackPreview, artwork.sort_order);
 }
 
 function estimateMcIntroSeconds(text: string) {
@@ -504,6 +522,96 @@ export async function POST(request: Request) {
 
       const updatedAuction = await moveToArtwork(request, supabaseAdmin, auctionCode, nextArtwork);
       return NextResponse.json({ action: "next_artwork", auction: updatedAuction || auction });
+    }
+
+    if (status === "open" && currentBid <= 0) {
+      const openedAt = auction.updated_at ? new Date(auction.updated_at).getTime() : 0;
+      const openSeconds = openedAt ? Math.floor((now - openedAt) / 1000) : 0;
+
+      if (!openedAt || openSeconds < NO_BID_UNSOLD_SECONDS) {
+        return NextResponse.json({ action: "none", auction });
+      }
+
+      const artworks = await fetchArtworks(supabaseAdmin, auctionCode);
+      const currentArtwork = getCurrentArtwork(auction, artworks);
+
+      if (!currentArtwork) {
+        return NextResponse.json({ action: "none", auction });
+      }
+
+      await supabaseAdmin.from("live_bids").delete().eq("auction_code", auctionCode);
+
+      const { error: artworkError } = await supabaseAdmin
+        .from("demo_artworks")
+        .update({
+          status: "archived",
+          sold_amount: null,
+          winning_bidder: null,
+          winner_email: null,
+          mc_audio_url: null,
+        })
+        .eq("id", currentArtwork.id);
+
+      if (artworkError) return jsonError(artworkError.message, 500);
+
+      const nextArtwork = getNextArtwork(currentArtwork, artworks);
+
+      if (!nextArtwork) {
+        const { data: updatedAuction, error } = await supabaseAdmin
+          .from("live_auction_state")
+          .update({
+            status: "complete",
+            status_deadline: null,
+            bid_pause_until: null,
+            current_bid: 0,
+            leading_bidder: "No bids yet",
+            mc_audio_url: null,
+            mc_commentary: `${currentArtwork.child_name} ${currentArtwork.child_surname} received no bids and is now available from the gallery after the auction. Auction complete.`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("auction_code", auctionCode)
+          .eq("status", "open")
+          .eq("current_bid", 0)
+          .select("*")
+          .maybeSingle();
+
+        if (error) return jsonError(error.message, 500);
+        await addActivity(supabaseAdmin, auctionCode, `Archived unsold artwork: ${currentArtwork.child_name} ${currentArtwork.child_surname}`);
+        return NextResponse.json({ action: "unsold_complete", auction: updatedAuction || auction });
+      }
+
+      const countdownDeadline = new Date(Date.now() + NEXT_ARTWORK_COUNTDOWN_SECONDS * 1000).toISOString();
+      const nextDisplayUrl = getArtworkDisplayUrl(nextArtwork);
+
+      const { data: updatedAuction, error } = await supabaseAdmin
+        .from("live_auction_state")
+        .update({
+          artwork_id: nextArtwork.id,
+          child_name: nextArtwork.child_name,
+          child_surname: nextArtwork.child_surname,
+          grade: nextArtwork.grade,
+          artwork_url: nextDisplayUrl,
+          current_bid: 0,
+          leading_bidder: "No bids yet",
+          status: "next_artwork_countdown",
+          status_deadline: countdownDeadline,
+          bid_pause_until: null,
+          last_bid_at: null,
+          winner_email: null,
+          winner_email_submitted_at: null,
+          mc_audio_url: null,
+          mc_commentary: `${currentArtwork.child_name} ${currentArtwork.child_surname} received no bids and is now available from the gallery after the auction. Next artwork starts shortly.`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("auction_code", auctionCode)
+        .eq("status", "open")
+        .eq("current_bid", 0)
+        .select("*")
+        .maybeSingle();
+
+      if (error) return jsonError(error.message, 500);
+      await addActivity(supabaseAdmin, auctionCode, `Archived unsold artwork: ${currentArtwork.child_name} ${currentArtwork.child_surname}`);
+      return NextResponse.json({ action: "unsold_next_artwork_countdown", auction: updatedAuction || auction });
     }
 
     if (currentBid <= 0) return NextResponse.json({ action: "none", auction });

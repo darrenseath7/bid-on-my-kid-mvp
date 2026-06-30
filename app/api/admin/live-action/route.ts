@@ -115,6 +115,22 @@ function getMcIntroText(artwork: Artwork) {
   return "full of colour, imagination, and proper young-artist confidence.";
 }
 
+function normalizeMcIntroOpening(text: string, sortOrder?: number | null) {
+  const order = Number(sortOrder || 0);
+  const cleanText = String(text || "").replace(/\s+/g, " ").trim();
+
+  if (!Number.isFinite(order) || order <= 1) {
+    return cleanText;
+  }
+
+  return cleanText
+    .replace(/^first up tonight[,.!:\-]?\s*/i, "Next on the easel, ")
+    .replace(/^first up[,.!:\-]?\s*/i, "Next on the easel, ")
+    .replace(/^first artwork[,.!:\-]?\s*/i, "Our next young artist, ")
+    .replace(/^first piece[,.!:\-]?\s*/i, "Our next masterpiece, ")
+    .trim();
+}
+
 async function generateAiMcIntroText(
   request: NextRequest,
   artwork: Artwork,
@@ -142,13 +158,13 @@ async function generateAiMcIntroText(
     const text = String(result?.text || "").replace(/\s+/g, " ").trim();
 
     if (response.ok && text) {
-      return text;
+      return normalizeMcIntroOpening(text, artwork.sort_order);
     }
   } catch (error) {
     console.warn("AI MC intro generation failed; using artwork story fallback.", error);
   }
 
-  return fallbackPreview;
+  return normalizeMcIntroOpening(fallbackPreview, artwork.sort_order);
 }
 
 function estimateMcIntroSeconds(text: string) {
