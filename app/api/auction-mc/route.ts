@@ -45,17 +45,15 @@ Tone:
 - playful
 
 Rules:
-- Keep it between 65 and 80 words.
+- Keep it between 55 and 70 words.
 - Mention the artist once by name.
 - Mention the grade once if provided.
 - Use humour, but keep it kind and family-friendly.
 - Relate the intro to the artwork story below.
 - Do not repeat phrases, names, or words awkwardly.
-- Do not use the word “welcome”. The separate Welcome MC already welcomes the room.
-- Do not start with “Welcome”, “Welcome welcome”, or “Welcome to”.
-- If Artwork order is 1 or not provided, you may start with “First up tonight”, but only once.
-- Never use “First up” more than once in the entire script.
-- If Artwork order is 2 or higher, NEVER say “first up”, “first artwork”, or “first piece” anywhere. Start with “Next on the easel”, “Coming up now”, “Eyes on this masterpiece”, or “Our next young artist”.
+- Do not use the word welcome.
+- Do not use the phrases "first up", "first up tonight", "first artwork", or "first piece".
+- Do not create an opening line. Start directly with the artwork, artist, colours, story, or energy.
 - End by building anticipation for bidding after the countdown.
 
 Artist:
@@ -117,21 +115,26 @@ Create a funny celebratory sold message.
       messages: [
         {
           role: "system",
-          content: "You are an elite South African live auction MC.",
+          content:
+            mode === "intro"
+              ? "You are an elite South African live auction MC. Never use the phrases first up, first up tonight, first artwork, first piece, or welcome."
+              : "You are an elite South African live auction MC.",
         },
         {
           role: "user",
           content: userContent,
         },
       ],
-      temperature: 0.9,
+      temperature: mode === "intro" ? 0.55 : 0.9,
     });
 
-    const generatedText = cleanMcIntroText(
-      completion.choices[0].message.content ||
-        getFallbackIntroOpening(sortOrder),
-      sortOrder
-    );
+    const rawText =
+      completion.choices[0].message.content || getFallbackIntroBody();
+
+    const generatedText =
+      mode === "intro"
+        ? buildControlledIntro(rawText, sortOrder)
+        : cleanGeneralMcText(rawText);
 
     return Response.json({
       text: generatedText,
@@ -146,51 +149,64 @@ Create a funny celebratory sold message.
   }
 }
 
-function getFallbackIntroOpening(sortOrder: unknown) {
-  const order = Number(sortOrder || 0);
-
-  if (Number.isFinite(order) && order > 1) {
-    return "Next on the easel, this artwork is ready for its moment in the spotlight. Bidding is about to heat up beautifully.";
-  }
-
-  return "First up tonight, this artwork is ready for its moment in the spotlight. Bidding is about to heat up beautifully.";
+function getFallbackIntroBody() {
+  return "this artwork is ready for its moment in the spotlight, full of colour, imagination, and proud young-artist confidence. Families, keep your bidding fingers ready because after the countdown, this masterpiece deserves a proper BragWall battle.";
 }
 
-function cleanMcIntroText(value: string, sortOrder?: unknown) {
-  const cleaned = String(value || "")
+function buildControlledIntro(value: string, sortOrder?: unknown) {
+  const order = Number(sortOrder || 0);
+  const isLaterArtwork = Number.isFinite(order) && order > 1;
+
+  const opening = isLaterArtwork
+    ? "Next on the easel,"
+    : "First up tonight,";
+
+  const body = cleanIntroBody(value);
+
+  return removeRepeatedShortPhrases(`${opening} ${body}`)
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function cleanIntroBody(value: string) {
+  let text = String(value || "")
+    .replace(/^\s*["'`]+|["'`]+\s*$/g, "")
     .replace(/^\s*welcome(?:\s+welcome)*(?:\s+to\s+bragwall)?[.!,:;\-]*\s*/i, "")
-    .replace(/\bwelcome\s+welcome\b/gi, "welcome")
+    .replace(/\bwelcome\s+welcome\b/gi, "")
+    .replace(/\bfirst\s+up(?:\s+tonight)?\b[,.!:\-]?\s*/gi, "")
+    .replace(/\bfirst\s+artwork\b/gi, "artwork")
+    .replace(/\bfirst\s+piece\b/gi, "piece")
+    .replace(/\bour\s+first\s+young\s+artist\b/gi, "our young artist")
+    .replace(/\bthe\s+first\s+young\s+artist\b/gi, "the young artist")
+    .replace(/\bfirst\s+young\s+artist\b/gi, "young artist")
+    .replace(/\bfirst\s+masterpiece\b/gi, "masterpiece")
+    .replace(/\bfirst\s+painting\b/gi, "painting")
+    .replace(/\bfirst\s+drawing\b/gi, "drawing")
+    .replace(/\bfirst\s+creation\b/gi, "creation")
+    .replace(/\bfirst\s+item\b/gi, "item")
+    .replace(/\bfirst\s+entry\b/gi, "entry")
     .replace(/\s+/g, " ")
     .trim();
 
+  text = text.replace(/^[,.:;\-\s]+/, "").trim();
+
+  if (!text) {
+    text = getFallbackIntroBody();
+  }
+
+  return removeConsecutiveDuplicateWords(text);
+}
+
+function cleanGeneralMcText(value: string) {
   return removeConsecutiveDuplicateWords(
-    normalizeAuctionOpeningPhrases(cleaned, sortOrder)
+    String(value || "")
+      .replace(/\s+/g, " ")
+      .trim()
   );
 }
 
-function normalizeAuctionOpeningPhrases(value: string, sortOrder?: unknown) {
-  const order = Number(sortOrder || 0);
-  const isLaterArtwork = Number.isFinite(order) && order > 1;
-  let firstUpSeen = false;
-
-  return String(value || "")
-    .replace(/\bfirst\s+up(?:\s+tonight)?\b/gi, (match) => {
-      if (!isLaterArtwork && !firstUpSeen) {
-        firstUpSeen = true;
-        return match;
-      }
-
-      return "Next on the easel";
-    })
-    .replace(/\bfirst\s+artwork\b/gi, isLaterArtwork ? "next artwork" : "artwork")
-    .replace(/\bfirst\s+piece\b/gi, isLaterArtwork ? "next piece" : "piece")
-    .replace(/\b(next on the easel)([,.!:\-]?\s+)(?:next on the easel\b[,.!:\-]?\s*)+/gi, "$1$2")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function removeConsecutiveDuplicateWords(value: string) {
-  return value
+  return String(value || "")
     .split(/(\s+)/)
     .filter((part, index, parts) => {
       if (/\s+/.test(part)) return true;
@@ -202,10 +218,40 @@ function removeConsecutiveDuplicateWords(value: string) {
 
       if (!previousWord) return true;
 
-      return previousWord.toLowerCase().replace(/[^a-z0-9]/g, "") !==
-        part.toLowerCase().replace(/[^a-z0-9]/g, "");
+      return (
+        previousWord.toLowerCase().replace(/[^a-z0-9]/g, "") !==
+        part.toLowerCase().replace(/[^a-z0-9]/g, "")
+      );
     })
     .join("")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function removeRepeatedShortPhrases(value: string) {
+  let text = String(value || "");
+
+  const repeatedPhrases = [
+    "First up tonight",
+    "Next on the easel",
+    "Coming up now",
+    "Our next young artist",
+    "Eyes on this masterpiece",
+  ];
+
+  for (const phrase of repeatedPhrases) {
+    const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    let seen = false;
+
+    text = text.replace(new RegExp(`\\b${escaped}\\b[,.!:\\-]?\\s*`, "gi"), (match) => {
+      if (!seen) {
+        seen = true;
+        return match;
+      }
+
+      return "";
+    });
+  }
+
+  return text.replace(/\s+/g, " ").trim();
 }
