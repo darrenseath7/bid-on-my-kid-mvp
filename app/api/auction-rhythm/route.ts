@@ -49,6 +49,7 @@ type Artwork = {
   sold_amount?: number | null;
   winning_bidder?: string | null;
   winner_email?: string | null;
+  invoice_email_requested_at?: string | null;
   mc_audio_url?: string | null;
   created_at?: string | null;
 };
@@ -245,7 +246,7 @@ function getCurrentArtwork(auction: AuctionState | null, artworks: Artwork[]) {
 }
 
 function getNextArtwork(currentArtwork: Artwork | null, artworks: Artwork[]) {
-  const activeQueue = artworks.filter((item) => item.status !== "sold" && item.status !== "archived" && item.status !== "after_auction_request");
+  const activeQueue = artworks.filter((item) => !item.invoice_email_requested_at && item.status !== "sold" && item.status !== "archived" && item.status !== "after_auction_request");
   const sorted = [...activeQueue].sort((a, b) => {
     const aOrder = Number(a.sort_order || 0);
     const bOrder = Number(b.sort_order || 0);
@@ -314,6 +315,7 @@ async function moveToArtwork(
     .from("demo_artworks")
     .update({ status: "queued" })
     .eq("auction_code", auctionCode)
+    .is("invoice_email_requested_at", null)
     .in("status", ["live", "preparing_intro", "intro", "starting_soon", "open", "paused", "going once", "going twice"]);
 
   if (queueError) throw new Error(queueError.message);

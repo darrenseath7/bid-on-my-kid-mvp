@@ -40,6 +40,7 @@ type Artwork = {
   sold_amount?: number | null;
   winning_bidder?: string | null;
   winner_email?: string | null;
+  invoice_email_requested_at?: string | null;
   mc_audio_url?: string | null;
   created_at?: string | null;
 };
@@ -207,7 +208,7 @@ function getCurrentArtwork(
   }
 
   const activeArtworks = artworks.filter(
-    (item) => item.status !== "sold" && item.status !== "archived" && item.status !== "after_auction_request"
+    (item) => !item.invoice_email_requested_at && item.status !== "sold" && item.status !== "archived" && item.status !== "after_auction_request"
   );
 
   return (
@@ -534,7 +535,7 @@ export async function POST(request: NextRequest) {
       const artworks = await fetchArtworks(supabaseAdmin);
       const currentArtwork = getCurrentArtwork(auction, artworks);
       const activeQueueArtworks = artworks.filter(
-        (artwork) => artwork.status !== "sold" && artwork.status !== "archived" && artwork.status !== "after_auction_request"
+        (artwork) => !artwork.invoice_email_requested_at && artwork.status !== "sold" && artwork.status !== "archived" && artwork.status !== "after_auction_request"
       );
       const nextArtwork = getNextArtwork(currentArtwork, activeQueueArtworks);
 
@@ -725,6 +726,7 @@ export async function POST(request: NextRequest) {
         .from("demo_artworks")
         .update({ status: "queued" })
         .eq("auction_code", AUCTION_CODE)
+        .is("invoice_email_requested_at", null)
         .neq("status", "sold")
         .neq("status", "archived")
         .neq("status", "after_auction_request");
