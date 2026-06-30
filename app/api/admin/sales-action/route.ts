@@ -44,11 +44,27 @@ function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
 }
 
+function getAllowedAdminEmails() {
+  return (process.env.ADMIN_ALLOWED_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 async function requireAdmin(request: NextRequest) {
   const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value || null;
   const session = await verifyAdminSessionToken(token);
 
   if (!session) {
+    return null;
+  }
+
+  const allowedEmails = getAllowedAdminEmails();
+
+  if (
+    allowedEmails.length > 0 &&
+    !allowedEmails.includes(session.email.toLowerCase())
+  ) {
     return null;
   }
 

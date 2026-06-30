@@ -1,8 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  ADMIN_SESSION_COOKIE,
+  verifyAdminSessionToken,
+} from "@/lib/adminSession";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+
+function getAllowedAdminEmails() {
+  return (process.env.ADMIN_ALLOWED_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+async function requireAdmin(request: NextRequest) {
+  const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value || null;
+  const session = await verifyAdminSessionToken(token);
+
+  if (!session) {
+    return null;
+  }
+
+  const allowedEmails = getAllowedAdminEmails();
+
+  if (
+    allowedEmails.length > 0 &&
+    !allowedEmails.includes(session.email.toLowerCase())
+  ) {
+    return null;
+  }
+
+  return session;
+}
 
 type EnhanceArtworkBody = {
   artworkId?: string;
