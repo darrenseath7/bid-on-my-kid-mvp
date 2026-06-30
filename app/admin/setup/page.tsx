@@ -37,6 +37,116 @@ type Artwork = {
 
 const DEFAULT_AUCTION_CODE = "demo";
 
+const MAX_COMPRESSED_IMAGE_WIDTH = 1600;
+const MAX_COMPRESSED_IMAGE_BYTES = 1.8 * 1024 * 1024;
+const COMPRESSED_IMAGE_QUALITY = 0.82;
+
+function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+
+  const megabytes = bytes / (1024 * 1024);
+
+  if (megabytes >= 1) {
+    return `${megabytes.toFixed(1)} MB`;
+  }
+
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function createCompressedFileName(fileName: string) {
+  const cleanBaseName = fileName
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-z0-9-]+/gi, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70) || "artwork";
+
+  return `${cleanBaseName}-bragwall.jpg`;
+}
+
+async function loadImageFromFile(file: File) {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Could not read this image file."));
+      img.src = objectUrl;
+    });
+
+    return image;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function compressArtworkImage(file: File) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Please choose an image file for the artwork.");
+  }
+
+  const image = await loadImageFromFile(file).catch((error) => {
+    if (file.size > MAX_COMPRESSED_IMAGE_BYTES) {
+      throw new Error(
+        "This image is too large and could not be compressed in the browser. Please save it as a JPG/PNG first, or upload a screenshot/cropped version."
+      );
+    }
+
+    throw error;
+  });
+
+  const largestSide = Math.max(image.naturalWidth, image.naturalHeight);
+  const needsResize = largestSide > MAX_COMPRESSED_IMAGE_WIDTH;
+  const needsSizeCompression = file.size > MAX_COMPRESSED_IMAGE_BYTES;
+
+  if (!needsResize && !needsSizeCompression && file.type !== "image/heic") {
+    return {
+      file,
+      compressed: false,
+      originalSize: file.size,
+      compressedSize: file.size,
+    };
+  }
+
+  const scale = needsResize ? MAX_COMPRESSED_IMAGE_WIDTH / largestSide : 1;
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Could not prepare the artwork image for upload.");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", COMPRESSED_IMAGE_QUALITY);
+  });
+
+  if (!blob) {
+    throw new Error("Could not compress this artwork image.");
+  }
+
+  const compressedFile = new File([blob], createCompressedFileName(file.name), {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+
+  return {
+    file: compressedFile,
+    compressed: compressedFile.size < file.size || needsResize || needsSizeCompression,
+    originalSize: file.size,
+    compressedSize: compressedFile.size,
+  };
+}
+
 function createHash(value: string) {
   let hash = 0;
 
@@ -134,7 +244,9 @@ export default function AdminSetupPage() {
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState("");
   const [message, setMessage] = useState("");
+  const uploadAbortControllerRef = useRef<AbortController | null>(null);
   const activeAuctionCodeRef = useRef(sanitizeAuctionCode(DEFAULT_AUCTION_CODE));
 
   const liveUpcomingArtworks = artworks.filter((artwork) => {
@@ -358,9 +470,14 @@ export default function AdminSetupPage() {
 
     if (selectedFile) {
       setPreviewUrl(URL.createObjectURL(selectedFile));
-      setMessage("");
+      setMessage(
+        selectedFile.size > MAX_COMPRESSED_IMAGE_BYTES
+          ? `Large image selected (${formatBytes(selectedFile.size)}). BragWall will compress it before upload.`
+          : ""
+      );
     } else {
       setPreviewUrl("");
+      setMessage("");
     }
   }
 
@@ -381,20 +498,45 @@ export default function AdminSetupPage() {
     }
   }
 
+  function cancelArtworkUpload() {
+    uploadAbortControllerRef.current?.abort();
+    uploadAbortControllerRef.current = null;
+    setUploading(false);
+    setUploadStage("");
+    setMessage("Upload cancelled. Your selected artwork is still ready if you want to try again.");
+  }
+
   async function uploadArtwork() {
     if (!file || !childName || !childSurname || !grade) {
       setMessage("Please complete all artwork fields and select an image.");
       return;
     }
 
+    const abortController = new AbortController();
+    uploadAbortControllerRef.current = abortController;
     setUploading(true);
-    setMessage(
-      enhanceArtwork
-        ? "Uploading original artwork and preparing AI enhancement..."
-        : "Uploading original artwork..."
-    );
+    setUploadStage("Preparing image...");
+    setMessage("Preparing artwork image for upload...");
 
     try {
+      const preparedImage = await compressArtworkImage(file);
+
+      if (abortController.signal.aborted) {
+        throw new DOMException("Upload cancelled.", "AbortError");
+      }
+
+      if (preparedImage.compressed) {
+        setMessage(
+          `Large image compressed from ${formatBytes(preparedImage.originalSize)} to ${formatBytes(preparedImage.compressedSize)} for a faster upload.`
+        );
+      }
+
+      setUploadStage(
+        enhanceArtwork
+          ? "Uploading and enhancing artwork..."
+          : "Uploading artwork..."
+      );
+
       const formData = new FormData();
       formData.append("action", "upload-artwork");
       formData.append("auctionCode", auctionCode);
@@ -404,16 +546,23 @@ export default function AdminSetupPage() {
       formData.append("nextSortOrder", String(nextSortOrder));
       formData.append("storyPreview", storyPreview);
       formData.append("enhanceArtwork", String(enhanceArtwork));
-      formData.append("file", file);
+      formData.append("file", preparedImage.file);
 
       const response = await fetch("/api/admin/setup-action", {
         method: "POST",
         body: formData,
+        signal: abortController.signal,
       });
 
       const result = await response.json().catch(() => null);
 
       if (!response.ok) {
+        if (response.status === 413) {
+          throw new Error(
+            "This image is still too large for the server. Please crop it or save it as a smaller JPG, then try again."
+          );
+        }
+
         throw new Error(result?.error || "Could not upload artwork.");
       }
 
@@ -425,12 +574,21 @@ export default function AdminSetupPage() {
       setPreviewUrl("");
       fetchArtworks(auctionCode);
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Could not upload artwork."
-      );
-    }
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setMessage("Upload cancelled. Your selected artwork is still ready if you want to try again.");
+      } else {
+        setMessage(
+          error instanceof Error ? error.message : "Could not upload artwork."
+        );
+      }
+    } finally {
+      if (uploadAbortControllerRef.current === abortController) {
+        uploadAbortControllerRef.current = null;
+      }
 
-    setUploading(false);
+      setUploading(false);
+      setUploadStage("");
+    }
   }
   async function archiveArtwork(artwork: Artwork) {
     const confirmed = window.confirm(
@@ -693,7 +851,7 @@ export default function AdminSetupPage() {
                         {file ? file.name : "JPG, PNG, WEBP or HEIC artwork photo"}
                       </p>
                       <p className="mt-2 text-sm font-bold leading-relaxed text-white/48">
-                        Use a clear, bright photo. You can drop a file into this box or click anywhere here to choose one.
+                        Use a clear, bright photo. Large phone images are compressed before upload to prevent size errors.
                       </p>
                     </div>
                     {file ? (
@@ -729,22 +887,40 @@ export default function AdminSetupPage() {
                   <div>
                     <p className="text-lg font-black">Enhance artwork for auction display</p>
                     <p className="mt-1 text-sm font-bold leading-relaxed text-white/56">
-                      Keep the original safely stored, then create a cleaner, brighter auction-ready version.
+                      Keep the original safely stored, then create a cleaner, brighter auction-ready version. This can take longer than saving the original only.
                     </p>
                   </div>
                 </div>
               </button>
+
+              {uploading ? (
+                <div className="rounded-[22px] border border-[#ffc857]/30 bg-[#ffc857]/10 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-base font-black text-white">
+                        {uploadStage || "Uploading artwork..."}
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-white/55">
+                        You can cancel and try again with the same selected image.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={cancelArtworkUpload}
+                      className="rounded-[16px] border border-[#ffc857]/40 bg-[#ffc857]/16 px-5 py-3 text-sm font-black text-[#ffc857] transition hover:bg-[#ffc857]/24"
+                    >
+                      Cancel Upload
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               <button
                 onClick={uploadArtwork}
                 disabled={uploading}
                 className="rounded-[18px] bg-[#16d66d] px-6 py-4 text-base font-black text-[#031124] shadow-[0_20px_55px_rgba(22,214,109,0.18)] transition hover:scale-[1.01] disabled:opacity-50"
               >
-                {uploading
-                  ? enhanceArtwork
-                    ? "Creating Enhanced Artwork..."
-                    : "Creating BragWall Story..."
-                  : "Add Artwork to Queue"}
+                {uploading ? "Upload Running..." : "Add Artwork to Queue"}
               </button>
             </div>
           </AdminPanel>
