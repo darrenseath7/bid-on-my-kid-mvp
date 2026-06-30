@@ -88,7 +88,7 @@ async function createIntro(body: AuctionMcRequest, apiKey: string) {
   const rawMiddle =
     completion.choices[0]?.message?.content || getFallbackMiddle();
 
-  const middle = cleanMiddle(rawMiddle);
+  const middle = cleanMiddle(rawMiddle, artistName);
   const finalText = cleanFinal(opening + " " + middle + " " + closing);
 
   return Response.json({ text: finalText });
@@ -210,8 +210,42 @@ function getFallbackMiddle() {
   return "This artwork is full of colour, imagination, and proud creative energy. It feels joyful, personal, frame-worthy, and ready for a proper BragWall moment.";
 }
 
-function cleanMiddle(value: string) {
-  let text = String(value || "")
+function removeAiGeneratedOpeningSentence(value: string, artistName?: string) {
+  let text = String(value || "").trim();
+
+  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
+
+  if (sentences.length === 0) {
+    return text;
+  }
+
+  const firstSentence = sentences[0].trim();
+  const cleanArtistName = String(artistName || "").toLowerCase().trim();
+
+  const lowerFirst = firstSentence.toLowerCase();
+
+  const looksLikeDuplicateOpener =
+    lowerFirst.includes("we have") ||
+    lowerFirst.includes("spotlight") ||
+    lowerFirst.includes("easel") ||
+    lowerFirst.includes("coming up") ||
+    lowerFirst.includes("young artist") ||
+    lowerFirst.includes("from grade") ||
+    lowerFirst.includes("grade ") ||
+    lowerFirst.includes("let us bring up") ||
+    lowerFirst.includes("bring up the next") ||
+    lowerFirst.includes("prepare to be dazzled") ||
+    (cleanArtistName.length > 0 && lowerFirst.includes(cleanArtistName));
+
+  if (looksLikeDuplicateOpener && sentences.length > 1) {
+    return sentences.slice(1).join(" ").trim();
+  }
+
+  return text;
+}
+
+function cleanMiddle(value: string, artistName?: string) {
+  let text = removeAiGeneratedOpeningSentence(String(value || ""), artistName)
     .replace(/\bfirst\s+up(?:\s+tonight)?\b[,.!:\-]?\s*/gi, "")
     .replace(/\bfirst\s+artwork\b/gi, "artwork")
     .replace(/\bfirst\s+piece\b/gi, "piece")
@@ -253,8 +287,42 @@ function cleanFinal(value: string) {
 
   text = removeDuplicateWords(text);
   text = removeDuplicatePhrases(text);
+  text = removeSecondIntroSentence(text);
 
   return text.replace(/\s+/g, " ").trim();
+}
+
+function removeSecondIntroSentence(value: string) {
+  const sentences = String(value || "").match(/[^.!?]+[.!?]+|[^.!?]+$/g);
+
+  if (!sentences || sentences.length < 3) {
+    return value;
+  }
+
+  const first = sentences[0].toLowerCase();
+  const second = sentences[1].toLowerCase();
+
+  const firstIsControlledIntro =
+    first.includes("first up tonight") ||
+    first.includes("next on the easel") ||
+    first.includes("coming up now") ||
+    first.includes("our next young artist") ||
+    first.includes("now taking the spotlight") ||
+    first.includes("let us bring up");
+
+  const secondIsDuplicateIntro =
+    second.includes("we have") ||
+    second.includes("spotlight") ||
+    second.includes("easel") ||
+    second.includes("coming up") ||
+    second.includes("from grade") ||
+    second.includes("grade ");
+
+  if (firstIsControlledIntro && secondIsDuplicateIntro) {
+    return [sentences[0], ...sentences.slice(2)].join(" ").trim();
+  }
+
+  return value;
 }
 
 function removeDuplicateWords(value: string) {
