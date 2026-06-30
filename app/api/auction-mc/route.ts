@@ -52,22 +52,37 @@ async function createIntro(body: AuctionMcRequest, apiKey: string) {
   const closing =
     "Parents, get ready. The countdown is coming, and then bidding opens.";
 
+  const safeArtworkDetails = stripChildAndGradeWords(
+    body.fallbackPreview || "",
+    artistName,
+    body.grade
+  );
+
   const prompt =
-    "Write ONLY the middle section of a South African school art auction MC intro. " +
-    "Do not write an opening line. Do not write a closing line. " +
-    "Use 35 to 48 words. Make it warm, funny, proud, premium, and slightly cheeky. " +
-    "Start directly by describing the artwork. Describe the artwork feeling, colours, imagination, family excitement, and young artist confidence. " +
-    "Banned words and phrases: first, first up, first up tonight, first artwork, first piece, welcome, next on the easel, coming up now, countdown, bidding opens. " +
-    "Do not repeat the artist name. Do not mention the grade. Do not start with we have, now taking the spotlight, next on the easel, coming up now, or our next young artist. Do not repeat phrases. " +
-    "Artist: " +
-    artistName +
-    ". Grade: " +
-    (body.grade || "not provided") +
-    ". Artwork number: " +
-    String(artworkNumber || "not provided") +
-    ". Artwork story/details: " +
-    (body.fallbackPreview ||
-      "Use colour, imagination, young-artist confidence, and proud family auction energy.");
+    "Write ONLY a middle description for a school artwork auction MC script. " +
+    "Do not introduce anyone. Do not mention any child name. Do not mention any grade. " +
+    "Do not use the words first, welcome, spotlight, easel, coming up, we have, artist name, countdown, or bidding. " +
+    "Write 32 to 44 words only. " +
+    "Start directly with the artwork itself. " +
+    "Make it warm, funny, proud, premium, and slightly cheeky. " +
+    "Talk about colours, imagination, family pride, young creativity, and why the artwork deserves a special place at home. " +
+    "Do not repeat any phrase. " +
+    "Artwork details: " +
+    (safeArtworkDetails ||
+      "Use colour, imagination, young creative confidence, family pride, and school auction excitement.");
+
+  const userContent = body.artworkUrl
+    ? ([
+        { type: "text", text: prompt },
+        {
+          type: "image_url",
+          image_url: {
+            url: String(body.artworkUrl),
+            detail: "low",
+          },
+        },
+      ] as any)
+    : prompt;
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4.1-mini",
@@ -75,20 +90,20 @@ async function createIntro(body: AuctionMcRequest, apiKey: string) {
       {
         role: "system",
         content:
-          "You write only the middle section of a school art auction MC intro. Never write an opening sentence. Never use first, welcome, countdown, bidding, next on the easel, coming up now, now taking the spotlight, or we have.",
+          "You write only an artwork description. Never introduce the child. Never mention names or grades. Never use spotlight, easel, first, welcome, countdown, bidding, or we have.",
       },
       {
         role: "user",
-        content: prompt,
+        content: userContent,
       },
     ],
-    temperature: 0.35,
+    temperature: 0.25,
   });
 
   const rawMiddle =
     completion.choices[0]?.message?.content || getFallbackMiddle();
 
-  const middle = cleanMiddle(rawMiddle, artistName);
+  const middle = cleanMiddle(rawMiddle, artistName, body.grade);
   const finalText = cleanFinal(opening + " " + middle + " " + closing);
 
   return Response.json({ text: finalText });
@@ -206,126 +221,96 @@ function getOpening(artworkNumber: number, artistName: string, gradeText: string
   return openings[(artworkNumber - 2) % openings.length];
 }
 
-function getFallbackMiddle() {
-  return "This artwork is full of colour, imagination, and proud creative energy. It feels joyful, personal, frame-worthy, and ready for a proper BragWall moment.";
-}
+function stripChildAndGradeWords(value: string, artistName: string, grade?: string) {
+  let text = String(value || "");
 
-function removeAiGeneratedOpeningSentence(value: string, artistName?: string) {
-  let text = String(value || "").trim();
+  const names = artistName
+    .split(" ")
+    .map((part) => part.trim())
+    .filter(Boolean);
 
-  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
-
-  if (sentences.length === 0) {
-    return text;
+  for (const name of names) {
+    text = text.replace(new RegExp(escapeRegExp(name), "gi"), "");
   }
 
-  const firstSentence = sentences[0].trim();
-  const cleanArtistName = String(artistName || "").toLowerCase().trim();
-
-  const lowerFirst = firstSentence.toLowerCase();
-
-  const looksLikeDuplicateOpener =
-    lowerFirst.includes("we have") ||
-    lowerFirst.includes("spotlight") ||
-    lowerFirst.includes("easel") ||
-    lowerFirst.includes("coming up") ||
-    lowerFirst.includes("young artist") ||
-    lowerFirst.includes("from grade") ||
-    lowerFirst.includes("grade ") ||
-    lowerFirst.includes("let us bring up") ||
-    lowerFirst.includes("bring up the next") ||
-    lowerFirst.includes("prepare to be dazzled") ||
-    (cleanArtistName.length > 0 && lowerFirst.includes(cleanArtistName));
-
-  if (looksLikeDuplicateOpener && sentences.length > 1) {
-    return sentences.slice(1).join(" ").trim();
+  if (artistName) {
+    text = text.replace(new RegExp(escapeRegExp(artistName), "gi"), "");
   }
+
+  if (grade) {
+    text = text.replace(new RegExp(escapeRegExp(grade), "gi"), "");
+  }
+
+  text = text
+    .replace(/\bgrade\s*\d+\b/gi, "")
+    .replace(/\bgrade\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
   return text;
 }
 
-function removeAnyAiIntroSentences(value: string, artistName?: string, grade?: string) {
-  const text = String(value || "").trim();
-  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
+function getFallbackMiddle() {
+  return "This artwork is bursting with colour, imagination, and proud creative energy. It feels joyful, frame-worthy, and full of the kind of charm that turns a school auction into a proper BragWall moment.";
+}
+
+function cleanMiddle(value: string, artistName?: string, grade?: string) {
+  const original = String(value || "").replace(/\s+/g, " ").trim();
+  const sentences = original.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [original];
 
   const cleanArtistName = String(artistName || "").toLowerCase().trim();
   const cleanGrade = String(grade || "").toLowerCase().trim();
 
-  const kept = sentences.filter((sentence, index) => {
+  const kept = sentences.filter((sentence) => {
     const lower = sentence.toLowerCase();
 
     const mentionsArtist =
       cleanArtistName.length > 0 && lower.includes(cleanArtistName);
 
+    const mentionsAnyNamePart =
+      cleanArtistName
+        .split(" ")
+        .filter(Boolean)
+        .some((part) => lower.includes(part));
+
     const mentionsGrade =
       lower.includes("grade ") ||
+      lower.includes(" grade") ||
       (cleanGrade.length > 0 && lower.includes(cleanGrade));
 
-    const soundsLikeOpener =
+    const banned =
+      lower.includes("first") ||
+      lower.includes("welcome") ||
       lower.includes("we have") ||
-      lower.includes("first up") ||
-      lower.includes("next on the easel") ||
-      lower.includes("coming up now") ||
-      lower.includes("now taking the spotlight") ||
-      lower.includes("our next young artist") ||
-      lower.includes("let us bring up") ||
-      lower.includes("bring up the next") ||
       lower.includes("spotlight") ||
-      lower.includes("easel");
+      lower.includes("easel") ||
+      lower.includes("coming up") ||
+      lower.includes("young artist") ||
+      lower.includes("countdown") ||
+      lower.includes("bidding opens") ||
+      lower.includes("parents, get ready") ||
+      lower.includes("now taking") ||
+      lower.includes("bring up");
 
-    // The first AI sentence is the most likely place for a duplicate intro.
-    // Drop it if it smells even slightly like an opener.
-    if (index === 0 && (mentionsArtist || mentionsGrade || soundsLikeOpener)) {
-      return false;
-    }
-
-    // Also remove any later sentence that repeats the artist or grade.
-    if (mentionsArtist || mentionsGrade || soundsLikeOpener) {
-      return false;
-    }
-
-    return true;
+    return !mentionsArtist && !mentionsAnyNamePart && !mentionsGrade && !banned;
   });
 
-  const cleaned = kept.join(" ").replace(/\s+/g, " ").trim();
+  let text = kept.join(" ").replace(/\s+/g, " ").trim();
 
-  if (!cleaned) {
-    return getFallbackMiddle();
-  }
-
-  return cleaned;
-}
-
-function cleanMiddle(value: string, artistName?: string, grade?: string) {
-  let text = removeAnyAiIntroSentences(String(value || ""), artistName, grade)
-    .replace(/\bfirst\s+up(?:\s+tonight)?\b[,.!:\-]?\s*/gi, "")
-    .replace(/\bfirst\s+artwork\b/gi, "artwork")
-    .replace(/\bfirst\s+piece\b/gi, "piece")
-    .replace(/\bfirst\s+painting\b/gi, "painting")
-    .replace(/\bfirst\s+drawing\b/gi, "drawing")
-    .replace(/\bfirst\s+creation\b/gi, "creation")
-    .replace(/\bfirst\s+masterpiece\b/gi, "masterpiece")
+  text = text
     .replace(/\bfirst\b/gi, "")
     .replace(/\bwelcome\b/gi, "")
-    .replace(/^\s*now\s+taking\s+the\s+spotlight,?\s+we\s+have\s+[^.?!]+[.?!]\s*/i, "")
-    .replace(/^\s*next\s+on\s+the\s+easel,?\s+we\s+have\s+[^.?!]+[.?!]\s*/i, "")
-    .replace(/^\s*coming\s+up\s+now,?\s+we\s+have\s+[^.?!]+[.?!]\s*/i, "")
-    .replace(/^\s*our\s+next\s+young\s+artist\s+is\s+[^.?!]+[.?!]\s*/i, "")
-    .replace(/^\s*let\s+us\s+bring\s+up\s+the\s+next\s+masterpiece\s+from\s+[^.?!]+[.?!]\s*/i, "")
-    .replace(/\bnext\s+on\s+the\s+easel\b[,.!:\-]?\s*/gi, "")
-    .replace(/\bcoming\s+up\s+now\b[,.!:\-]?\s*/gi, "")
-    .replace(/\bour\s+next\s+young\s+artist\s+is\b[,.!:\-]?\s*/gi, "")
-    .replace(/\bnow\s+taking\s+the\s+spotlight\b[,.!:\-]?\s*/gi, "")
-    .replace(/\blet\s+us\s+bring\s+up\s+the\s+next\s+masterpiece\s+from\b[,.!:\-]?\s*/gi, "")
-    .replace(/\bparents,?\s+get\s+ready\b[,.!:\-]?\s*/gi, "")
-    .replace(/\bthe\s+countdown\s+is\s+coming\b[,.!:\-]?\s*/gi, "")
-    .replace(/\bbidding\s+opens\b[,.!:\-]?\s*/gi, "")
+    .replace(/\bwe\s+have\b/gi, "")
+    .replace(/\bspotlight\b/gi, "")
+    .replace(/\beasel\b/gi, "")
+    .replace(/\bcoming\s+up\b/gi, "")
+    .replace(/\byoung\s+artist\b/gi, "young creator")
+    .replace(/\bcountdown\b/gi, "")
+    .replace(/\bbidding\s+opens\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 
-  text = text.replace(/^[,.:;\-\s]+/, "").trim();
-
-  if (!text) {
+  if (!text || text.split(" ").length < 16) {
     text = getFallbackMiddle();
   }
 
@@ -338,43 +323,9 @@ function cleanFinal(value: string) {
     .trim();
 
   text = removeDuplicateWords(text);
-  text = removeDuplicatePhrases(text);
-  text = removeSecondIntroSentence(text);
+  text = removeDuplicateControlledOpenings(text);
 
   return text.replace(/\s+/g, " ").trim();
-}
-
-function removeSecondIntroSentence(value: string) {
-  const sentences = String(value || "").match(/[^.!?]+[.!?]+|[^.!?]+$/g);
-
-  if (!sentences || sentences.length < 3) {
-    return value;
-  }
-
-  const first = sentences[0].toLowerCase();
-  const second = sentences[1].toLowerCase();
-
-  const firstIsControlledIntro =
-    first.includes("first up tonight") ||
-    first.includes("next on the easel") ||
-    first.includes("coming up now") ||
-    first.includes("our next young artist") ||
-    first.includes("now taking the spotlight") ||
-    first.includes("let us bring up");
-
-  const secondIsDuplicateIntro =
-    second.includes("we have") ||
-    second.includes("spotlight") ||
-    second.includes("easel") ||
-    second.includes("coming up") ||
-    second.includes("from grade") ||
-    second.includes("grade ");
-
-  if (firstIsControlledIntro && secondIsDuplicateIntro) {
-    return [sentences[0], ...sentences.slice(2)].join(" ").trim();
-  }
-
-  return value;
 }
 
 function removeDuplicateWords(value: string) {
@@ -398,34 +349,39 @@ function removeDuplicateWords(value: string) {
   return result.join(" ").replace(/\s+/g, " ").trim();
 }
 
-function removeDuplicatePhrases(value: string) {
-  let text = String(value || "");
+function removeDuplicateControlledOpenings(value: string) {
+  const sentences = String(value || "").match(/[^.!?]+[.!?]+|[^.!?]+$/g);
 
-  const phrases = [
-    "First up tonight",
-    "Next on the easel",
-    "Coming up now",
-    "Our next young artist",
-    "Now taking the spotlight",
-    "Parents, get ready",
-  ];
-
-  for (const phrase of phrases) {
-    const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    let seen = false;
-
-    text = text.replace(
-      new RegExp("\\b" + escaped + "\\b[,.!:\\-]?\\s*", "gi"),
-      (match) => {
-        if (!seen) {
-          seen = true;
-          return match;
-        }
-
-        return "";
-      }
-    );
+  if (!sentences || sentences.length < 2) {
+    return value;
   }
 
-  return text.replace(/\s+/g, " ").trim();
+  const first = sentences[0].toLowerCase();
+  const second = sentences[1].toLowerCase();
+
+  const firstIsOpening =
+    first.includes("first up tonight") ||
+    first.includes("next on the easel") ||
+    first.includes("coming up now") ||
+    first.includes("our next young artist") ||
+    first.includes("now taking the spotlight") ||
+    first.includes("let us bring up");
+
+  const secondIsOpening =
+    second.includes("we have") ||
+    second.includes("spotlight") ||
+    second.includes("easel") ||
+    second.includes("coming up") ||
+    second.includes("from grade") ||
+    second.includes("grade ");
+
+  if (firstIsOpening && secondIsOpening) {
+    return [sentences[0], ...sentences.slice(2)].join(" ").trim();
+  }
+
+  return value;
+}
+
+function escapeRegExp(value: string) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
