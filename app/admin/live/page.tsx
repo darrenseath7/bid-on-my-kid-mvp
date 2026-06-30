@@ -108,16 +108,20 @@ export default function AdminLivePage() {
 
   const queuedArtworks = activeQueueArtworks;
 
-  const soldArtworks = artworks.filter((artwork) => artwork.status === "sold");
+  const soldArtworks = artworks.filter((artwork) => {
+    const status = String(artwork.status || "").trim();
+
+    return (
+      status === "sold" ||
+      status === "after_auction_request" ||
+      Boolean(artwork.invoice_email_requested_at)
+    );
+  });
 
   const archivedArtworks = artworks.filter((artwork) => {
     const status = String(artwork.status || "").trim();
 
-    return (
-      status === "archived" ||
-      status === "after_auction_request" ||
-      Boolean(artwork.invoice_email_requested_at)
-    );
+    return status === "archived" && !artwork.invoice_email_requested_at;
   });
 
   const nextArtwork = useMemo(() => {
@@ -850,7 +854,7 @@ export default function AdminLivePage() {
         <div className="space-y-3 max-h-[275px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
           {queuedArtworks.length === 0 && (
             <p className="text-white/72 font-bold">
-              No queued artwork available. Sold, archived, and invoice-requested items are kept out of the live queue.
+              No queued artwork available. Sold and archived items are kept out of the live queue.
             </p>
           )}
 

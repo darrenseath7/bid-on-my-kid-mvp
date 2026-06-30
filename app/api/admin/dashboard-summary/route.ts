@@ -86,6 +86,17 @@ function getCreatedAt(row: DataRow) {
   return getString(row.created_at);
 }
 
+function isSalesRecordArtwork(row: DataRow) {
+  const status = getString(row.status).toLowerCase();
+
+  return (
+    status === "sold" ||
+    status === "after_auction_request" ||
+    Boolean(cleanName(row.winner_email)) ||
+    Boolean(cleanName(row.invoice_email_requested_at))
+  );
+}
+
 export async function GET(request: NextRequest) {
   const session = await assertAdmin(request);
 
@@ -150,13 +161,17 @@ export async function GET(request: NextRequest) {
       (artwork) => cleanCode(artwork.auction_code) === auctionCode
     );
 
-    const soldCurrentArtworks = currentArtworks.filter(
-      (artwork) => getString(artwork.status).toLowerCase() === "sold"
+    const soldCurrentArtworks = currentArtworks.filter((artwork) =>
+      isSalesRecordArtwork(artwork)
     );
 
     const unsoldCurrentArtworks = currentArtworks.filter((artwork) => {
       const status = getString(artwork.status).toLowerCase();
-      return status !== "sold" && status !== "archived";
+
+      return (
+        !isSalesRecordArtwork(artwork) &&
+        status !== "archived"
+      );
     });
 
     const currentLiveState =
@@ -169,7 +184,7 @@ export async function GET(request: NextRequest) {
     );
 
     const allTotalRaised = artworks
-      .filter((artwork) => getString(artwork.status).toLowerCase() === "sold")
+      .filter((artwork) => isSalesRecordArtwork(artwork))
       .reduce((total, artwork) => total + getNumber(artwork.sold_amount), 0);
 
     const raisedBySchool = new Map<
@@ -193,7 +208,7 @@ export async function GET(request: NextRequest) {
 
       if (!existing) return;
 
-      if (getString(artwork.status).toLowerCase() === "sold") {
+      if (isSalesRecordArtwork(artwork)) {
         existing.total += getNumber(artwork.sold_amount);
         existing.sold += 1;
       }
@@ -214,7 +229,7 @@ export async function GET(request: NextRequest) {
         return {
           id: getString(artwork.id) || `${name}-${Math.random()}`,
           message:
-            status === "sold"
+            isSalesRecordArtwork(artwork)
               ? `${name} sold for R${getNumber(artwork.sold_amount).toLocaleString()}`
               : `${name} added to the auction`,
           status: status || "pending",
