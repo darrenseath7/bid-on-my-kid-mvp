@@ -1,4 +1,4 @@
-﻿import OpenAI from "openai";
+import OpenAI from "openai";
 
 type AuctionMcRequest = {
   childName?: string;
@@ -19,9 +19,11 @@ export async function POST(req: Request) {
     const mode = body.mode || "intro";
 
     if (mode === "intro") {
-      return Response.json({
-        text: createSafeIntro(body),
-      });
+      if (!apiKey) {
+        return Response.json({ text: createSafeIntro(body, getFallbackMiddle()) });
+      }
+
+      return createIntro(body, apiKey);
     }
 
     if (!apiKey) {
@@ -36,16 +38,65 @@ export async function POST(req: Request) {
       return createSoldMessage(body, apiKey);
     }
 
-    return Response.json({
-      text: createSafeIntro(body),
-    });
+    return Response.json({ text: createSafeIntro(body, getFallbackMiddle()) });
   } catch (error) {
     console.error("auction-mc error:", error);
     return Response.json({ error: "AI generation failed" }, { status: 500 });
   }
 }
 
-function createSafeIntro(body: AuctionMcRequest) {
+async function createIntro(body: AuctionMcRequest, apiKey: string) {
+  const openai = new OpenAI({ apiKey });
+  const safeArtworkDetails = cleanArtworkDetails(body.fallbackPreview || "");
+
+  const prompt =
+    "Write only the middle description for a South African school artwork auction MC script. " +
+    "Do not introduce the child. Do not mention any child name. Do not mention any grade. " +
+    "Do not use these words or phrases: first, welcome, we have, spotlight, easel, coming up, next in the auction, countdown, bidding opens. " +
+    "Start directly with what is visible or felt in the artwork. " +
+    "Make it warm, funny, proud, premium, and slightly cheeky. " +
+    "Use 35 to 55 words. Mention colours, shapes, imagination, family pride, and why it deserves a special place at home. " +
+    "Do not repeat any phrase. " +
+    "Artwork notes: " +
+    (safeArtworkDetails ||
+      "Use colour, imagination, young creative confidence, family pride, and school auction excitement.");
+
+  const userContent = body.artworkUrl
+    ? ([
+        { type: "text", text: prompt },
+        {
+          type: "image_url",
+          image_url: {
+            url: String(body.artworkUrl),
+            detail: "low",
+          },
+        },
+      ] as any)
+    : prompt;
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4.1-mini",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You write only an artwork description for an auction MC. Never introduce the child. Never mention names or grades. Never use first, welcome, we have, spotlight, easel, countdown, or bidding.",
+      },
+      {
+        role: "user",
+        content: userContent,
+      },
+    ],
+    temperature: 0.72,
+  });
+
+  const rawMiddle = completion.choices[0]?.message?.content || getFallbackMiddle();
+  const middle = cleanMiddle(rawMiddle);
+
+  return Response.json({ text: createSafeIntro(body, middle) });
+}
+
+function createSafeIntro(body: AuctionMcRequest, middle: string) {
   const artistName =
     [body.childName, body.childSurname].filter(Boolean).join(" ").trim() ||
     "our young artist";
@@ -54,11 +105,11 @@ function createSafeIntro(body: AuctionMcRequest) {
   const artworkNumber = getArtworkNumber(body.sortOrder);
 
   const opening = getOpening(artworkNumber, artistName, gradeText);
-  const middle = getArtworkMiddle(body.fallbackPreview);
+  const safeMiddle = cleanMiddle(middle);
   const closing =
     "Parents, get ready. The countdown is coming, and then bidding opens.";
 
-  return cleanFinal(opening + " " + middle + " " + closing);
+  return cleanFinal(opening + " " + safeMiddle + " " + closing);
 }
 
 function getOpening(artworkNumber: number, artistName: string, gradeText: string) {
@@ -67,22 +118,6 @@ function getOpening(artworkNumber: number, artistName: string, gradeText: string
   }
 
   return "Next in the auction, we have " + artistName + gradeText + ".";
-}
-
-function getArtworkMiddle(fallbackPreview?: string) {
-  const preview = cleanPreview(fallbackPreview || "");
-
-  if (preview.length > 20) {
-    return (
-      "This artwork brings colour, imagination, and proud creative energy to the room. " +
-      "There is real personality in this piece, and it feels ready for a special place at home."
-    );
-  }
-
-  return (
-    "This artwork brings colour, imagination, and proud creative energy to the room. " +
-    "It is full of charm, school pride, and the kind of creativity that deserves a proper BragWall moment."
-  );
 }
 
 async function createReaction(body: AuctionMcRequest, apiKey: string) {
@@ -177,7 +212,7 @@ function getArtworkNumber(sortOrder: unknown) {
   return Math.round(value);
 }
 
-function cleanPreview(value: string) {
+function cleanArtworkDetails(value: string) {
   return String(value || "")
     .replace(/\bfirst\b/gi, "")
     .replace(/\bwelcome\b/gi, "")
@@ -185,8 +220,62 @@ function cleanPreview(value: string) {
     .replace(/\beasel\b/gi, "")
     .replace(/\bwe have\b/gi, "")
     .replace(/\bcoming up\b/gi, "")
+    .replace(/\bnext in the auction\b/gi, "")
+    .replace(/\bgrade\s*\d+\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function getFallbackMiddle() {
+  return "This artwork is bursting with colour, imagination, and proud creative energy. It feels joyful, frame-worthy, and full of the kind of charm that turns a school auction into a proper BragWall moment.";
+}
+
+function cleanMiddle(value: string) {
+  const original = String(value || "").replace(/\s+/g, " ").trim();
+  const sentences = original.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [original];
+
+  const kept = sentences.filter((sentence) => {
+    const lower = sentence.toLowerCase();
+    const banned =
+      lower.includes("first") ||
+      lower.includes("welcome") ||
+      lower.includes("we have") ||
+      lower.includes("spotlight") ||
+      lower.includes("easel") ||
+      lower.includes("coming up") ||
+      lower.includes("next in the auction") ||
+      lower.includes("countdown") ||
+      lower.includes("bidding opens") ||
+      lower.includes("parents, get ready") ||
+      lower.includes("now taking") ||
+      lower.includes("bring up") ||
+      lower.includes(" from grade") ||
+      lower.includes("grade ");
+
+    return !banned;
+  });
+
+  let text = kept.join(" ").replace(/\s+/g, " ").trim();
+
+  text = text
+    .replace(/\bfirst\b/gi, "")
+    .replace(/\bwelcome\b/gi, "")
+    .replace(/\bwe\s+have\b/gi, "")
+    .replace(/\bspotlight\b/gi, "")
+    .replace(/\beasel\b/gi, "")
+    .replace(/\bcoming\s+up\b/gi, "")
+    .replace(/\bnext\s+in\s+the\s+auction\b/gi, "")
+    .replace(/\byoung\s+artist\b/gi, "young creator")
+    .replace(/\bcountdown\b/gi, "")
+    .replace(/\bbidding\s+opens\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!text || text.split(" ").length < 16) {
+    text = getFallbackMiddle();
+  }
+
+  return removeDuplicateWords(text);
 }
 
 function cleanFinal(value: string) {

@@ -1,3 +1,20 @@
+type SalesArtworkRecord = {
+  id: string;
+  auction_code: string;
+  child_name: string;
+  child_surname: string;
+  grade?: string | null;
+  artwork_url?: string | null;
+  enhanced_artwork_url?: string | null;
+  sold_amount?: number | null;
+  winning_bidder?: string | null;
+  winner_email?: string | null;
+  invoice_email_requested_at?: string | null;
+  certificate_email_requested_at?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+};
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -102,15 +119,29 @@ export async function GET(request: NextRequest) {
         ].join(",")
       )
       .eq("auction_code", auctionCode)
-      .in("status", ["sold", "after_auction_request"])
-      .not("winner_email", "is", null)
       .order("sort_order", { ascending: true });
 
     if (error) {
       return jsonError(error.message, 500);
     }
 
-    return NextResponse.json({ sales: data || [] });
+    const salesRows = (data || []) as unknown as SalesArtworkRecord[];
+
+    const sales = salesRows.filter((item) => {
+      const status = String(item.status || "");
+
+      return (
+        status === "sold" ||
+        status === "after_auction_request" ||
+        Boolean(item.winner_email) ||
+        Boolean(item.invoice_email_requested_at) ||
+        Boolean(item.certificate_email_requested_at) ||
+        Number(item.sold_amount || 0) > 0 ||
+        Boolean(item.winning_bidder)
+      );
+    });
+
+    return NextResponse.json({ sales });
   } catch (error) {
     return jsonError(
       error instanceof Error ? error.message : "Could not load sales records.",
@@ -154,7 +185,6 @@ export async function POST(request: NextRequest) {
       .update({ certificate_email_requested_at: releasedAt })
       .eq("auction_code", auctionCode)
       .eq("id", artworkId)
-      .in("status", ["sold", "after_auction_request"])
       .not("winner_email", "is", null)
       .select(
         [

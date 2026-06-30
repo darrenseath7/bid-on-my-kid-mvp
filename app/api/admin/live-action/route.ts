@@ -207,7 +207,7 @@ function getCurrentArtwork(
   }
 
   const activeArtworks = artworks.filter(
-    (item) => item.status !== "sold" && item.status !== "archived"
+    (item) => item.status !== "sold" && item.status !== "archived" && item.status !== "after_auction_request"
   );
 
   return (
@@ -534,7 +534,7 @@ export async function POST(request: NextRequest) {
       const artworks = await fetchArtworks(supabaseAdmin);
       const currentArtwork = getCurrentArtwork(auction, artworks);
       const activeQueueArtworks = artworks.filter(
-        (artwork) => artwork.status !== "sold" && artwork.status !== "archived"
+        (artwork) => artwork.status !== "sold" && artwork.status !== "archived" && artwork.status !== "after_auction_request"
       );
       const nextArtwork = getNextArtwork(currentArtwork, activeQueueArtworks);
 
@@ -726,7 +726,8 @@ export async function POST(request: NextRequest) {
         .update({ status: "queued" })
         .eq("auction_code", AUCTION_CODE)
         .neq("status", "sold")
-        .neq("status", "archived");
+        .neq("status", "archived")
+        .neq("status", "after_auction_request");
 
       if (artworkError) throw new Error(artworkError.message);
 

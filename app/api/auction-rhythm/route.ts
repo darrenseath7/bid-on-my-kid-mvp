@@ -245,7 +245,7 @@ function getCurrentArtwork(auction: AuctionState | null, artworks: Artwork[]) {
 }
 
 function getNextArtwork(currentArtwork: Artwork | null, artworks: Artwork[]) {
-  const activeQueue = artworks.filter((item) => item.status !== "sold" && item.status !== "archived");
+  const activeQueue = artworks.filter((item) => item.status !== "sold" && item.status !== "archived" && item.status !== "after_auction_request");
   const sorted = [...activeQueue].sort((a, b) => {
     const aOrder = Number(a.sort_order || 0);
     const bOrder = Number(b.sort_order || 0);
