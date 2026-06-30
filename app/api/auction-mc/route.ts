@@ -1,256 +1,303 @@
-import OpenAI from "openai";
+﻿import OpenAI from "openai";
+
+type AuctionMcRequest = {
+  childName?: string;
+  childSurname?: string;
+  grade?: string;
+  highestBid?: number;
+  bidderName?: string;
+  mode?: "intro" | "reaction" | "sold";
+  fallbackPreview?: string;
+  sortOrder?: number | string;
+  artworkUrl?: string;
+};
 
 export async function POST(req: Request) {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
 
     if (!apiKey) {
-      return Response.json(
-        { error: "Missing OPENAI_API_KEY" },
-        { status: 500 }
-      );
+      return Response.json({ error: "Missing OPENAI_API_KEY" }, { status: 500 });
     }
 
-    const openai = new OpenAI({ apiKey });
-
-    const body = await req.json();
-
-    const {
-      childName,
-      childSurname,
-      grade,
-      highestBid,
-      bidderName,
-      mode,
-      fallbackPreview,
-      sortOrder,
-      artworkUrl,
-    } = body;
-
-    let prompt = "";
-
-    if (mode === "intro") {
-      prompt = `
-You are a funny, charismatic South African school auction MC.
-
-Create a premium-art-auction-style introduction for a child's artwork.
-It must sound like a live MC script that takes about 30 seconds to say out loud.
-
-Tone:
-- witty
-- warm
-- emotionally engaging
-- slightly cheeky
-- premium
-- playful
-
-Rules:
-- Keep it between 55 and 70 words.
-- Mention the artist once by name.
-- Mention the grade once if provided.
-- Use humour, but keep it kind and family-friendly.
-- Relate the intro to the artwork story below.
-- Do not repeat phrases, names, or words awkwardly.
-- Do not use the word welcome.
-- Do not use the phrases "first up", "first up tonight", "first artwork", or "first piece".
-- Do not create an opening line. Start directly with the artwork, artist, colours, story, or energy.
-- End by building anticipation for bidding after the countdown.
-
-Artist:
-${[childName, childSurname].filter(Boolean).join(" ") || "our young artist"}
-Grade:
-${grade || "not provided"}
-Artwork order:
-${sortOrder || "not provided"}
-Artwork story/details:
-${fallbackPreview || "Use colour, imagination, young-artist confidence, and proud family bidding energy."}
-
-Artwork image:
-${artworkUrl || "not provided"}
-
-If an artwork image is provided, use what is visible in the painting to make the intro feel specific. Do not invent private details about the child.
-`;
-    }
+    const body = (await req.json()) as AuctionMcRequest;
+    const mode = body.mode || "intro";
 
     if (mode === "reaction") {
-      prompt = `
-You are a live South African school auction MC reacting to live bids.
-
-Current highest bid: R${highestBid}
-Leading bidder: ${bidderName}
-
-Create one funny live reaction line. Keep it short.
-`;
+      return createReaction(body, apiKey);
     }
 
     if (mode === "sold") {
-      prompt = `
-You are a charismatic South African auction MC.
-
-The artwork has just SOLD.
-
-Winning bidder: ${bidderName}
-Winning amount: R${highestBid}
-
-Create a funny celebratory sold message.
-`;
+      return createSoldMessage(body, apiKey);
     }
 
-    const userContent =
-      mode === "intro" && artworkUrl
-        ? ([
-            { type: "text", text: prompt },
-            {
-              type: "image_url",
-              image_url: {
-                url: String(artworkUrl),
-                detail: "low",
-              },
-            },
-          ] as any)
-        : prompt;
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            mode === "intro"
-              ? "You are an elite South African live auction MC. Never use the phrases first up, first up tonight, first artwork, first piece, or welcome."
-              : "You are an elite South African live auction MC.",
-        },
-        {
-          role: "user",
-          content: userContent,
-        },
-      ],
-      temperature: mode === "intro" ? 0.55 : 0.9,
-    });
-
-    const rawText =
-      completion.choices[0].message.content || getFallbackIntroBody();
-
-    const generatedText =
-      mode === "intro"
-        ? buildControlledIntro(rawText, sortOrder)
-        : cleanGeneralMcText(rawText);
-
-    return Response.json({
-      text: generatedText,
-    });
+    return createIntro(body, apiKey);
   } catch (error) {
-    console.error(error);
-
-    return Response.json(
-      { error: "AI generation failed" },
-      { status: 500 }
-    );
+    console.error("auction-mc error:", error);
+    return Response.json({ error: "AI generation failed" }, { status: 500 });
   }
 }
 
-function getFallbackIntroBody() {
-  return "this artwork is ready for its moment in the spotlight, full of colour, imagination, and proud young-artist confidence. Families, keep your bidding fingers ready because after the countdown, this masterpiece deserves a proper BragWall battle.";
+async function createIntro(body: AuctionMcRequest, apiKey: string) {
+  const openai = new OpenAI({ apiKey });
+
+  const artistName =
+    [body.childName, body.childSurname].filter(Boolean).join(" ").trim() ||
+    "our young artist";
+
+  const gradeText = body.grade ? " from " + body.grade : "";
+  const artworkNumber = getArtworkNumber(body.sortOrder);
+
+  const opening = getOpening(artworkNumber, artistName, gradeText);
+  const closing =
+    "Parents, get ready. The countdown is coming, and then bidding opens.";
+
+  const prompt =
+    "Write ONLY the middle section of a South African school art auction MC intro. " +
+    "Do not write an opening line. Do not write a closing line. " +
+    "Use 35 to 48 words. Make it warm, funny, proud, premium, and slightly cheeky. " +
+    "Describe the artwork feeling, colours, imagination, family excitement, and young artist confidence. " +
+    "Banned words and phrases: first, first up, first up tonight, first artwork, first piece, welcome, next on the easel, coming up now, countdown, bidding opens. " +
+    "Do not repeat the artist name. Do not repeat phrases. " +
+    "Artist: " +
+    artistName +
+    ". Grade: " +
+    (body.grade || "not provided") +
+    ". Artwork number: " +
+    String(artworkNumber || "not provided") +
+    ". Artwork story/details: " +
+    (body.fallbackPreview ||
+      "Use colour, imagination, young-artist confidence, and proud family auction energy.");
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4.1-mini",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You write only the middle section of a school art auction MC intro. Never use the words first, welcome, countdown, or bidding.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.35,
+  });
+
+  const rawMiddle =
+    completion.choices[0]?.message?.content || getFallbackMiddle();
+
+  const middle = cleanMiddle(rawMiddle);
+  const finalText = cleanFinal(opening + " " + middle + " " + closing);
+
+  return Response.json({ text: finalText });
 }
 
-function buildControlledIntro(value: string, sortOrder?: unknown) {
-  const order = Number(sortOrder || 0);
-  const isLaterArtwork = Number.isFinite(order) && order > 1;
+async function createReaction(body: AuctionMcRequest, apiKey: string) {
+  const openai = new OpenAI({ apiKey });
 
-  const opening = isLaterArtwork
-    ? "Next on the easel,"
-    : "First up tonight,";
+  const highestBid = Number(body.highestBid || 0);
+  const bidderName = body.bidderName || "our leading bidder";
 
-  const body = cleanIntroBody(value);
+  const prompt =
+    "You are a funny South African school auction MC reacting to a live bid. " +
+    "Current highest bid: R" +
+    highestBid +
+    ". Leading bidder: " +
+    bidderName +
+    ". Create one short funny reaction line. Do not repeat yourself.";
 
-  return removeRepeatedShortPhrases(`${opening} ${body}`)
-    .replace(/\s+/g, " ")
-    .trim();
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4.1-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You are a funny South African school auction MC.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.85,
+  });
+
+  const text = cleanFinal(
+    completion.choices[0]?.message?.content ||
+      "R" +
+        highestBid +
+        ". " +
+        bidderName +
+        " is keeping this masterpiece in the spotlight."
+  );
+
+  return Response.json({ text });
 }
 
-function cleanIntroBody(value: string) {
+async function createSoldMessage(body: AuctionMcRequest, apiKey: string) {
+  const openai = new OpenAI({ apiKey });
+
+  const highestBid = Number(body.highestBid || 0);
+  const bidderName = body.bidderName || "our winning bidder";
+
+  const prompt =
+    "You are a charismatic South African auction MC. " +
+    "The artwork has just sold. Winning bidder: " +
+    bidderName +
+    ". Winning amount: R" +
+    highestBid +
+    ". Create a short funny celebratory sold message. Do not repeat yourself.";
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4.1-mini",
+    messages: [
+      {
+        role: "system",
+        content: "You are a funny South African school auction MC.",
+      },
+      {
+        role: "user",
+        content: prompt,
+      },
+    ],
+    temperature: 0.85,
+  });
+
+  const text = cleanFinal(
+    completion.choices[0]?.message?.content ||
+      "Sold for R" +
+        highestBid +
+        ". " +
+        bidderName +
+        ", that is a proud BragWall moment."
+  );
+
+  return Response.json({ text });
+}
+
+function getArtworkNumber(sortOrder: unknown) {
+  const value = Number(sortOrder);
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+
+  return Math.round(value);
+}
+
+function getOpening(artworkNumber: number, artistName: string, gradeText: string) {
+  if (artworkNumber === 1) {
+    return "First up tonight, we have " + artistName + gradeText + ".";
+  }
+
+  const openings = [
+    "Next on the easel, we have " + artistName + gradeText + ".",
+    "Coming up now, we have " + artistName + gradeText + ".",
+    "Our next young artist is " + artistName + gradeText + ".",
+    "Now taking the spotlight, we have " + artistName + gradeText + ".",
+    "Let us bring up the next masterpiece from " + artistName + gradeText + ".",
+  ];
+
+  if (!artworkNumber || artworkNumber < 2) {
+    return openings[0];
+  }
+
+  return openings[(artworkNumber - 2) % openings.length];
+}
+
+function getFallbackMiddle() {
+  return "This artwork is full of colour, imagination, and proud creative energy. It feels joyful, personal, frame-worthy, and ready for a proper BragWall moment.";
+}
+
+function cleanMiddle(value: string) {
   let text = String(value || "")
-    .replace(/^\s*["'`]+|["'`]+\s*$/g, "")
-    .replace(/^\s*welcome(?:\s+welcome)*(?:\s+to\s+bragwall)?[.!,:;\-]*\s*/i, "")
-    .replace(/\bwelcome\s+welcome\b/gi, "")
     .replace(/\bfirst\s+up(?:\s+tonight)?\b[,.!:\-]?\s*/gi, "")
     .replace(/\bfirst\s+artwork\b/gi, "artwork")
     .replace(/\bfirst\s+piece\b/gi, "piece")
-    .replace(/\bour\s+first\s+young\s+artist\b/gi, "our young artist")
-    .replace(/\bthe\s+first\s+young\s+artist\b/gi, "the young artist")
-    .replace(/\bfirst\s+young\s+artist\b/gi, "young artist")
-    .replace(/\bfirst\s+masterpiece\b/gi, "masterpiece")
     .replace(/\bfirst\s+painting\b/gi, "painting")
     .replace(/\bfirst\s+drawing\b/gi, "drawing")
     .replace(/\bfirst\s+creation\b/gi, "creation")
-    .replace(/\bfirst\s+item\b/gi, "item")
-    .replace(/\bfirst\s+entry\b/gi, "entry")
+    .replace(/\bfirst\s+masterpiece\b/gi, "masterpiece")
+    .replace(/\bfirst\b/gi, "")
+    .replace(/\bwelcome\b/gi, "")
+    .replace(/\bnext\s+on\s+the\s+easel\b[,.!:\-]?\s*/gi, "")
+    .replace(/\bcoming\s+up\s+now\b[,.!:\-]?\s*/gi, "")
+    .replace(/\bour\s+next\s+young\s+artist\s+is\b[,.!:\-]?\s*/gi, "")
+    .replace(/\bparents,?\s+get\s+ready\b[,.!:\-]?\s*/gi, "")
+    .replace(/\bthe\s+countdown\s+is\s+coming\b[,.!:\-]?\s*/gi, "")
+    .replace(/\bbidding\s+opens\b[,.!:\-]?\s*/gi, "")
     .replace(/\s+/g, " ")
     .trim();
 
   text = text.replace(/^[,.:;\-\s]+/, "").trim();
 
   if (!text) {
-    text = getFallbackIntroBody();
+    text = getFallbackMiddle();
   }
 
-  return removeConsecutiveDuplicateWords(text);
+  return removeDuplicateWords(text);
 }
 
-function cleanGeneralMcText(value: string) {
-  return removeConsecutiveDuplicateWords(
-    String(value || "")
-      .replace(/\s+/g, " ")
-      .trim()
-  );
-}
-
-function removeConsecutiveDuplicateWords(value: string) {
-  return String(value || "")
-    .split(/(\s+)/)
-    .filter((part, index, parts) => {
-      if (/\s+/.test(part)) return true;
-
-      const previousWord = [...parts]
-        .slice(0, index)
-        .reverse()
-        .find((item) => !/\s+/.test(item));
-
-      if (!previousWord) return true;
-
-      return (
-        previousWord.toLowerCase().replace(/[^a-z0-9]/g, "") !==
-        part.toLowerCase().replace(/[^a-z0-9]/g, "")
-      );
-    })
-    .join("")
+function cleanFinal(value: string) {
+  let text = String(value || "")
     .replace(/\s+/g, " ")
     .trim();
+
+  text = removeDuplicateWords(text);
+  text = removeDuplicatePhrases(text);
+
+  return text.replace(/\s+/g, " ").trim();
 }
 
-function removeRepeatedShortPhrases(value: string) {
+function removeDuplicateWords(value: string) {
+  const words = String(value || "").split(" ");
+  const result: string[] = [];
+
+  for (const word of words) {
+    const cleanWord = word.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const previousWord =
+      result.length > 0
+        ? result[result.length - 1].toLowerCase().replace(/[^a-z0-9]/g, "")
+        : "";
+
+    if (cleanWord && cleanWord === previousWord) {
+      continue;
+    }
+
+    result.push(word);
+  }
+
+  return result.join(" ").replace(/\s+/g, " ").trim();
+}
+
+function removeDuplicatePhrases(value: string) {
   let text = String(value || "");
 
-  const repeatedPhrases = [
+  const phrases = [
     "First up tonight",
     "Next on the easel",
     "Coming up now",
     "Our next young artist",
-    "Eyes on this masterpiece",
+    "Now taking the spotlight",
+    "Parents, get ready",
   ];
 
-  for (const phrase of repeatedPhrases) {
+  for (const phrase of phrases) {
     const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     let seen = false;
 
-    text = text.replace(new RegExp(`\\b${escaped}\\b[,.!:\\-]?\\s*`, "gi"), (match) => {
-      if (!seen) {
-        seen = true;
-        return match;
-      }
+    text = text.replace(
+      new RegExp("\\b" + escaped + "\\b[,.!:\\-]?\\s*", "gi"),
+      (match) => {
+        if (!seen) {
+          seen = true;
+          return match;
+        }
 
-      return "";
-    });
+        return "";
+      }
+    );
   }
 
   return text.replace(/\s+/g, " ").trim();
