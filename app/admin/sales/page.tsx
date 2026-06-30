@@ -134,7 +134,7 @@ export default function AdminSalesPage() {
           <AdminStatCard
             label="Total raised"
             value={`R${totalRaised.toLocaleString()}`}
-            subtext="From sold artworks"
+            subtext="Sold plus invoice requests"
             tone="green"
             highlight
           />
@@ -154,8 +154,8 @@ export default function AdminSalesPage() {
 
         <AdminPanel
           eyebrow="Follow-up workflow"
-          title="Sold artworks"
-          description={`${sales.length} sold artwork record${sales.length === 1 ? "" : "s"} for this auction.`}
+          title="Sales and invoice requests"
+          description={`${sales.length} sale or invoice request record${sales.length === 1 ? "" : "s"} for this auction.`}
           action={
             <a
               href="/admin/live"
@@ -187,7 +187,7 @@ export default function AdminSalesPage() {
                   No sales recorded yet.
                 </h3>
                 <p className="mt-3 max-w-2xl text-base font-semibold leading-relaxed text-white/55">
-                  Sold artworks will appear here after an auction item is sold and the winning parent submits their email.
+                  Sold artworks and after-auction invoice requests will appear here after a parent submits their email.
                 </p>
               </div>
             ) : (
@@ -221,6 +221,7 @@ function SaleCard({
   const invoiceRequested = Boolean(item.invoice_email_requested_at);
   const certificateReleased = Boolean(item.certificate_email_requested_at);
   const emailCaptured = Boolean(item.winner_email);
+  const isAfterAuctionRequest = item.status === "after_auction_request";
   const [releasingCertificate, setReleasingCertificate] = useState(false);
   const [preview, setPreview] = useState<"invoice" | "certificate" | null>(null);
 
@@ -230,7 +231,7 @@ function SaleCard({
     }
 
     const confirmed = window.confirm(
-      "Confirm payment received and release this winner certificate?"
+      "Confirm payment received and release this certificate?"
     );
 
     if (!confirmed) {
@@ -283,7 +284,7 @@ function SaleCard({
           <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4 mb-5">
             <div>
               <p className="uppercase tracking-[0.25em] text-[10px] text-white/40 font-black mb-2">
-                Artwork #{item.sort_order}
+                {isAfterAuctionRequest ? "After-auction request" : `Artwork #${item.sort_order}`}
               </p>
 
               <h3 className="text-2xl font-black leading-tight md:text-3xl">
@@ -295,7 +296,7 @@ function SaleCard({
 
             <div className="xl:text-right">
               <p className="uppercase tracking-[0.25em] text-[10px] text-white/40 font-black mb-2">
-                Sold Amount
+                {isAfterAuctionRequest ? "Invoice Amount" : "Sold Amount"}
               </p>
 
               <p className="text-3xl font-black text-[#16d66d] md:text-4xl">
@@ -306,7 +307,7 @@ function SaleCard({
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <InfoBox
-              label="Winning Bidder"
+              label={isAfterAuctionRequest ? "Requested By" : "Winning Bidder"}
               value={item.winning_bidder || "Not captured"}
             />
 
@@ -335,6 +336,13 @@ function SaleCard({
             </p>
 
             <div className="flex flex-wrap gap-3">
+              {isAfterAuctionRequest && (
+                <ActionBadge
+                  label="After-auction invoice request"
+                  good
+                />
+              )}
+
               <ActionBadge
                 label={
                   emailCaptured
@@ -498,6 +506,7 @@ function InvoicePreview({
   artworkName: string;
 }) {
   const paymentReference = artworkName || `${item.child_name} ${item.child_surname}`.trim() || winnerName;
+  const isAfterAuctionRequest = item.status === "after_auction_request";
 
   return (
     <div className="relative overflow-hidden rounded-[32px] border border-[#d6a94a]/55 bg-[#fffaf0] p-5 shadow-[0_28px_80px_rgba(7,21,43,0.16)] lg:p-8">
@@ -518,13 +527,15 @@ function InvoicePreview({
         <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-sm font-black uppercase tracking-[0.22em] text-[#16a064]">
-              BragWall Winning Bid Invoice
+              BragWall Invoice
             </p>
             <h4 className="mt-2 text-4xl font-black text-[#07152b] lg:text-5xl">
-              Congratulations on your winning bid
+              {isAfterAuctionRequest ? "Congratulations on your artwork request" : "Congratulations on your winning bid"}
             </h4>
             <p className="mt-4 max-w-2xl text-lg font-bold leading-relaxed text-slate-600">
-              What a proud moment — you have just helped celebrate a young artist while supporting their school.
+              {isAfterAuctionRequest
+                ? "What a proud moment — you are helping celebrate a young artist while supporting their school."
+                : "What a proud moment — you have just helped celebrate a young artist while supporting their school."}
             </p>
           </div>
           <div className="rounded-3xl bg-white/92 p-4 shadow-sm ring-1 ring-slate-200">
@@ -534,12 +545,12 @@ function InvoicePreview({
 
         <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
           <div className="rounded-[28px] border border-[#d6a94a] bg-white/80 p-4 shadow-sm">
-            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">Winning Artwork</p>
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">{isAfterAuctionRequest ? "Requested Artwork" : "Winning Artwork"}</p>
             <img src={item.artwork_url} alt="" className="h-56 w-full rounded-2xl bg-white object-contain" />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <DocumentInfo label="Winner" value={winnerName} />
+            <DocumentInfo label={isAfterAuctionRequest ? "Requested By" : "Winner"} value={winnerName} />
             <DocumentInfo label="Winner Email" value={winnerEmail} />
             <DocumentInfo label="Child / Artwork Reference" value={artworkName} />
             <DocumentInfo label="Grade" value={item.grade || "Not captured"} />
@@ -567,7 +578,9 @@ function InvoicePreview({
               Please use the child’s name and surname as your payment reference so we can match your payment quickly.
             </p>
             <p className="mt-4 text-sm font-bold leading-relaxed text-slate-500">
-              Your winning bid amount has pulled through from the sold auction record. The school can confirm collection once payment is received.
+              {isAfterAuctionRequest
+                ? "The amount uses the opening bid for this after-auction request. The school can confirm collection once payment is received."
+                : "Your winning bid amount has pulled through from the sold auction record. The school can confirm collection once payment is received."}
             </p>
           </div>
         </div>

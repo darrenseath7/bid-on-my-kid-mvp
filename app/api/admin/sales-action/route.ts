@@ -86,7 +86,8 @@ export async function GET(request: NextRequest) {
         ].join(",")
       )
       .eq("auction_code", auctionCode)
-      .eq("status", "sold")
+      .in("status", ["sold", "after_auction_request"])
+      .not("winner_email", "is", null)
       .order("sort_order", { ascending: true });
 
     if (error) {
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
       .update({ certificate_email_requested_at: releasedAt })
       .eq("auction_code", auctionCode)
       .eq("id", artworkId)
-      .eq("status", "sold")
+      .in("status", ["sold", "after_auction_request"])
       .not("winner_email", "is", null)
       .select(
         [

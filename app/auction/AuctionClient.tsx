@@ -60,6 +60,7 @@ type Artwork = {
   ai_story?: string | null;
   description?: string | null;
   mc_audio_url?: string | null;
+  invoice_email_requested?: boolean | null;
 };
 
 const DEFAULT_AUCTION_CODE = "demo";
@@ -156,7 +157,7 @@ export default function DemoAuctionPage({
       const soldAmount = Number(artwork.sold_amount || 0);
       const status = String(artwork.status || "").toLowerCase();
 
-      return status === "sold" || soldAmount > 0;
+      return status === "sold";
     });
   }, [artworks]);
 
@@ -1078,6 +1079,10 @@ export default function DemoAuctionPage({
           open={galleryOpen}
           onClose={() => setGalleryOpen(false)}
           artworks={artworks}
+          auctionCode={auctionCode}
+          bidderName={bidderName}
+          openingBidAmount={bidIncrement}
+          onRequestSaved={() => fetchPublicAuctionState(auctionCode)}
         />
 
         <div className="relative mx-auto flex min-h-[100svh] w-full max-w-md flex-col px-4 pb-[calc(14px+env(safe-area-inset-bottom))] pt-2">
@@ -1212,7 +1217,7 @@ export default function DemoAuctionPage({
             />
           </div>
           <button onClick={() => setGalleryOpen(true)} className="mt-6 rounded-[24px] bg-[#16d66d] px-6 py-4 font-black text-[#07152b]">View Gallery</button>
-          <GalleryModal open={galleryOpen} onClose={() => setGalleryOpen(false)} artworks={artworks} />
+          <GalleryModal open={galleryOpen} onClose={() => setGalleryOpen(false)} artworks={artworks} auctionCode={auctionCode} bidderName={bidderName} openingBidAmount={bidIncrement} onRequestSaved={() => fetchPublicAuctionState(auctionCode)} />
         </div>
       </main>
     );
@@ -1229,6 +1234,10 @@ export default function DemoAuctionPage({
           open={galleryOpen}
           onClose={() => setGalleryOpen(false)}
           artworks={artworks}
+          auctionCode={auctionCode}
+          bidderName={bidderName}
+          openingBidAmount={bidIncrement}
+          onRequestSaved={() => fetchPublicAuctionState(auctionCode)}
         />
 
         <div className="relative mx-auto flex min-h-[100svh] w-full max-w-md flex-col px-4 pb-[calc(18px+env(safe-area-inset-bottom))] pt-4">
@@ -1312,6 +1321,10 @@ export default function DemoAuctionPage({
         open={galleryOpen}
         onClose={() => setGalleryOpen(false)}
         artworks={artworks}
+        auctionCode={auctionCode}
+        bidderName={bidderName}
+        openingBidAmount={bidIncrement}
+        onRequestSaved={() => fetchPublicAuctionState(auctionCode)}
       />
 
       <AuctionFlashToast flash={auctionFlash} />
@@ -2029,11 +2042,69 @@ function GalleryModal({
   open,
   onClose,
   artworks,
+  auctionCode,
+  bidderName,
+  openingBidAmount,
+  onRequestSaved,
 }: {
   open: boolean;
   onClose: () => void;
   artworks: Artwork[];
+  auctionCode: string;
+  bidderName: string;
+  openingBidAmount: number;
+  onRequestSaved: () => Promise<void> | void;
 }) {
+  const [requestEmails, setRequestEmails] = useState<Record<string, string>>({});
+  const [submittingRequestIds, setSubmittingRequestIds] = useState<Record<string, boolean>>({});
+  const [requestedIds, setRequestedIds] = useState<Record<string, boolean>>({});
+
+  async function submitUnsoldInvoiceRequest(artwork: Artwork) {
+    const cleanEmail = String(requestEmails[artwork.id] || "").trim().toLowerCase();
+    const cleanBidderName = bidderName.trim();
+
+    if (!cleanBidderName) {
+      alert("Please enter your name on the main auction screen first.");
+      return;
+    }
+
+    if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    setSubmittingRequestIds((current) => ({ ...current, [artwork.id]: true }));
+
+    try {
+      const response = await fetch("/api/request-unsold-invoice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auctionCode,
+          artworkId: artwork.id,
+          bidderName: cleanBidderName,
+          email: cleanEmail,
+          openingBidAmount,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not request invoice.");
+      }
+
+      setRequestedIds((current) => ({ ...current, [artwork.id]: true }));
+      await onRequestSaved();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Could not request invoice.");
+    } finally {
+      setSubmittingRequestIds((current) => ({ ...current, [artwork.id]: false }));
+    }
+  }
+
   return (
     <AnimatePresence>
       {open && (
@@ -2092,7 +2163,11 @@ function GalleryModal({
                 const imageUrl = getArtworkDisplayUrl(artwork);
                 const isSoldArtwork = artwork.status === "sold";
                 const isArchivedArtwork = artwork.status === "archived";
+                const isAfterAuctionRequest = artwork.status === "after_auction_request" || Boolean(artwork.invoice_email_requested) || Boolean(requestedIds[artwork.id]);
                 const isLiveArtwork = artwork.status === "live";
+                const requestEmailValue = requestEmails[artwork.id] || "";
+                const isSubmittingRequest = Boolean(submittingRequestIds[artwork.id]);
+                const safeOpeningBidAmount = Math.max(Number(openingBidAmount || 0), DEFAULT_BID_STEP);
 
                 return (
                   <div
@@ -2143,7 +2218,7 @@ function GalleryModal({
                         className={`rounded-2xl px-3 py-2 text-center shrink-0 ${
                           isSoldArtwork
                             ? "bg-[#ffc857] text-[#07152b]"
-                            : isArchivedArtwork
+                            : isArchivedArtwork || isAfterAuctionRequest
                             ? "bg-[#ff6b8a] text-white"
                             : isLiveArtwork
                             ? "bg-[#16d66d] text-[#07152b]"
@@ -2157,6 +2232,8 @@ function GalleryModal({
                         <p className="font-black text-sm">
                           {isSoldArtwork
                             ? "Sold"
+                            : isAfterAuctionRequest
+                            ? "Requested"
                             : isArchivedArtwork
                             ? "Available"
                             : isLiveArtwork
@@ -2166,14 +2243,52 @@ function GalleryModal({
                       </div>
                     </div>
 
-                    {isArchivedArtwork && (
+                    {isArchivedArtwork && !isAfterAuctionRequest && (
                       <div className="mt-4 rounded-[22px] bg-[#ff6b8a]/12 border border-[#ff6b8a]/25 text-[#07152b] p-4">
                         <p className="uppercase tracking-[0.25em] text-[9px] text-[#ef2b20] font-black mb-2">
                           Available after auction
                         </p>
 
                         <p className="text-sm font-black leading-relaxed">
-                          No bids were received during the live round. This artwork has been archived as unsold and remains available after the auction. Please speak to the school or BragWall team if you would like to purchase it.
+                          No bids were received during the live round. This artwork is still available at the opening bid amount of R{safeOpeningBidAmount.toLocaleString()}. Enter your email and we’ll prepare an invoice request for the school to follow up.
+                        </p>
+
+                        <div className="mt-4 space-y-3">
+                          <input
+                            value={requestEmailValue}
+                            onChange={(event) =>
+                              setRequestEmails((current) => ({
+                                ...current,
+                                [artwork.id]: event.target.value,
+                              }))
+                            }
+                            placeholder="Email for invoice"
+                            type="email"
+                            className="w-full rounded-[18px] border-2 border-[#07152b]/10 bg-white px-4 py-3 text-sm font-black text-[#07152b] outline-none focus:border-[#16d66d]"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => submitUnsoldInvoiceRequest(artwork)}
+                            disabled={isSubmittingRequest}
+                            className="w-full rounded-[20px] bg-[#07152b] px-4 py-3 text-sm font-black text-white shadow-lg transition active:scale-[0.98] disabled:opacity-60"
+                          >
+                            {isSubmittingRequest
+                              ? "Requesting invoice..."
+                              : `Request invoice - R${safeOpeningBidAmount.toLocaleString()}`}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {isAfterAuctionRequest && !isSoldArtwork && (
+                      <div className="mt-4 rounded-[22px] bg-[#16d66d]/12 border border-[#16d66d]/30 text-[#07152b] p-4">
+                        <p className="uppercase tracking-[0.25em] text-[9px] text-[#16a064] font-black mb-2">
+                          Invoice requested
+                        </p>
+
+                        <p className="text-sm font-black leading-relaxed">
+                          Thank you — your after-auction invoice request has been received. The school can now see this artwork in Sales Records and follow up with an invoice.
                         </p>
                       </div>
                     )}
