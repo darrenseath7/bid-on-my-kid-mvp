@@ -46,6 +46,7 @@ type Artwork = {
   sold_amount?: number | null;
   winning_bidder?: string | null;
   winner_email?: string | null;
+  invoice_email_requested_at?: string | null;
   mc_audio_url?: string | null;
   created_at?: string | null;
 };
@@ -94,17 +95,30 @@ export default function AdminLivePage() {
     return getCurrentArtwork(auction, artworks);
   }, [auction, artworks]);
 
-  const activeQueueArtworks = artworks.filter(
-    (artwork) => artwork.status !== "sold" && artwork.status !== "archived"
-  );
+  const activeQueueArtworks = artworks.filter((artwork) => {
+    const status = String(artwork.status || "").trim();
+
+    return (
+      !artwork.invoice_email_requested_at &&
+      status !== "sold" &&
+      status !== "archived" &&
+      status !== "after_auction_request"
+    );
+  });
 
   const queuedArtworks = activeQueueArtworks;
 
   const soldArtworks = artworks.filter((artwork) => artwork.status === "sold");
 
-  const archivedArtworks = artworks.filter(
-    (artwork) => artwork.status === "archived"
-  );
+  const archivedArtworks = artworks.filter((artwork) => {
+    const status = String(artwork.status || "").trim();
+
+    return (
+      status === "archived" ||
+      status === "after_auction_request" ||
+      Boolean(artwork.invoice_email_requested_at)
+    );
+  });
 
   const nextArtwork = useMemo(() => {
     return getNextArtwork(currentArtwork, activeQueueArtworks);
@@ -836,7 +850,7 @@ export default function AdminLivePage() {
         <div className="space-y-3 max-h-[275px] overflow-y-auto overflow-x-hidden pr-1 bragwall-live-scroll">
           {queuedArtworks.length === 0 && (
             <p className="text-white/72 font-bold">
-              No queued artwork available. Sold and archived items are kept out of the live queue.
+              No queued artwork available. Sold, archived, and invoice-requested items are kept out of the live queue.
             </p>
           )}
 
@@ -1112,9 +1126,16 @@ function getCurrentArtwork(
     if (matchedArtwork) return matchedArtwork;
   }
 
-  const activeArtworks = artworks.filter(
-    (item) => item.status !== "sold" && item.status !== "archived"
-  );
+  const activeArtworks = artworks.filter((item) => {
+    const status = String(item.status || "").trim();
+
+    return (
+      !item.invoice_email_requested_at &&
+      status !== "sold" &&
+      status !== "archived" &&
+      status !== "after_auction_request"
+    );
+  });
 
   return (
     activeArtworks.find((item) => item.status === "live") ||
