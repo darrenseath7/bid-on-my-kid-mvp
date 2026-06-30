@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { rateLimit } from "@/lib/rateLimit";
 
 type AuctionState = {
   auction_code?: string;
@@ -83,6 +84,17 @@ function normalizeBidderName(value: unknown) {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimit(request, {
+      keyPrefix: "place-bid",
+      limit: 30,
+      windowMs: 60 * 1000,
+      message: "Too many bid attempts. Please wait a moment and try again.",
+    });
+
+    if (limited) {
+      return limited;
+    }
+
     const body = await request.json().catch(() => null);
 
     const auctionCode = normalizeAuctionCode(body?.auctionCode);

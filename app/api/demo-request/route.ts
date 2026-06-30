@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { rateLimit } from "@/lib/rateLimit";
 
 const nodemailer = require("nodemailer");
 
@@ -94,6 +95,17 @@ function escapeHtml(value: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimit(request, {
+      keyPrefix: "demo-request",
+      limit: 5,
+      windowMs: 15 * 60 * 1000,
+      message: "Too many demo requests. Please wait a few minutes and try again.",
+    });
+
+    if (limited) {
+      return limited;
+    }
+
     const body = (await request.json().catch(() => null)) as DemoRequestPayload | null;
 
     if (!body) {

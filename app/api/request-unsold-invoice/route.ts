@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { rateLimit } from "@/lib/rateLimit";
 
 const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_OPENING_BID = 100;
@@ -64,6 +65,17 @@ function jsonError(message: string, status = 400) {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimit(request, {
+      keyPrefix: "request-unsold-invoice",
+      limit: 8,
+      windowMs: 10 * 60 * 1000,
+      message: "Too many invoice requests. Please wait a few minutes and try again.",
+    });
+
+    if (limited) {
+      return limited;
+    }
+
     const body = await request.json().catch(() => null);
 
     if (!body || typeof body !== "object") {

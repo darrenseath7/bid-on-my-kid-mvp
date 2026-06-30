@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -27,6 +28,17 @@ type DemoArtworkAudioLookup = {
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = rateLimit(request, {
+      keyPrefix: "mc-voice",
+      limit: 60,
+      windowMs: 10 * 60 * 1000,
+      message: "Too many MC voice requests. Please wait a few minutes and try again.",
+    });
+
+    if (limited) {
+      return limited;
+    }
+
     if (!process.env.ELEVENLABS_API_KEY) {
       return NextResponse.json(
         {

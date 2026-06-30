@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { rateLimit } from "@/lib/rateLimit";
 
 const DEFAULT_AUCTION_CODE = "demo";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -121,6 +122,17 @@ function getNextArtwork(currentArtwork: Artwork | null, artworks: Artwork[]) {
 
 export async function POST(request: Request) {
   try {
+    const limited = rateLimit(request, {
+      keyPrefix: "submit-winner-email",
+      limit: 8,
+      windowMs: 10 * 60 * 1000,
+      message: "Too many email submissions. Please wait a few minutes and try again.",
+    });
+
+    if (limited) {
+      return limited;
+    }
+
     const body = await request.json().catch(() => null);
 
     if (!body || typeof body !== "object") {
