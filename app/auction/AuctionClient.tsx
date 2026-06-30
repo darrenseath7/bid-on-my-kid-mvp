@@ -1038,7 +1038,7 @@ export default function DemoAuctionPage({
         },
         body: JSON.stringify({
           auctionCode: auctionCode,
-          bidderName: cleanBidderName,
+          bidderName: cleanBidderName || cleanEmail,
           email: cleanEmail,
           artworkId: auction.artwork_id || activeArtwork?.id || null,
         }),
@@ -2062,11 +2062,6 @@ function GalleryModal({
   async function submitUnsoldInvoiceRequest(artwork: Artwork) {
     const cleanEmail = String(requestEmails[artwork.id] || "").trim().toLowerCase();
     const cleanBidderName = bidderName.trim();
-
-    if (!cleanBidderName) {
-      alert("Please enter your name on the main auction screen first.");
-      return;
-    }
 
     if (!cleanEmail || !cleanEmail.includes("@") || !cleanEmail.includes(".")) {
       alert("Please enter a valid email address.");

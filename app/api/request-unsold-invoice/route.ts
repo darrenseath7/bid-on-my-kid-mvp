@@ -84,8 +84,9 @@ export async function POST(request: NextRequest) {
 
     const auctionCode = normalizeAuctionCode((body as { auctionCode?: unknown }).auctionCode);
     const artworkId = normalizeId((body as { artworkId?: unknown }).artworkId);
-    const bidderName = normalizeName((body as { bidderName?: unknown }).bidderName);
+    const rawBidderName = normalizeName((body as { bidderName?: unknown }).bidderName);
     const email = normalizeEmail((body as { email?: unknown }).email);
+    const bidderName = rawBidderName || email || "After-auction buyer";
     const requestedOpeningBid = getOpeningBid((body as { openingBidAmount?: unknown }).openingBidAmount);
 
     if (!isValidAuctionCode(auctionCode)) {
@@ -94,10 +95,6 @@ export async function POST(request: NextRequest) {
 
     if (!artworkId) {
       return jsonError("Missing artwork id.", 400);
-    }
-
-    if (!bidderName || bidderName.length < 2) {
-      return jsonError("Please enter your name before requesting an invoice.", 400);
     }
 
     if (!EMAIL_PATTERN.test(email)) {
