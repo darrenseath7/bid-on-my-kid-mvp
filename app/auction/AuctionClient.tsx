@@ -460,10 +460,9 @@ export default function DemoAuctionPage({
     // audio unlock promise, and awaiting it can stop the parent from joining.
     void unlockBrowserAudio();
 
-    // Parent join should start the automated rhythm. If an artwork is staged
-    // but the MC intro has not started yet, the public rhythm endpoint moves
-    // it into AI MC intro mode. Admin Start Intro remains as the fallback.
-    void triggerParentAutoStart();
+    // Parent join must not start the auction.
+    // Parents join the waiting room, enable sound, and can view the gallery.
+    // The admin controls the real auction start from the Live Room.
   }
 
   async function openBiddingAfterIntro(reason: "audio-finished" | "backup-timer") {
