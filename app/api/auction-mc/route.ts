@@ -54,12 +54,14 @@ async function createIntro(body: AuctionMcRequest, apiKey: string) {
     "Do not introduce the child. Do not mention any child name. Do not mention any grade. " +
     "Do not use these words or phrases: first, welcome, we have, spotlight, easel, coming up, next in the auction, countdown, bidding opens. " +
     "Start directly with what is visible or felt in the artwork. " +
-    "Make it warm, funny, proud, premium, and slightly cheeky. " +
-    "Use 35 to 55 words. Mention colours, shapes, imagination, family pride, and why it deserves a special place at home. " +
-    "Do not repeat any phrase. " +
+    "Make it warm, proud, premium, funny, and cheeky in a kind South African school-fundraiser way. " +
+    "The humour should feel like a playful auctioneer teasing the parents, not teasing the child or the artwork. " +
+    "Use one light joke or cheeky line, for example about fridge-door fame, lounge-wall bragging rights, grandparents getting competitive, or parents pretending they are calm. " +
+    "Be specific to the visible artwork: mention colours, shapes, characters, objects, mood, imagination, and why it deserves a special place at home. " +
+    "Use 55 to 85 words. Keep it energetic and spoken aloud. Do not repeat any phrase. " +
     "Artwork notes: " +
     (safeArtworkDetails ||
-      "Use colour, imagination, young creative confidence, family pride, and school auction excitement.");
+      "Use colour, imagination, young creative confidence, family pride, playful parent competition, and school auction excitement.");
 
   const userContent = body.artworkUrl
     ? ([
@@ -80,7 +82,7 @@ async function createIntro(body: AuctionMcRequest, apiKey: string) {
       {
         role: "system",
         content:
-          "You write only an artwork description for an auction MC. Never introduce the child. Never mention names or grades. Never use first, welcome, we have, spotlight, easel, countdown, or bidding.",
+          "You write only the middle artwork description for a South African school auction MC. Be warm, proud, visual, funny, and cheeky without being rude. Never introduce the child. Never mention names or grades. Never use first, welcome, we have, spotlight, easel, countdown, or bidding.",
       },
       {
         role: "user",
@@ -227,7 +229,7 @@ function cleanArtworkDetails(value: string) {
 }
 
 function getFallbackMiddle() {
-  return "This artwork is bursting with colour, imagination, and proud creative energy. It feels joyful, frame-worthy, and full of the kind of charm that turns a school auction into a proper BragWall moment.";
+  return "This artwork is bursting with colour, imagination, and proper young-artist confidence. It has the kind of charm that makes parents pretend they are just browsing, while secretly measuring the lounge wall. Definitely fridge-door famous, possibly frame-worthy, and ready for a proper BragWall moment.";
 }
 
 function cleanMiddle(value: string) {
