@@ -13,6 +13,7 @@ const MAX_MC_INTRO_SECONDS = 45;
 const MC_WORDS_PER_SECOND = 2.25;
 const MC_INTRO_PADDING_SECONDS = 4;
 const NO_BID_UNSOLD_SECONDS = 15;
+const SOLD_EMAIL_CAPTURE_SECONDS = 15;
 
 type AuctionState = {
   auction_code: string;
@@ -572,12 +573,23 @@ export async function POST(request: Request) {
     }
 
     if (status === "sold") {
-      if (!auction.winner_email && !auction.winner_email_submitted_at) {
-        return NextResponse.json({ action: "waiting_for_winner_email", auction });
+      const hasWinnerEmail = Boolean(auction.winner_email || auction.winner_email_submitted_at);
+      const soldAt = auction.updated_at ? new Date(auction.updated_at).getTime() : 0;
+      const soldSeconds = soldAt ? Math.floor((now - soldAt) / 1000) : SOLD_EMAIL_CAPTURE_SECONDS;
+      const emailCaptureRemaining = Math.max(0, SOLD_EMAIL_CAPTURE_SECONDS - soldSeconds);
+
+      if (!hasWinnerEmail && emailCaptureRemaining > 0) {
+        return NextResponse.json({
+          action: "waiting_for_winner_email",
+          auction,
+          secondsRemaining: emailCaptureRemaining,
+        });
       }
 
-      const deadline = auction.status_deadline ? new Date(auction.status_deadline).getTime() : 0;
-      if (!deadline || now < deadline) return NextResponse.json({ action: "next_countdown", auction });
+      if (hasWinnerEmail) {
+        const deadline = auction.status_deadline ? new Date(auction.status_deadline).getTime() : 0;
+        if (!deadline || now < deadline) return NextResponse.json({ action: "next_countdown", auction });
+      }
 
       const artworks = await fetchArtworks(supabaseAdmin, auctionCode);
       const currentArtwork = getCurrentArtwork(auction, artworks);

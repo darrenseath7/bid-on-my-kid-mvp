@@ -67,6 +67,7 @@ const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
 const MC_INTRO_SECONDS = 60;
 const BIDDING_START_BUFFER_SECONDS = 15;
+const SOLD_EMAIL_CAPTURE_SECONDS = 15;
 
 function normalizeAuctionCode(value?: string) {
   const normalized = String(value || DEFAULT_AUCTION_CODE)
@@ -204,6 +205,31 @@ export default function DemoAuctionPage({
   const isAuctionComplete = auction?.status === "complete";
   const isAuctionOpenForBids = auction?.status === "open" || isUrgency;
   const isBidPaused = pauseRemaining > 0 && auction?.status === "open";
+
+  const soldEmailCaptureRemaining = useMemo(() => {
+    if (!auction || auction.status !== "sold") return 0;
+
+    if (
+      auction.winner_email ||
+      auction.winner_email_submitted ||
+      auction.winner_email_submitted_at
+    ) {
+      return secondsRemaining;
+    }
+
+    const soldAt = auction.updated_at ? new Date(auction.updated_at).getTime() : 0;
+    if (!soldAt) return SOLD_EMAIL_CAPTURE_SECONDS;
+
+    const elapsed = Math.floor((Date.now() - soldAt) / 1000);
+    return Math.max(0, SOLD_EMAIL_CAPTURE_SECONDS - elapsed);
+  }, [
+    auction?.status,
+    auction?.updated_at,
+    auction?.winner_email,
+    auction?.winner_email_submitted,
+    auction?.winner_email_submitted_at,
+    secondsRemaining,
+  ]);
 
   const activeArtwork = useMemo(() => {
     if (!auction) return null;
@@ -875,9 +901,22 @@ export default function DemoAuctionPage({
     }
 
     if (auction.status === "sold") {
-      if (auction.winner_email_submitted && auction.status_deadline) {
+      const hasWinnerEmail = Boolean(
+        auction.winner_email ||
+          auction.winner_email_submitted ||
+          auction.winner_email_submitted_at
+      );
+
+      const soldAt = auction.updated_at ? new Date(auction.updated_at).getTime() : 0;
+      const soldSeconds = soldAt ? Math.floor((now - soldAt) / 1000) : SOLD_EMAIL_CAPTURE_SECONDS;
+
+      if (
+        (hasWinnerEmail && auction.status_deadline) ||
+        (!hasWinnerEmail && soldSeconds >= SOLD_EMAIL_CAPTURE_SECONDS)
+      ) {
         await runSecureAuctionRhythmOnce();
       }
+
       return;
     }
 
@@ -1257,8 +1296,8 @@ export default function DemoAuctionPage({
       <main className="min-h-[100svh] bg-[#020b18] text-white flex items-center justify-center p-6">
         <div className="max-w-md text-center rounded-[34px] border border-white/10 bg-white/[0.06] p-8 shadow-2xl">
           <div className="text-7xl mb-4">🎉</div>
-          <h1 className="text-5xl font-black text-[#ffc857] mb-4">Auction complete</h1>
-          <p className="text-xl font-bold text-white/80 leading-relaxed">Thank you for supporting the young artists and the school fundraiser.</p>
+          <h1 className="text-6xl font-black text-[#ffc857] mb-4 leading-none">Auction Complete</h1>
+          <p className="text-xl font-bold text-white/80 leading-relaxed">The auction has ended. Thank you for supporting the young artists and the school fundraiser.</p>
           <div className="mt-6">
             <ParentRaisedTotalCard
               totalRaised={parentRaisedTotal}
@@ -1315,16 +1354,16 @@ export default function DemoAuctionPage({
                 <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-[30px] bg-[#16d66d] text-5xl shadow-2xl">
                   🎨
                 </div>
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.34em] text-[#ffc857]">Parent Waiting Room</p>
-                <h1 className="text-[48px] font-black leading-none text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.45)]">
-                  You’re in<br />the room.
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.34em] text-[#ffc857]">You joined successfully</p>
+                <h1 className="text-[54px] font-black leading-none text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.45)]">
+                  WAITING<br />ROOM
                 </h1>
               </div>
             </div>
 
             <div className="flex flex-1 flex-col gap-4 p-5">
               <p className="text-lg font-extrabold leading-relaxed text-slate-700">
-                The auction has not started yet. Keep this page open — the first artwork will appear automatically when the host starts the auction.
+                You are in the right place. The auction has not started yet. Keep this page open.
               </p>
 
               <div className="rounded-[26px] border-2 border-[#07152b]/8 bg-[#fff8e6] p-4 shadow-inner">
@@ -1496,7 +1535,7 @@ export default function DemoAuctionPage({
                       </h2>
 
                       <p className="text-slate-600 font-bold leading-relaxed">
-                        Enter your email so admin can follow up with your invoice and artwork certificate.
+                        Enter your email for the invoice and artwork certificate. If you do not enter it in time, the auction will keep moving and admin can follow up later.
                       </p>
                     </div>
                   </div>
@@ -1559,7 +1598,7 @@ export default function DemoAuctionPage({
                   </p>
                 ) : (
                   <p className="text-slate-500 font-bold">
-                    The next artwork starts after the winner enters their email.
+                    Next artwork starts in {soldEmailCaptureRemaining}s. If the winner does not enter an email, admin can follow up later.
                   </p>
                 )}
               </div>
