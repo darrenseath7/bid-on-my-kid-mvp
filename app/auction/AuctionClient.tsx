@@ -119,12 +119,18 @@ export default function DemoAuctionPage({
     "idle" | "loading" | "playing" | "finished" | "blocked" | "error" | "missing"
   >("idle");
   const [auctionFlash, setAuctionFlash] = useState<AuctionFlash | null>(null);
+  const [bidNotice, setBidNotice] = useState<{
+    id: number;
+    title: string;
+    message: string;
+  } | null>(null);
   const [bidPulseKey, setBidPulseKey] = useState(0);
 
   const previousStatusRef = useRef<string | null>(null);
   const previousBidRef = useRef<number | null>(null);
   const previousBidderRef = useRef<string | null>(null);
   const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bidNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioUnlockedRef = useRef(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioUnlockElementRef = useRef<HTMLAudioElement | null>(null);
@@ -711,6 +717,10 @@ export default function DemoAuctionPage({
         clearTimeout(flashTimeoutRef.current);
         flashTimeoutRef.current = null;
       }
+      if (bidNoticeTimeoutRef.current) {
+        clearTimeout(bidNoticeTimeoutRef.current);
+        bidNoticeTimeoutRef.current = null;
+      }
       window.clearInterval(refreshInterval);
     };
   }, [auctionCode]);
@@ -924,6 +934,23 @@ export default function DemoAuctionPage({
   }
 
 
+  function showBidNotice(nextNotice: { title: string; message: string }) {
+    if (bidNoticeTimeoutRef.current) {
+      clearTimeout(bidNoticeTimeoutRef.current);
+    }
+
+    setBidNotice({
+      id: Date.now(),
+      title: nextNotice.title,
+      message: nextNotice.message,
+    });
+
+    bidNoticeTimeoutRef.current = setTimeout(() => {
+      setBidNotice(null);
+      bidNoticeTimeoutRef.current = null;
+    }, 4200);
+  }
+
   async function placeBid(amount: number) {
     if (!auction) return;
 
@@ -974,7 +1001,11 @@ export default function DemoAuctionPage({
     }
 
     if (amount <= auction.current_bid) {
-      alert("This bid is no longer high enough.");
+      showBidNotice({
+        title: "Bid moved on 🎨",
+        message: "The auction has already moved to a higher amount. Tap the latest bid button to try again.",
+      });
+      void fetchPublicAuctionState();
       return;
     }
 
@@ -1005,7 +1036,27 @@ export default function DemoAuctionPage({
 
       await fetchPublicAuctionState();
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Could not place bid.");
+      const message = error instanceof Error ? error.message : "Could not place bid.";
+      const lowerMessage = message.toLowerCase();
+
+      const isOutbidMessage =
+        lowerMessage.includes("another bid") ||
+        lowerMessage.includes("outbid") ||
+        lowerMessage.includes("refresh") ||
+        lowerMessage.includes("no longer high enough");
+
+      if (isOutbidMessage) {
+        showBidNotice({
+          title: "Someone beat you to it 🎨",
+          message: "Another parent placed a bid first. The latest bid is updating now — tap the new bid amount to try again.",
+        });
+        await fetchPublicAuctionState();
+      } else {
+        showBidNotice({
+          title: "Bid not placed",
+          message,
+        });
+      }
     } finally {
       setBiddingNow(false);
     }
@@ -1265,16 +1316,28 @@ export default function DemoAuctionPage({
                   🎨
                 </div>
                 <p className="mb-2 text-[10px] font-black uppercase tracking-[0.34em] text-[#ffc857]">Parent Waiting Room</p>
-                <h1 className="text-[58px] font-black leading-none text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.45)]">
-                  You’re in.
+                <h1 className="text-[48px] font-black leading-none text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.45)]">
+                  You’re in<br />the room.
                 </h1>
               </div>
             </div>
 
             <div className="flex flex-1 flex-col gap-4 p-5">
               <p className="text-lg font-extrabold leading-relaxed text-slate-700">
-                Keep this page open. The first artwork will appear automatically when the auction starts.
+                The auction has not started yet. Keep this page open — the first artwork will appear automatically when the host starts the auction.
               </p>
+
+              <div className="rounded-[26px] border-2 border-[#07152b]/8 bg-[#fff8e6] p-4 shadow-inner">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#0b63ce]">
+                  While you wait
+                </p>
+                <div className="space-y-2 text-sm font-black leading-snug text-slate-700">
+                  <p>✅ You have joined successfully.</p>
+                  <p>🖼️ Tap Gallery to preview the artworks.</p>
+                  <p>🔊 Keep your sound on for the AI MC voice.</p>
+                  <p>🚫 No need to refresh — your screen updates automatically.</p>
+                </div>
+              </div>
 
               <div className="rounded-[26px] bg-[#16d66d] p-4 text-[#07152b] shadow-[0_14px_30px_rgba(22,214,109,0.26)]">
                 <p className="mb-1 text-[10px] font-black uppercase tracking-[0.25em] opacity-70">Sound</p>
@@ -1300,7 +1363,7 @@ export default function DemoAuctionPage({
 
               <div className="mt-auto rounded-[26px] bg-[#07152b] p-5 text-white">
                 <p className="text-center text-sm font-black leading-relaxed">
-                  The next masterpiece is almost ready. Stay close — bidding moves fast.
+                  Waiting for the host to start the auction. No need to refresh.
                 </p>
               </div>
             </div>
@@ -1327,6 +1390,7 @@ export default function DemoAuctionPage({
       />
 
       <AuctionFlashToast flash={auctionFlash} />
+      <BidNoticeToast notice={bidNotice} />
 
       <div className="relative shrink-0 bg-white/90 backdrop-blur border-b-4 border-[#07152b]/10 shadow-[0_10px_30px_rgba(7,21,43,0.12)]">
         <div className="max-w-md mx-auto px-4 py-2.5">
@@ -1956,6 +2020,41 @@ function ParentRaisedTotalCard({
         {soldLabel} for this school auction.
       </p>
     </div>
+  );
+}
+
+function BidNoticeToast({
+  notice,
+}: {
+  notice: { id: number; title: string; message: string } | null;
+}) {
+  return (
+    <AnimatePresence>
+      {notice && (
+        <motion.div
+          key={notice.id}
+          initial={{ opacity: 0, y: 14, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 14, scale: 0.96 }}
+          transition={{ duration: 0.22 }}
+          className="pointer-events-none fixed inset-x-0 bottom-[118px] z-[75] px-4"
+        >
+          <div className="mx-auto max-w-md">
+            <div className="mx-auto max-w-[350px] rounded-[28px] border-4 border-[#ffc857] bg-[#07152b]/96 px-5 py-4 text-center text-white shadow-[0_24px_60px_rgba(7,21,43,0.36)] backdrop-blur-md">
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#ffc857]">
+                Auction update
+              </p>
+              <p className="mt-1 text-2xl font-black leading-tight">
+                {notice.title}
+              </p>
+              <p className="mt-2 text-sm font-extrabold leading-snug text-white/78">
+                {notice.message}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
