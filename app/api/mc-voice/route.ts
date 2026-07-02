@@ -302,7 +302,7 @@ function buildMcScript({
     removeConsecutiveDuplicateWords(
       ensureSentenceEnds(String(sourceText || "").replace(/\s+/g, " ").trim())
     ),
-    90
+    110
   );
 }
 

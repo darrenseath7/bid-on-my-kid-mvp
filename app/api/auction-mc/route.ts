@@ -58,7 +58,7 @@ async function createIntro(body: AuctionMcRequest, apiKey: string) {
     "The humour should feel like a playful auctioneer teasing the parents, not teasing the child or the artwork. " +
     "Use one light joke or cheeky line, for example about fridge-door fame, lounge-wall bragging rights, grandparents getting competitive, or parents pretending they are calm. " +
     "Be specific to the visible artwork: mention colours, shapes, characters, objects, mood, imagination, and why it deserves a special place at home. " +
-    "Use 55 to 85 words. Keep it energetic and spoken aloud. Do not repeat any phrase. " +
+    "Use 40 to 60 words. Keep it energetic and spoken aloud. Do not repeat any phrase. " +
     "Artwork notes: " +
     (safeArtworkDetails ||
       "Use colour, imagination, young creative confidence, family pride, playful parent competition, and school auction excitement.");
@@ -109,7 +109,7 @@ function createSafeIntro(body: AuctionMcRequest, middle: string) {
   const opening = getOpening(artworkNumber, artistName, gradeText);
   const safeMiddle = cleanMiddle(middle);
   const closing =
-    "Parents, get ready. The countdown is coming, and then bidding opens.";
+    "Parents, get ready — bidding opens after the countdown.";
 
   return cleanFinal(opening + " " + safeMiddle + " " + closing);
 }
