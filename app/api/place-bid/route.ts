@@ -94,12 +94,15 @@ function createBidReaction({
   nextAsk: number;
   bidCount: number;
 }) {
+  const spokenAmount = `${amount.toLocaleString()} Rand`;
+  const spokenNextAsk = `${nextAsk.toLocaleString()} Rand`;
+
   const options = [
-    `${bidderName} leads at R${amount.toLocaleString()} — bold move!`,
-    `R${amount.toLocaleString()} from ${bidderName}. Game on!`,
+    `${bidderName} leads at ${spokenAmount} — bold move!`,
+    `${spokenAmount} from ${bidderName}. Game on!`,
     `${bidderName} takes the lead. Parents, stay calm!`,
-    `R${amount.toLocaleString()}! ${bidderName} means business.`,
-    `${bidderName} is in front. Who wants R${nextAsk.toLocaleString()}?`,
+    `${spokenAmount}! ${bidderName} means business.`,
+    `${bidderName} is in front. Who wants ${spokenNextAsk}?`,
   ];
 
   const selected = options[Math.abs(bidCount - 1) % options.length];
