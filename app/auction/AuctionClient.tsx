@@ -408,9 +408,21 @@ export default function DemoAuctionPage({
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.04;
-      utterance.pitch = 1.08;
-      utterance.volume = 0.95;
+      const voices = window.speechSynthesis.getVoices();
+
+      const preferredVoice =
+        voices.find((voice) => /google uk english female/i.test(voice.name)) ||
+        voices.find((voice) => /samantha|karen|serena|moira|tessa|female/i.test(voice.name)) ||
+        voices.find((voice) => /english/i.test(voice.lang || voice.name)) ||
+        null;
+
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+
+      utterance.rate = 1.12;
+      utterance.pitch = 1.0;
+      utterance.volume = 0.82;
 
       window.speechSynthesis.speak(utterance);
     } catch {
