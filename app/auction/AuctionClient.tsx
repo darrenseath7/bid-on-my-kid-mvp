@@ -125,11 +125,16 @@ export default function DemoAuctionPage({
     title: string;
     message: string;
   } | null>(null);
+  const [mcReaction, setMcReaction] = useState<{
+    id: number;
+    text: string;
+  } | null>(null);
   const [bidPulseKey, setBidPulseKey] = useState(0);
 
   const previousStatusRef = useRef<string | null>(null);
   const previousBidRef = useRef<number | null>(null);
   const previousBidderRef = useRef<string | null>(null);
+  const spokenMcReactionKeyRef = useRef("");
   const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bidNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioUnlockedRef = useRef(false);
@@ -382,6 +387,35 @@ export default function DemoAuctionPage({
     const audio = new Audio(src);
     audio.volume = 0.65;
     audio.play().catch(() => {});
+  }
+
+  function getMcReactionText(value?: string | null) {
+    const text = String(value || "").trim();
+
+    if (!text.toUpperCase().startsWith("MC_REACTION:")) return "";
+
+    return text.replace(/^MC_REACTION:\s*/i, "").trim();
+  }
+
+  function speakMcReaction(text: string, key: string) {
+    if (!soundEnabled || !audioUnlockedRef.current) return;
+    if (spokenMcReactionKeyRef.current === key) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    spokenMcReactionKeyRef.current = key;
+
+    try {
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.04;
+      utterance.pitch = 1.08;
+      utterance.volume = 0.95;
+
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      // Browser speech is optional. The reaction still appears visually.
+    }
   }
 
   async function playWelcomeVoice() {
@@ -663,6 +697,19 @@ export default function DemoAuctionPage({
 
     if (currentBid > previousBid && currentBidder && currentBidder !== "No bids yet") {
       setBidPulseKey((value) => value + 1);
+
+      const reactionText = getMcReactionText(auction.mc_commentary);
+      const reactionKey = `${auction.artwork_id || auction.artwork_url || "artwork"}-${currentBid}-${currentBidder}`;
+
+      if (reactionText) {
+        setMcReaction({
+          id: Date.now(),
+          text: reactionText,
+        });
+
+        speakMcReaction(reactionText, reactionKey);
+      }
+
       showAuctionFlash({
         kind: "bid",
         title: `R${currentBid.toLocaleString()} received`,
@@ -721,6 +768,8 @@ export default function DemoAuctionPage({
     autoActionKeyRef.current = "";
     activeAuctionCodeRef.current = auctionCode;
     setAuctionFlash(null);
+    setMcReaction(null);
+    spokenMcReactionKeyRef.current = "";
     setBidPulseKey(0);
     setAuction(null);
     setBids([]);
@@ -1607,7 +1656,7 @@ export default function DemoAuctionPage({
         )}
       </AnimatePresence>
 
-      <div className="relative flex-1 min-h-0 max-w-md mx-auto w-full px-4 py-4 flex flex-col gap-3 overflow-y-auto overscroll-contain pb-6">
+      <div className="relative flex-1 min-h-0 max-w-md mx-auto w-full px-3 py-2 flex flex-col gap-2 overflow-y-auto overscroll-contain pb-3">
         {isSold && isWinningBidder && winnerEmailAlreadySubmitted && (
           <div className="shrink-0 bg-[#16d66d] text-[#07152b] rounded-[20px] p-3 shadow-xl">
             <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-1">
@@ -1771,13 +1820,13 @@ export default function DemoAuctionPage({
           </motion.div>
         )}
 
-        <div className="shrink-0 flex items-start justify-between gap-3 rounded-[28px] border-2 border-white/70 bg-white/82 p-4 shadow-[0_18px_45px_rgba(7,21,43,0.18)] backdrop-blur-md">
+        <div className="shrink-0 flex items-start justify-between gap-3 rounded-[24px] border-2 border-white/70 bg-white/82 p-3 shadow-[0_12px_30px_rgba(7,21,43,0.16)] backdrop-blur-md">
           <div className="min-w-0">
             <p className="uppercase tracking-[0.25em] text-[10px] text-[#16d66d] font-black mb-1">
               Live Auction
             </p>
 
-            <h1 className="text-3xl font-black leading-none truncate text-[#07152b]">
+            <h1 className="text-2xl font-black leading-none truncate text-[#07152b]">
               {auction.child_name} {auction.child_surname}
             </h1>
 
@@ -1799,11 +1848,11 @@ export default function DemoAuctionPage({
           </button>
         </div>
 
-        <div className="shrink-0 rounded-[34px] overflow-hidden border-4 border-white shadow-[0_18px_55px_rgba(7,21,43,0.25)] bg-white">
-          <div className="bg-[#fff5d6] p-3">
+        <div className="shrink-0 rounded-[26px] overflow-hidden border-4 border-white shadow-[0_14px_38px_rgba(7,21,43,0.22)] bg-white">
+          <div className="bg-[#fff5d6] p-2">
             <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2 rounded-[20px] shadow-[0_0_35px_rgba(255,200,87,0.18)]">
               <div className="bg-[#f8f5ef] rounded-[14px] p-2.5">
-                <div className="relative rounded-[14px] overflow-hidden bg-white h-[32dvh] min-h-[220px] max-h-[330px] flex items-center justify-center">
+                <div className="relative rounded-[14px] overflow-hidden bg-white h-[25dvh] min-h-[160px] max-h-[240px] flex items-center justify-center">
                   {auction.artwork_url ? (
                     <img
                       src={auction.artwork_url}
@@ -1813,6 +1862,17 @@ export default function DemoAuctionPage({
                   ) : (
                     <div className="h-full flex items-center justify-center text-slate-400 font-black">
                       Artwork loading...
+                    </div>
+                  )}
+
+                  {(auction.child_name || auction.child_surname || auction.grade) && (
+                    <div className="absolute inset-x-2 bottom-2 rounded-[16px] bg-[#07152b]/88 px-3 py-2 text-white shadow-xl backdrop-blur-sm">
+                      <p className="truncate text-sm font-black leading-tight">
+                        {auction.child_name} {auction.child_surname}
+                      </p>
+                      <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-[#ffc857]">
+                        {auction.grade || "Artwork"}
+                      </p>
                     </div>
                   )}
 
@@ -1833,7 +1893,7 @@ export default function DemoAuctionPage({
             </div>
           </div>
 
-          <div className="h-5 bg-gradient-to-b from-[#ffc857] to-[#f59e0b]" />
+          <div className="h-3 bg-gradient-to-b from-[#ffc857] to-[#f59e0b]" />
         </div>
 
         <motion.div
@@ -1851,7 +1911,7 @@ export default function DemoAuctionPage({
           transition={{
             duration: bidPulseKey > 0 ? 0.55 : 0.35,
           }}
-          className="shrink-0 bg-white text-[#07152b] rounded-[28px] p-5 shadow-[0_18px_40px_rgba(7,21,43,0.18)] border-4 border-white"
+          className="shrink-0 bg-white text-[#07152b] rounded-[24px] p-3 shadow-[0_14px_30px_rgba(7,21,43,0.16)] border-4 border-white"
         >
           <div className="grid grid-cols-2 gap-3 items-end">
             <div>
@@ -1859,7 +1919,7 @@ export default function DemoAuctionPage({
                 Highest Bid
               </p>
 
-              <h2 className="text-4xl font-black text-[#16d66d] leading-none">
+              <h2 className="text-3xl font-black text-[#16d66d] leading-none">
                 R{auction.current_bid.toLocaleString()}
               </h2>
             </div>
@@ -1869,13 +1929,29 @@ export default function DemoAuctionPage({
                 Leading
               </p>
 
-              <p className="font-black text-lg truncate">
+              <p className="font-black text-base truncate">
                 {auction.leading_bidder}
                 {auction.leading_bidder !== "No bids yet" ? " 👑" : ""}
               </p>
             </div>
           </div>
         </motion.div>
+
+        {mcReaction && !isSold && (
+          <motion.div
+            key={mcReaction.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="shrink-0 rounded-[20px] border-2 border-[#ffc857] bg-[#07152b]/94 px-3 py-2 text-white shadow-xl"
+          >
+            <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#ffc857]">
+              AI MC
+            </p>
+            <p className="mt-1 text-sm font-black leading-snug">
+              {mcReaction.text}
+            </p>
+          </motion.div>
+        )}
 
         {(isBidPaused || isUrgency) && (
           <motion.div
@@ -1935,7 +2011,7 @@ export default function DemoAuctionPage({
               whileTap={{ scale: canBid ? 0.97 : 1 }}
               onClick={() => placeBid(nextBidAmount)}
               disabled={!canBid}
-              className="w-full rounded-[24px] py-4 font-black text-3xl shadow-[0_15px_35px_rgba(22,214,109,0.25)] transition text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full rounded-[22px] py-3.5 font-black text-2xl shadow-[0_12px_28px_rgba(22,214,109,0.25)] transition text-white disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 background: canBid
                   ? "linear-gradient(135deg, #16d66d, #16b85d)"
@@ -2107,11 +2183,11 @@ function AuctionFlashToast({ flash }: { flash: AuctionFlash | null }) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.96 }}
           transition={{ duration: 0.22 }}
-          className="pointer-events-none fixed inset-x-0 bottom-[118px] z-[70] px-4"
+          className="pointer-events-none fixed inset-x-0 top-[76px] z-[70] px-4"
         >
           <div className="mx-auto max-w-md">
             <div
-              className={`mx-auto max-w-[340px] rounded-[26px] border-4 px-5 py-4 text-center shadow-[0_22px_55px_rgba(7,21,43,0.32)] backdrop-blur-md ${
+              className={`mx-auto max-w-[300px] rounded-[22px] border-2 px-4 py-2.5 text-center shadow-[0_14px_32px_rgba(7,21,43,0.24)] backdrop-blur-md ${
                 flash.kind === "sold"
                   ? "rotate-[-4deg] border-[#ffc857] bg-[#ef2b20] text-white"
                   : flash.kind === "twice"
@@ -2125,11 +2201,11 @@ function AuctionFlashToast({ flash }: { flash: AuctionFlash | null }) {
                 {flash.kind === "bid" ? "Bid received" : "Auction update"}
               </p>
 
-              <p className="mt-1 text-3xl font-black leading-none tracking-[-0.04em]">
+              <p className="mt-0.5 text-xl font-black leading-none tracking-[-0.04em]">
                 {flash.title}
               </p>
 
-              <p className="mt-2 text-sm font-black leading-tight opacity-85">
+              <p className="mt-1 text-xs font-black leading-tight opacity-85">
                 {flash.subtitle}
               </p>
             </div>

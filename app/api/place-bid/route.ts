@@ -29,6 +29,7 @@ type SchoolProfile = {
 const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
 const BID_PAUSE_SECONDS = 5;
+const MC_REACTION_EVERY_NTH_BID = 3;
 
 function normalizeAuctionCode(value: unknown) {
   const normalized = String(value || DEFAULT_AUCTION_CODE)
@@ -80,6 +81,30 @@ function normalizeBidderName(value: unknown) {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 80);
+}
+
+function createBidReaction({
+  bidderName,
+  amount,
+  nextAsk,
+  bidCount,
+}: {
+  bidderName: string;
+  amount: number;
+  nextAsk: number;
+  bidCount: number;
+}) {
+  const options = [
+    `${bidderName} is leading the way at R${amount.toLocaleString()} — someone check if that bidding thumb has a sponsor.`,
+    `R${amount.toLocaleString()} from ${bidderName}. The lounge-wall negotiations have officially begun.`,
+    `${bidderName} has taken the lead at R${amount.toLocaleString()}. Parents, stay calm — or at least look calm.`,
+    `R${amount.toLocaleString()}! ${bidderName} is not browsing anymore, that is a statement with Wi-Fi.`,
+    `${bidderName} is in front at R${amount.toLocaleString()}. Do I hear R${nextAsk.toLocaleString()}, or are we all just admiring bravely?`,
+  ];
+
+  const selected = options[Math.abs(bidCount - 1) % options.length];
+
+  return `MC_REACTION:${selected}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -173,7 +198,7 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const pauseUntil = new Date(now.getTime() + BID_PAUSE_SECONDS * 1000).toISOString();
     const nextAsk = roundedAmount + bidIncrement;
-    const message = `R${roundedAmount.toLocaleString()} received from ${bidderName}. Do I hear R${nextAsk.toLocaleString()}?`;
+    const standardMessage = `R${roundedAmount.toLocaleString()} received from ${bidderName}. Do I hear R${nextAsk.toLocaleString()}?`;
 
     const { data: insertedBid, error: bidError } = await supabase
       .from("live_bids")
@@ -188,6 +213,24 @@ export async function POST(request: NextRequest) {
     if (bidError || !insertedBid) {
       return jsonError(bidError?.message || "Could not place bid.", 400);
     }
+
+    const { count: acceptedBidCount } = await supabase
+      .from("live_bids")
+      .select("id", { count: "exact", head: true })
+      .eq("auction_code", auctionCode);
+
+    const safeBidCount = Number(acceptedBidCount || 0);
+    const shouldUseMcReaction =
+      safeBidCount > 0 && safeBidCount % MC_REACTION_EVERY_NTH_BID === 0;
+
+    const message = shouldUseMcReaction
+      ? createBidReaction({
+          bidderName,
+          amount: roundedAmount,
+          nextAsk,
+          bidCount: safeBidCount,
+        })
+      : standardMessage;
 
     const { data: updatedAuction, error: updateError } = await supabase
       .from("live_auction_state")
