@@ -164,6 +164,36 @@ export default function DemoAuctionPage({
       ? "1 active bidder"
       : `${uniqueBidderCount} active bidders`;
 
+  const topBidderRows = useMemo(() => {
+    const bestByBidder = new Map<string, { name: string; amount: number }>();
+
+    bids.forEach((bid) => {
+      const name = bid.bidder_name.trim();
+      if (!name) return;
+
+      const key = name.toLowerCase();
+      const amount = Number(bid.amount || 0);
+      const existing = bestByBidder.get(key);
+
+      if (!existing || amount > existing.amount) {
+        bestByBidder.set(key, { name, amount });
+      }
+    });
+
+    return Array.from(bestByBidder.values())
+      .sort((left, right) => right.amount - left.amount)
+      .slice(0, 3);
+  }, [bids]);
+
+  const hasLiveBid =
+    Boolean(auction?.leading_bidder) &&
+    auction?.leading_bidder !== "No bids yet" &&
+    Number(auction?.current_bid || 0) > 0;
+
+  const liveBidEnergyText = hasLiveBid
+    ? `${auction?.leading_bidder} leads at ${Number(auction?.current_bid || 0).toLocaleString()} Rand`
+    : "Waiting for the first brave bid";
+
   const soldArtworksForTotal = useMemo(() => {
     return artworks.filter((artwork) => {
       const soldAmount = Number(artwork.sold_amount || 0);
@@ -1943,6 +1973,51 @@ export default function DemoAuctionPage({
               </p>
             </div>
           </div>
+
+          <div className="mt-3 rounded-[20px] bg-[#07152b] px-3 py-2 text-white shadow-inner">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[8px] font-black uppercase tracking-[0.24em] text-[#ffc857]">
+                  Bid Battle
+                </p>
+                <motion.p
+                  key={`${liveBidEnergyText}-${bidPulseKey}`}
+                  initial={{ opacity: 0.5, x: -4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="mt-0.5 truncate text-sm font-black leading-tight"
+                >
+                  🔥 {liveBidEnergyText}
+                </motion.p>
+              </div>
+
+              <div className="shrink-0 rounded-[14px] bg-[#16d66d] px-2.5 py-1 text-center text-[#07152b]">
+                <p className="text-[8px] font-black uppercase tracking-[0.16em]">
+                  Next
+                </p>
+                <p className="text-sm font-black leading-none">
+                  R{nextBidAmount.toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            {topBidderRows.length > 0 && (
+              <div className="mt-2 flex gap-1.5 overflow-hidden">
+                {topBidderRows.map((bidder, index) => (
+                  <div
+                    key={bidder.name}
+                    className="min-w-0 flex-1 rounded-[14px] bg-white/10 px-2 py-1"
+                  >
+                    <p className="truncate text-[9px] font-black leading-tight">
+                      {index + 1}. {bidder.name}
+                    </p>
+                    <p className="text-[9px] font-black leading-tight text-[#16d66d]">
+                      R{bidder.amount.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </motion.div>
 
         {mcReaction && !isSold && (
@@ -2061,7 +2136,7 @@ export default function DemoAuctionPage({
                 : isUrgency
                 ? "Last chance — tap to keep the artwork alive."
                 : canBid
-                ? `Secure bidding • ${bidderCounterLabel} • bid step R${bidIncrement.toLocaleString()}`
+                ? `Tap fast • ${bidderCounterLabel} • next bid R${nextBidAmount.toLocaleString()}`
                 : "Bidding will open after the MC introduces the artwork."}
             </p>
           </div>
