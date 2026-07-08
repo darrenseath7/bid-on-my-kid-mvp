@@ -1256,10 +1256,6 @@ export default function DemoAuctionPage({
             </div>
 
             <div className="space-y-2.5 p-3.5">
-              <p className="rounded-[22px] bg-[#eaf8ff] p-3 text-[12px] font-extrabold leading-snug text-slate-700">
-                Tonight we turn school artwork into a live fundraising event — with proud parents, competitive grandparents, and masterpieces that deserve prime fridge-door real estate.
-              </p>
-
               <ParentRaisedTotalCard
                 totalRaised={parentRaisedTotal}
                 soldCount={parentSoldCount}
@@ -1866,11 +1862,11 @@ export default function DemoAuctionPage({
                   )}
 
                   {(auction.child_name || auction.child_surname || auction.grade) && (
-                    <div className="absolute inset-x-2 bottom-2 rounded-[16px] bg-[#07152b]/88 px-3 py-2 text-white shadow-xl backdrop-blur-sm">
-                      <p className="truncate text-sm font-black leading-tight">
+                    <div className="absolute left-2 top-2 max-w-[54%] rounded-br-[16px] rounded-tl-[10px] bg-[#07152b]/86 px-2 py-1.5 text-white shadow-lg backdrop-blur-sm">
+                      <p className="truncate text-[10px] font-black leading-tight">
                         {auction.child_name} {auction.child_surname}
                       </p>
-                      <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-[#ffc857]">
+                      <p className="truncate text-[8px] font-black uppercase tracking-[0.14em] text-[#ffc857]">
                         {auction.grade || "Artwork"}
                       </p>
                     </div>
@@ -1942,12 +1938,12 @@ export default function DemoAuctionPage({
             key={mcReaction.id}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="shrink-0 rounded-[20px] border-2 border-[#ffc857] bg-[#07152b]/94 px-3 py-2 text-white shadow-xl"
+            className="shrink-0 rounded-[18px] border-2 border-[#ffc857] bg-[#07152b]/94 px-3 py-1.5 text-white shadow-lg"
           >
             <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#ffc857]">
               AI MC
             </p>
-            <p className="mt-1 text-sm font-black leading-snug">
+            <p className="mt-0.5 text-xs font-black leading-snug">
               {mcReaction.text}
             </p>
           </motion.div>

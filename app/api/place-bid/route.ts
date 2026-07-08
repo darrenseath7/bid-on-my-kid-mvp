@@ -95,11 +95,11 @@ function createBidReaction({
   bidCount: number;
 }) {
   const options = [
-    `${bidderName} is leading the way at R${amount.toLocaleString()} — someone check if that bidding thumb has a sponsor.`,
-    `R${amount.toLocaleString()} from ${bidderName}. The lounge-wall negotiations have officially begun.`,
-    `${bidderName} has taken the lead at R${amount.toLocaleString()}. Parents, stay calm — or at least look calm.`,
-    `R${amount.toLocaleString()}! ${bidderName} is not browsing anymore, that is a statement with Wi-Fi.`,
-    `${bidderName} is in front at R${amount.toLocaleString()}. Do I hear R${nextAsk.toLocaleString()}, or are we all just admiring bravely?`,
+    `${bidderName} leads at R${amount.toLocaleString()} — bold move!`,
+    `R${amount.toLocaleString()} from ${bidderName}. Game on!`,
+    `${bidderName} takes the lead. Parents, stay calm!`,
+    `R${amount.toLocaleString()}! ${bidderName} means business.`,
+    `${bidderName} is in front. Who wants R${nextAsk.toLocaleString()}?`,
   ];
 
   const selected = options[Math.abs(bidCount - 1) % options.length];
