@@ -135,6 +135,7 @@ export default function DemoAuctionPage({
   const previousBidRef = useRef<number | null>(null);
   const previousBidderRef = useRef<string | null>(null);
   const spokenMcReactionKeyRef = useRef("");
+  const elevenLabsReactionKeyRef = useRef("");
   const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bidNoticeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const audioUnlockedRef = useRef(false);
@@ -479,6 +480,63 @@ export default function DemoAuctionPage({
     return text.replace(/^MC_REACTION:\s*/i, "").trim();
   }
 
+  function getShortElevenLabsMcLine(reactionText: string, bidderName: string) {
+    const safeName = bidderName.trim() || "Someone";
+    const lowerText = reactionText.toLowerCase();
+
+    if (lowerText.includes("bold move")) return `${safeName}, bold move!`;
+    if (lowerText.includes("game on")) return `Game on, ${safeName}!`;
+    if (lowerText.includes("stay calm")) return "Parents, stay calm!";
+    if (lowerText.includes("means business")) return `${safeName} means business!`;
+    if (lowerText.includes("who wants")) return "Who wants it?";
+
+    return `Game on, ${safeName}!`;
+  }
+
+  async function playElevenLabsMcReaction({
+    text,
+    key,
+  }: {
+    text: string;
+    key: string;
+  }) {
+    if (!soundEnabled || !audioUnlockedRef.current) return;
+    if (elevenLabsReactionKeyRef.current === key) return;
+
+    elevenLabsReactionKeyRef.current = key;
+
+    try {
+      const response = await fetch("/api/mc-voice", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auctionCode,
+          text,
+          childName: "AI MC",
+          grade: "BragWall",
+          forceRegenerate: true,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.audioUrl) {
+        return;
+      }
+
+      const audio = new Audio(result.audioUrl);
+      audio.preload = "auto";
+      audio.volume = 1;
+      (audio as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
+
+      await audio.play().catch(() => {});
+    } catch {
+      // The visual MC reaction and bid-pop sound still work if mobile blocks this.
+    }
+  }
+
   function speakMcReaction(text: string, key: string) {
     if (!soundEnabled || !audioUnlockedRef.current) return;
     if (spokenMcReactionKeyRef.current === key) return;
@@ -795,12 +853,19 @@ export default function DemoAuctionPage({
       const reactionText = getMcReactionText(auction.mc_commentary);
 
       if (reactionText) {
+        const reactionKey = `${auction.artwork_id || auction.artwork_url || "artwork"}-${currentBid}-${currentBidder}`;
+        const shortMcLine = getShortElevenLabsMcLine(reactionText, currentBidder);
+
         setMcReaction({
           id: Date.now(),
           text: reactionText,
         });
 
         playBidEnergySound("reaction");
+        void playElevenLabsMcReaction({
+          text: shortMcLine,
+          key: reactionKey,
+        });
       } else {
         playBidEnergySound("bid");
       }
@@ -865,6 +930,7 @@ export default function DemoAuctionPage({
     setAuctionFlash(null);
     setMcReaction(null);
     spokenMcReactionKeyRef.current = "";
+    elevenLabsReactionKeyRef.current = "";
     setBidPulseKey(0);
     setAuction(null);
     setBids([]);
