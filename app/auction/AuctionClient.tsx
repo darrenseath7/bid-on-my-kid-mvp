@@ -482,15 +482,28 @@ export default function DemoAuctionPage({
 
   function getShortElevenLabsMcLine(reactionText: string, bidderName: string) {
     const safeName = bidderName.trim() || "Someone";
-    const lowerText = reactionText.toLowerCase();
 
-    if (lowerText.includes("bold move")) return `${safeName}, bold move!`;
-    if (lowerText.includes("game on")) return `Game on, ${safeName}!`;
-    if (lowerText.includes("stay calm")) return "Parents, stay calm!";
-    if (lowerText.includes("means business")) return `${safeName} means business!`;
-    if (lowerText.includes("who wants")) return "Who wants it?";
+    const options = [
+      `${safeName} came to play!`,
+      "Yoh, now it is getting serious!",
+      "Parents, the gloves are off!",
+      `${safeName} wants bragging rights!`,
+      "That bid has attitude!",
+      "Now we have an auction!",
+      "Eish, things are heating up!",
+      `${safeName} is not browsing!`,
+      "The wall-space battle begins!",
+      "Someone wants fridge fame!",
+    ];
 
-    return `Game on, ${safeName}!`;
+    let seed = 0;
+    const source = `${reactionText}|${safeName}`;
+
+    for (const char of source) {
+      seed += char.charCodeAt(0);
+    }
+
+    return options[Math.abs(seed) % options.length];
   }
 
   async function playElevenLabsMcReaction({
