@@ -419,6 +419,58 @@ export default function DemoAuctionPage({
     audio.play().catch(() => {});
   }
 
+  function playBidEnergySound(kind: "bid" | "reaction" = "bid") {
+    if (!soundEnabled || !audioUnlockedRef.current) return;
+    if (typeof window === "undefined") return;
+
+    try {
+      const AudioContextConstructor =
+        window.AudioContext ||
+        (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+      if (!AudioContextConstructor) return;
+
+      const audioContext =
+        audioContextRef.current || new AudioContextConstructor();
+
+      audioContextRef.current = audioContext;
+
+      if (audioContext.state === "suspended") {
+        void audioContext.resume();
+      }
+
+      const now = audioContext.currentTime;
+      const notes = kind === "reaction"
+        ? [
+            { start: 0, frequency: 740 },
+            { start: 0.115, frequency: 940 },
+          ]
+        : [
+            { start: 0, frequency: 780 },
+          ];
+
+      notes.forEach((note) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        oscillator.type = "triangle";
+        oscillator.frequency.setValueAtTime(note.frequency, now + note.start);
+
+        gain.gain.setValueAtTime(0.0001, now + note.start);
+        gain.gain.exponentialRampToValueAtTime(0.16, now + note.start + 0.015);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + note.start + 0.12);
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.start(now + note.start);
+        oscillator.stop(now + note.start + 0.14);
+      });
+    } catch {
+      // Sound is a bonus. Visual bid energy still works if the phone blocks audio.
+    }
+  }
+
   function getMcReactionText(value?: string | null) {
     const text = String(value || "").trim();
 
@@ -741,7 +793,6 @@ export default function DemoAuctionPage({
       setBidPulseKey((value) => value + 1);
 
       const reactionText = getMcReactionText(auction.mc_commentary);
-      const reactionKey = `${auction.artwork_id || auction.artwork_url || "artwork"}-${currentBid}-${currentBidder}`;
 
       if (reactionText) {
         setMcReaction({
@@ -749,7 +800,9 @@ export default function DemoAuctionPage({
           text: reactionText,
         });
 
-        speakMcReaction(reactionText, reactionKey);
+        playBidEnergySound("reaction");
+      } else {
+        playBidEnergySound("bid");
       }
 
       showAuctionFlash({
