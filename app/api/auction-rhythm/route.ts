@@ -454,12 +454,42 @@ export async function POST(request: Request) {
 
     const status = String(auction.status || "").trim();
 
+    if (status === "complete") {
+      return NextResponse.json({ action: "complete", auction });
+    }
+
     if (status !== "sold") {
       const stateArtworks = await fetchArtworks(supabaseAdmin, auctionCode);
       const currentStateArtwork = findArtworkForAuctionState(auction, stateArtworks);
 
       if (isCompletedSalesArtwork(currentStateArtwork)) {
         const bidIncrement = await fetchBidIncrement(supabaseAdmin, auctionCode);
+        const nextArtwork = getNextArtwork(currentStateArtwork, stateArtworks);
+
+        if (!nextArtwork) {
+          const { data: completedAuction, error: completeError } = await supabaseAdmin
+            .from("live_auction_state")
+            .update({
+              status: "complete",
+              status_deadline: null,
+              bid_pause_until: null,
+              mc_audio_url: null,
+              mc_commentary: "Auction complete. Thank you for supporting the young artists and the school fundraiser.",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("auction_code", auctionCode)
+            .select("*")
+            .maybeSingle();
+
+          if (completeError) return jsonError(completeError.message, 500);
+
+          await addActivity(supabaseAdmin, auctionCode, "Auction complete");
+
+          return NextResponse.json({
+            action: "completed_after_final_artwork",
+            auction: completedAuction || auction,
+          });
+        }
 
         const { data: clearedAuction, error: clearError } = await supabaseAdmin
           .from("live_auction_state")
