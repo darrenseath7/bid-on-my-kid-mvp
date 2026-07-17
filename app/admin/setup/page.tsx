@@ -249,6 +249,8 @@ export default function AdminSetupPage() {
   const uploadAbortControllerRef = useRef<AbortController | null>(null);
   const activeAuctionCodeRef = useRef(sanitizeAuctionCode(DEFAULT_AUCTION_CODE));
 
+  const draftAuctionCode = sanitizeAuctionCode(profile.auction_code || auctionCode || DEFAULT_AUCTION_CODE);
+
   const liveUpcomingArtworks = artworks.filter((artwork) => {
     return artwork.status !== "sold" && artwork.status !== "archived";
   });
@@ -537,9 +539,17 @@ export default function AdminSetupPage() {
           : "Uploading artwork..."
       );
 
+      const targetAuctionCode = sanitizeAuctionCode(profile.auction_code || auctionCode || DEFAULT_AUCTION_CODE);
+
+
+
       const formData = new FormData();
+
+
       formData.append("action", "upload-artwork");
-      formData.append("auctionCode", auctionCode);
+
+
+      formData.append("auctionCode", targetAuctionCode);
       formData.append("childName", childName);
       formData.append("childSurname", childSurname);
       formData.append("grade", grade);
@@ -572,7 +582,8 @@ export default function AdminSetupPage() {
       setGrade("Grade 3");
       setFile(null);
       setPreviewUrl("");
-      fetchArtworks(auctionCode);
+      setAdminAuctionCode(targetAuctionCode);
+      fetchArtworks(targetAuctionCode);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         setMessage("Upload cancelled. Your selected artwork is still ready if you want to try again.");
@@ -609,7 +620,7 @@ export default function AdminSetupPage() {
         result.message ||
           `${artwork.child_name} ${artwork.child_surname}'s artwork has been archived.`
       );
-      fetchArtworks(auctionCode);
+      fetchArtworks(draftAuctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not archive artwork."
@@ -629,7 +640,7 @@ export default function AdminSetupPage() {
         result.message ||
           `${artwork.child_name} ${artwork.child_surname}'s artwork has been restored to upcoming artworks.`
       );
-      fetchArtworks(auctionCode);
+      fetchArtworks(draftAuctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not restore artwork."
@@ -651,7 +662,7 @@ export default function AdminSetupPage() {
       });
 
       setMessage(result.message || "All unsold artworks have been moved to the archive.");
-      fetchArtworks(auctionCode);
+      fetchArtworks(draftAuctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -681,7 +692,7 @@ export default function AdminSetupPage() {
                 Parent link
               </p>
               <p className="mt-1 break-all text-xs font-black text-white/82">
-                /auction/{profile.auction_code || auctionCode}
+                /auction/{draftAuctionCode}
               </p>
             </div>
           </div>
@@ -736,7 +747,7 @@ export default function AdminSetupPage() {
 
               <Field
                 label="School URL slug"
-                value={profile.auction_code || auctionCode}
+                value={profile.auction_code}
                 onChange={(value) => updateProfileField("auction_code", value)}
                 placeholder="prime-primary"
               />
@@ -746,7 +757,7 @@ export default function AdminSetupPage() {
                   Parent auction link
                 </p>
                 <p className="mt-1 break-all text-sm font-black text-white">
-                  /auction/{profile.auction_code || auctionCode}
+                  /auction/{draftAuctionCode}
                 </p>
               </div>
 
@@ -984,7 +995,7 @@ export default function AdminSetupPage() {
             description="Manage the full artwork lifecycle from one place."
             action={
               <div className="flex flex-wrap gap-3">
-                <button onClick={() => fetchArtworks(auctionCode)} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black transition hover:bg-white/15">Refresh</button>
+                <button onClick={() => fetchArtworks(draftAuctionCode)} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black transition hover:bg-white/15">Refresh</button>
                 <button onClick={archiveAllUnsoldArtworks} disabled={liveUpcomingArtworks.length === 0} className="rounded-2xl bg-[#ffc857] px-4 py-3 text-sm font-black text-[#07152b] disabled:opacity-40">Archive Unsold</button>
               </div>
             }
