@@ -37,6 +37,16 @@ type Artwork = {
 
 const DEFAULT_AUCTION_CODE = "demo";
 
+function sanitizeDraftAuctionCode(value: unknown) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
 const MAX_COMPRESSED_IMAGE_WIDTH = 1600;
 const MAX_COMPRESSED_IMAGE_BYTES = 1.8 * 1024 * 1024;
 const COMPRESSED_IMAGE_QUALITY = 0.82;
@@ -249,7 +259,8 @@ export default function AdminSetupPage() {
   const uploadAbortControllerRef = useRef<AbortController | null>(null);
   const activeAuctionCodeRef = useRef(sanitizeAuctionCode(DEFAULT_AUCTION_CODE));
 
-  const draftAuctionCode = sanitizeAuctionCode(profile.auction_code || auctionCode || DEFAULT_AUCTION_CODE);
+  const draftAuctionCode = sanitizeDraftAuctionCode(profile.auction_code);
+  const parentDraftAuctionCode = draftAuctionCode || "new-school";
 
   const liveUpcomingArtworks = artworks.filter((artwork) => {
     return artwork.status !== "sold" && artwork.status !== "archived";
@@ -383,7 +394,7 @@ export default function AdminSetupPage() {
   function updateProfileField(field: keyof SchoolProfile, value: string) {
     setProfile((current) => ({
       ...current,
-      [field]: field === "auction_code" ? sanitizeAuctionCode(value) : value,
+      [field]: field === "auction_code" ? sanitizeDraftAuctionCode(value) : value,
     }));
   }
 
@@ -425,7 +436,13 @@ export default function AdminSetupPage() {
     setMessage("");
 
     try {
-      const targetAuctionCode = sanitizeAuctionCode(profile.auction_code || auctionCode);
+      const targetAuctionCode = sanitizeDraftAuctionCode(profile.auction_code);
+
+      if (!targetAuctionCode) {
+        setMessage("Please type a School URL slug first, for example: great-foundation.");
+        setSavingProfile(false);
+        return;
+      }
 
       const result = await runSetupAction({
         action: "save-profile",
@@ -539,7 +556,12 @@ export default function AdminSetupPage() {
           : "Uploading artwork..."
       );
 
-      const targetAuctionCode = sanitizeAuctionCode(profile.auction_code || auctionCode || DEFAULT_AUCTION_CODE);
+      const targetAuctionCode = sanitizeDraftAuctionCode(profile.auction_code);
+
+      if (!targetAuctionCode) {
+        setMessage("Please save a School URL slug before uploading artwork.");
+        return;
+      }
 
 
 
@@ -692,7 +714,7 @@ export default function AdminSetupPage() {
                 Parent link
               </p>
               <p className="mt-1 break-all text-xs font-black text-white/82">
-                /auction/{draftAuctionCode}
+                /auction/{parentDraftAuctionCode}
               </p>
             </div>
           </div>
@@ -757,7 +779,7 @@ export default function AdminSetupPage() {
                   Parent auction link
                 </p>
                 <p className="mt-1 break-all text-sm font-black text-white">
-                  /auction/{draftAuctionCode}
+                  /auction/{parentDraftAuctionCode}
                 </p>
               </div>
 

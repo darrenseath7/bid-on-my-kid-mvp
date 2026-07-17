@@ -21,6 +21,16 @@ function getAuctionLabel(option: AuctionOption) {
   return option.auction_code;
 }
 
+function sanitizeDraftAuctionCode(value: unknown) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
 export default function AdminAuctionSelector() {
   const [auctionCode, setAuctionCode] = useState(DEFAULT_ADMIN_AUCTION_CODE);
   const [draftCode, setDraftCode] = useState(DEFAULT_ADMIN_AUCTION_CODE);
@@ -82,7 +92,8 @@ export default function AdminAuctionSelector() {
     };
   }, []);
 
-  const safeDraftCode = sanitizeAuctionCode(draftCode);
+  const safeDraftCode = sanitizeDraftAuctionCode(draftCode);
+  const parentDraftCode = safeDraftCode || "new-school";
 
   const selectedAuction = useMemo(
     () => auctions.find((option) => option.auction_code === auctionCode),
@@ -94,13 +105,19 @@ export default function AdminAuctionSelector() {
     [auctions, safeDraftCode]
   );
 
-  const parentPath = `/auction/${safeDraftCode}`;
+  const parentPath = `/auction/${parentDraftCode}`;
   const parentUrl = origin ? `${origin}${parentPath}` : parentPath;
 
   function applyAuctionCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const nextCode = sanitizeAuctionCode(draftCode);
+    const nextCode = sanitizeDraftAuctionCode(draftCode);
+
+    if (!nextCode) {
+      alert("Please type a school URL slug first, for example: great-foundation");
+      return;
+    }
+
     window.localStorage.setItem(ADMIN_AUCTION_STORAGE_KEY, nextCode);
     setAuctionCode(nextCode);
     setDraftCode(nextCode);
@@ -111,13 +128,19 @@ export default function AdminAuctionSelector() {
   }
 
   function chooseExistingAuction(value: string) {
+    if (value === "__custom" || value === "__empty") {
+      setDraftCode("");
+      setCopied(false);
+      return;
+    }
+
     const nextCode = sanitizeAuctionCode(value);
     setDraftCode(nextCode);
     setCopied(false);
   }
 
   function updateDraftCode(value: string) {
-    setDraftCode(sanitizeAuctionCode(value));
+    setDraftCode(sanitizeDraftAuctionCode(value));
     setCopied(false);
   }
 
@@ -213,7 +236,7 @@ export default function AdminAuctionSelector() {
         </div>
 
         <a
-          href={`/auction/${auctionCode}`}
+          href={`/auction/${parentDraftCode}`}
           className="block rounded-2xl border border-white/12 bg-white/10 px-3 py-2.5 text-center text-xs font-black text-white hover:bg-white/15"
         >
           Parent View
