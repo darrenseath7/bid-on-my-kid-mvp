@@ -505,7 +505,7 @@ function InvoicePreview({
   winnerEmail: string;
   artworkName: string;
 }) {
-  const paymentReference = artworkName || `${item.child_name} ${item.child_surname}`.trim() || winnerName;
+  const paymentReference = `BW-${String(item.id).replace(/[^a-zA-Z0-9]/g, "").toUpperCase()}`;
   const isAfterAuctionRequest = item.status === "after_auction_request";
 
   return (
@@ -563,10 +563,11 @@ function InvoicePreview({
           <div className="rounded-[28px] bg-[#07152b] p-6 text-white shadow-xl">
             <p className="text-xs font-black uppercase tracking-[0.25em] text-white/45">Payment Details</p>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <PaymentLine label="Bank" value="Discovery Bank" />
-              <PaymentLine label="Branch Code" value="697000" />
-              <PaymentLine label="Account Type" value="Cheque account" />
-              <PaymentLine label="Account Number" value="1234567890" />
+              <PaymentLine label="Account Holder" value="Rynfield Primary" />
+              <PaymentLine label="Bank" value="ABSA" />
+              <PaymentLine label="Branch Code" value="630242" />
+              <PaymentLine label="Account Type" value="Cheque Account" />
+              <PaymentLine label="Account Number" value="220143422" />
               <PaymentLine label="Reference" value={paymentReference} highlight />
               <PaymentLine label="Amount" value={`R${amount.toLocaleString()}`} highlight />
             </div>
@@ -575,7 +576,7 @@ function InvoicePreview({
           <div className="rounded-[28px] border border-[#16d66d]/30 bg-white/88 p-6 shadow-sm">
             <p className="text-xs font-black uppercase tracking-[0.25em] text-[#16a064]">Important</p>
             <p className="mt-3 text-lg font-black leading-relaxed text-[#07152b]">
-              Please use the child’s name and surname as your payment reference so we can match your payment quickly.
+              Please use the unique invoice reference shown under Payment Details when making your EFT directly to Rynfield Primary.
             </p>
             <p className="mt-4 text-sm font-bold leading-relaxed text-slate-500">
               {isAfterAuctionRequest
@@ -842,7 +843,3 @@ function ActionBadge({ label, good }: { label: string; good: boolean }) {
     </span>
   );
 }
-
-
-
-
