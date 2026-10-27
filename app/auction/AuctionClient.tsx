@@ -2486,7 +2486,75 @@ function GalleryModal({
   const [requestEmails, setRequestEmails] = useState<Record<string, string>>({});
   const [submittingRequestIds, setSubmittingRequestIds] = useState<Record<string, boolean>>({});
   const [requestedIds, setRequestedIds] = useState<Record<string, boolean>>({});
+  const [claimEmails, setClaimEmails] = useState<Record<string, string>>({});
+  const [claimSubmitting, setClaimSubmitting] = useState<Record<string, boolean>>({});
+  const [claimCompleted, setClaimCompleted] = useState<Record<string, boolean>>({});
 
+  async function submitSoldArtworkEmail(artwork: Artwork) {
+    const email = String(claimEmails[artwork.id] || "")
+      .trim()
+      .toLowerCase();
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    if (auctionCode !== "rynfieldgrade1") {
+      alert("Email recovery is not available for this auction.");
+      return;
+    }
+
+    if (!window.confirm("Submit this email address for the selected sold artwork?")) {
+      return;
+    }
+
+    setClaimSubmitting((current) => ({
+      ...current,
+      [artwork.id]: true,
+    }));
+
+    try {
+      const response = await fetch("/api/claim-sold-artwork", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          auctionCode,
+          artworkId: artwork.id,
+          email,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not save email.");
+      }
+
+      setClaimCompleted((current) => ({
+        ...current,
+        [artwork.id]: true,
+      }));
+
+      await onRequestSaved();
+
+      alert("Thank you! Your email has been received.");
+
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Could not save email."
+      );
+    } finally {
+      setClaimSubmitting((current) => ({
+        ...current,
+        [artwork.id]: false,
+      }));
+    }
+  }
   async function submitUnsoldInvoiceRequest(artwork: Artwork) {
     const cleanEmail = String(requestEmails[artwork.id] || "").trim().toLowerCase();
     const cleanBidderName = bidderName.trim();
@@ -2716,6 +2784,59 @@ function GalleryModal({
                       </div>
                     )}
 
+                    {isSoldArtwork &&
+                      auctionCode === "rynfieldgrade1" &&
+                      !artwork.invoice_email_requested &&
+                      !claimCompleted[artwork.id] && (
+                        <div className="mt-4 rounded-[22px] border-2 border-[#16d66d] bg-[#16d66d]/10 p-4 text-[#07152b]">
+                          <p className="mb-2 text-lg font-black">
+                            Did you win this artwork?
+                          </p>
+
+                          <p className="mb-3 text-sm font-bold">
+                            If you missed the email submission after winning,
+                            enter your email address below so the school can
+                            contact you about your artwork.
+                          </p>
+
+                          <input
+                            type="email"
+                            value={claimEmails[artwork.id] || ""}
+                            onChange={(event) =>
+                              setClaimEmails((current) => ({
+                                ...current,
+                                [artwork.id]: event.target.value,
+                              }))
+                            }
+                            placeholder="Your email address"
+                            className="mb-3 w-full rounded-[18px] border-2 border-slate-200 bg-white px-4 py-3 text-base font-bold text-[#07152b] outline-none focus:border-[#16d66d]"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => submitSoldArtworkEmail(artwork)}
+                            disabled={Boolean(claimSubmitting[artwork.id])}
+                            className="w-full rounded-[18px] bg-[#07152b] px-4 py-3 font-black text-white disabled:opacity-50"
+                          >
+                            {claimSubmitting[artwork.id]
+                              ? "Submitting..."
+                              : "Add My Email"}
+                          </button>
+                        </div>
+                      )}
+
+                    {isSoldArtwork &&
+                      auctionCode === "rynfieldgrade1" &&
+                      claimCompleted[artwork.id] && (
+                        <div className="mt-4 rounded-[22px] bg-[#16d66d]/15 p-4 text-[#07152b]">
+                          <p className="font-black">
+                            Email received successfully!
+                          </p>
+                          <p className="mt-1 text-sm font-bold">
+                            Thank you. The school can now follow up with you.
+                          </p>
+                        </div>
+                      )}
                     {isSoldArtwork && (
                       <div className="mt-4 rounded-[22px] bg-[#07152b] text-white p-4">
                         <p className="uppercase tracking-[0.25em] text-[9px] text-white/45 font-black mb-2">
