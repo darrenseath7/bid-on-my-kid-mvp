@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { rateLimit } from "@/lib/rateLimit";
+import { createHash } from "crypto";
 
 const DEFAULT_AUCTION_CODE = "demo";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -174,95 +175,126 @@ export async function POST(request: Request) {
 
     const leadingBidder = normalizeName(auction.leading_bidder);
 
-    if (!leadingBidder || leadingBidder.toLowerCase() !== bidderName.toLowerCase()) {
-      return NextResponse.json({ error: "Only the winning bidder can submit the invoice email." }, { status: 403 });
+    if (
+      !leadingBidder ||
+      leadingBidder.toLowerCase() !== bidderName.toLowerCase()
+    ) {
+      return NextResponse.json(
+        { error: "Only the winning bidder can confirm this email." },
+        { status: 403 }
+      );
     }
 
-    if (!Number.isFinite(Number(auction.current_bid)) || Number(auction.current_bid) <= 0) {
-      return NextResponse.json({ error: "This artwork does not have a valid winning bid." }, { status: 409 });
+    const submittedContactId = String(
+      (body as { bidderContactId?: unknown }).bidderContactId || ""
+    ).trim();
+
+    const submittedToken = String(
+      (body as { bidderToken?: unknown }).bidderToken || ""
+    ).trim();
+
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(submittedContactId) ||
+      !/^[0-9a-f]{64}$/i.test(submittedToken)
+    ) {
+      return NextResponse.json(
+        { error: "Your bidder session is invalid." },
+        { status: 403 }
+      );
+    }
+
+    const leadingContactId = String(
+      auction.leading_bidder_contact_id || ""
+    ).trim();
+
+    if (
+      !leadingContactId ||
+      leadingContactId !== submittedContactId
+    ) {
+      return NextResponse.json(
+        { error: "This email can only be confirmed by the winning bidder." },
+        { status: 403 }
+      );
+    }
+
+    const tokenHash = createHash("sha256")
+      .update(submittedToken)
+      .digest("hex");
+
+    const { data: contact, error: contactError } = await supabaseAdmin
+      .from("auction_bidder_contacts")
+      .select("id,bidder_name")
+      .eq("id", submittedContactId)
+      .eq("auction_code", auctionCode)
+      .eq("bidder_token_hash", tokenHash)
+      .maybeSingle();
+
+    if (
+      contactError ||
+      !contact ||
+      normalizeName(contact.bidder_name).toLowerCase() !==
+        leadingBidder.toLowerCase()
+    ) {
+      return NextResponse.json(
+        { error: "Could not verify the winning bidder." },
+        { status: 403 }
+      );
+    }
+
+    if (
+      !Number.isFinite(Number(auction.current_bid)) ||
+      Number(auction.current_bid) <= 0
+    ) {
+      return NextResponse.json(
+        { error: "This artwork does not have a valid winning bid." },
+        { status: 409 }
+      );
+    }
+
+    const currentArtworkId = String(auction.artwork_id || "").trim();
+
+    if (!currentArtworkId) {
+      return NextResponse.json(
+        { error: "Current artwork could not be identified." },
+        { status: 409 }
+      );
+    }
+
+    if (artworkId && artworkId !== currentArtworkId) {
+      return NextResponse.json(
+        { error: "This artwork is no longer active." },
+        { status: 409 }
+      );
     }
 
     const submittedAt = new Date().toISOString();
-    const nextArtworkDeadline = new Date(Date.now() + NEXT_ARTWORK_COUNTDOWN_SECONDS * 1000).toISOString();
 
-    let artworkQuery = supabaseAdmin
+    const { data: updatedArtwork, error: artworkError } = await supabaseAdmin
       .from("demo_artworks")
       .update({
         winner_email: email,
         invoice_email_requested_at: submittedAt,
-        certificate_email_requested_at: null,
       })
+      .eq("id", currentArtworkId)
       .eq("auction_code", auctionCode)
       .eq("status", "sold")
-      .eq("winning_bidder", auction.leading_bidder);
+      .eq("winning_bidder", auction.leading_bidder)
+      .select("id")
+      .maybeSingle();
 
-    if (artworkId) {
-      artworkQuery = artworkQuery.eq("id", artworkId);
-    } else if (auction.artwork_id) {
-      artworkQuery = artworkQuery.eq("id", auction.artwork_id);
+    if (artworkError || !updatedArtwork) {
+      return NextResponse.json(
+        { error: "Could not confirm the winner email." },
+        { status: 409 }
+      );
     }
 
-    const { error: artworkError } = await artworkQuery;
-
-    if (artworkError) {
-      return NextResponse.json({ error: "Could not update artwork winner email." }, { status: 500 });
-    }
-
-    const artworks = await fetchArtworks(supabaseAdmin, auctionCode);
-    const currentArtwork = getCurrentArtwork(auction, artworks);
-    const nextArtwork = getNextArtwork(currentArtwork, artworks);
-
-    const nextStatePatch = nextArtwork
-      ? {
-          artwork_id: nextArtwork.id,
-          child_name: nextArtwork.child_name,
-          child_surname: nextArtwork.child_surname,
-          grade: nextArtwork.grade,
-          artwork_url: getArtworkDisplayUrl(nextArtwork),
-          current_bid: 0,
-          leading_bidder: "No bids yet",
-          status: "next_artwork_countdown",
-          status_deadline: nextArtworkDeadline,
-          bid_pause_until: null,
-          next_bid_amount: null,
-          last_bid_at: null,
-          winner_email: email,
-          winner_email_submitted_at: submittedAt,
-          mc_commentary: `Winner email received. Next artwork appears now and the AI MC starts in ${NEXT_ARTWORK_COUNTDOWN_SECONDS} seconds.`,
-          mc_audio_url: null,
-          updated_at: submittedAt,
-        }
-      : {
-          winner_email: email,
-          winner_email_submitted_at: submittedAt,
-          status_deadline: nextArtworkDeadline,
-          mc_commentary: `Winner email received. Auction will finish in ${NEXT_ARTWORK_COUNTDOWN_SECONDS} seconds.`,
-          updated_at: submittedAt,
-        };
-
-    const { data: updatedAuction, error: stateError } = await supabaseAdmin
-      .from("live_auction_state")
-      .update(nextStatePatch)
-      .eq("auction_code", auctionCode)
-      .eq("status", "sold")
-      .eq("leading_bidder", auction.leading_bidder)
-      .select("*")
-      .single();
-
-    if (stateError || !updatedAuction) {
-      return NextResponse.json({ error: "Could not save winner email." }, { status: 500 });
-    }
-
-    await supabaseAdmin.from("live_activity_feed").insert({
-      auction_code: auctionCode,
-      message: nextArtwork
-        ? `${auction.leading_bidder} submitted email. Next artwork by ${nextArtwork.child_name} ${nextArtwork.child_surname} starts in ${NEXT_ARTWORK_COUNTDOWN_SECONDS} seconds.`
-        : `${auction.leading_bidder} submitted email. Auction complete countdown started.`,
-    });
-
+    // Email confirmation must not advance the auction.
+    // The existing auction rhythm controls the 15-second winner stage.
     return NextResponse.json({
       ok: true,
-      auction: updatedAuction,
+      message: "Email confirmed successfully.",
+      emailConfirmed: true,
     });
   } catch (error) {
     console.error("submit-winner-email error:", error);

@@ -12,6 +12,7 @@ type AuctionState = {
   artwork_url: string;
   current_bid: number;
   leading_bidder: string;
+  leading_bidder_contact_id?: string | null;
   status: string;
   total_raised?: number | null;
   status_deadline?: string | null;
@@ -432,6 +433,7 @@ async function moveToArtwork(
       artwork_url: displayUrl,
       current_bid: 0,
       leading_bidder: "No bids yet",
+      leading_bidder_contact_id: null,
       status: "preparing_intro",
       status_deadline: null,
       bid_pause_until: null,
@@ -476,6 +478,7 @@ async function moveToArtwork(
       artwork_url: displayUrl,
       current_bid: 0,
       leading_bidder: "No bids yet",
+      leading_bidder_contact_id: null,
       status: "intro",
       status_deadline: null,
       bid_pause_until: null,
@@ -642,13 +645,52 @@ export async function POST(request: NextRequest) {
         return jsonError("You need a winning bid before marking this artwork as sold.");
       }
 
+      // Resolve the registered email of the winning bidder.
+      let registeredWinnerEmail: string | null = null;
+
+      const leadingContactId = String(
+        auction.leading_bidder_contact_id || ""
+      ).trim();
+
+      if (leadingContactId) {
+        const { data: winningContact, error: contactError } = await supabaseAdmin
+          .from("auction_bidder_contacts")
+          .select("id,auction_code,bidder_name,bidder_email")
+          .eq("id", leadingContactId)
+          .eq("auction_code", AUCTION_CODE)
+          .maybeSingle();
+
+        if (
+          !contactError &&
+          winningContact &&
+          String(winningContact.bidder_name || "").trim().toLowerCase() ===
+            String(auction.leading_bidder || "").trim().toLowerCase()
+        ) {
+          registeredWinnerEmail =
+            String(winningContact.bidder_email || "").trim().toLowerCase() || null;
+        }
+      }
+
+      const soldArtworkPatch: {
+        status: string;
+        sold_amount: number;
+        winning_bidder: string;
+        winner_email?: string;
+        invoice_email_requested_at?: string;
+      } = {
+        status: "sold",
+        sold_amount: auction.current_bid,
+        winning_bidder: auction.leading_bidder,
+      };
+
+      if (registeredWinnerEmail) {
+        soldArtworkPatch.winner_email = registeredWinnerEmail;
+        soldArtworkPatch.invoice_email_requested_at = new Date().toISOString();
+      }
+
       const { error: artworkError } = await supabaseAdmin
         .from("demo_artworks")
-        .update({
-          status: "sold",
-          sold_amount: auction.current_bid,
-          winning_bidder: auction.leading_bidder,
-        })
+        .update(soldArtworkPatch)
         .eq("id", currentArtwork.id);
 
       if (artworkError) throw new Error(artworkError.message);
@@ -701,6 +743,7 @@ export async function POST(request: NextRequest) {
           artwork_url: "",
           current_bid: 0,
           leading_bidder: "No bids yet",
+          leading_bidder_contact_id: null,
           status: "waiting",
           status_deadline: null,
           bid_pause_until: null,
@@ -742,6 +785,7 @@ export async function POST(request: NextRequest) {
           artwork_url: "",
           current_bid: 0,
           leading_bidder: "No bids yet",
+          leading_bidder_contact_id: null,
           status: "waiting",
           status_deadline: null,
           bid_pause_until: null,
@@ -768,6 +812,7 @@ export async function POST(request: NextRequest) {
         .update({
           current_bid: 0,
           leading_bidder: "No bids yet",
+          leading_bidder_contact_id: null,
           next_bid_amount: bidIncrement,
           last_bid_at: null,
           bid_pause_until: null,

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { rateLimit } from "@/lib/rateLimit";
+import { createHash } from "crypto";
 
 type AuctionState = {
   auction_code?: string;
@@ -128,6 +129,8 @@ export async function POST(request: NextRequest) {
     const auctionCode = normalizeAuctionCode(body?.auctionCode);
     const bidderName = normalizeBidderName(body?.bidderName);
     const amount = Number(body?.amount);
+    const bidderContactId = String(body?.bidderContactId || "").trim();
+    const bidderToken = String(body?.bidderToken || "").trim();
 
     if (!isValidAuctionCode(auctionCode)) {
       return jsonError("Invalid auction code.", 400);
@@ -148,6 +151,34 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
+
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bidderContactId)) {
+      return jsonError("Please rejoin the auction to register your email.", 403);
+    }
+
+    if (!/^[0-9a-f]{64}$/i.test(bidderToken)) {
+      return jsonError("Your bidder session is invalid. Please rejoin the auction.", 403);
+    }
+
+    const bidderTokenHash = createHash("sha256")
+      .update(bidderToken)
+      .digest("hex");
+
+    const { data: bidderContact, error: contactError } = await supabase
+      .from("auction_bidder_contacts")
+      .select("id,auction_code,bidder_name")
+      .eq("id", bidderContactId)
+      .eq("auction_code", auctionCode)
+      .eq("bidder_token_hash", bidderTokenHash)
+      .maybeSingle();
+
+    if (
+      contactError ||
+      !bidderContact ||
+      bidderContact.bidder_name.trim().toLowerCase() !== bidderName.toLowerCase()
+    ) {
+      return jsonError("Bidder details could not be verified. Please rejoin the auction.", 403);
+    }
 
     const { data: auction, error: auctionError } = await supabase
       .from("live_auction_state")
@@ -208,6 +239,7 @@ export async function POST(request: NextRequest) {
       .insert({
         auction_code: auctionCode,
         bidder_name: bidderName,
+        bidder_contact_id: bidderContactId,
         amount: roundedAmount,
       })
       .select("id")
@@ -240,6 +272,7 @@ export async function POST(request: NextRequest) {
       .update({
         current_bid: roundedAmount,
         leading_bidder: bidderName,
+        leading_bidder_contact_id: bidderContactId,
         next_bid_amount: nextAsk,
         bid_pause_until: pauseUntil,
         last_bid_at: now.toISOString(),

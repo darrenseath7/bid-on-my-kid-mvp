@@ -369,6 +369,7 @@ async function moveToArtwork(
       artwork_url: displayUrl,
       current_bid: 0,
       leading_bidder: "No bids yet",
+      leading_bidder_contact_id: null,
       status: "preparing_intro",
       status_deadline: null,
       bid_pause_until: null,
@@ -405,6 +406,7 @@ async function moveToArtwork(
       artwork_url: displayUrl,
       current_bid: 0,
       leading_bidder: "No bids yet",
+      leading_bidder_contact_id: null,
       status: "intro",
       status_deadline: null,
       bid_pause_until: null,
@@ -501,6 +503,7 @@ export async function POST(request: Request) {
             artwork_id: null,
             current_bid: 0,
             leading_bidder: "No bids yet",
+            leading_bidder_contact_id: null,
             status: "waiting",
             status_deadline: null,
             bid_pause_until: null,
@@ -690,6 +693,7 @@ export async function POST(request: Request) {
             bid_pause_until: null,
             current_bid: 0,
             leading_bidder: "No bids yet",
+            leading_bidder_contact_id: null,
             mc_audio_url: null,
             mc_commentary: `No bids received for ${currentArtwork.child_name} ${currentArtwork.child_surname}. This artwork has been archived as unsold and is available from the gallery after the auction. Auction complete.`,
             updated_at: new Date().toISOString(),
@@ -718,6 +722,7 @@ export async function POST(request: Request) {
           artwork_url: nextDisplayUrl,
           current_bid: 0,
           leading_bidder: "No bids yet",
+          leading_bidder_contact_id: null,
           status: "next_artwork_countdown",
           status_deadline: countdownDeadline,
           bid_pause_until: null,
@@ -822,12 +827,68 @@ export async function POST(request: Request) {
       if (updateError) return jsonError(updateError.message, 500);
       if (!updatedAuction) return NextResponse.json({ action: "none", auction });
 
-      await supabaseAdmin
+      // Resolve the registered email for the actual winning bidder.
+      // Never trust a bidder name alone.
+      let registeredWinnerEmail: string | null = null;
+
+      const leadingContactId = String(
+        updatedAuction.leading_bidder_contact_id || ""
+      ).trim();
+
+      if (leadingContactId) {
+        const { data: winningContact, error: contactError } = await supabaseAdmin
+          .from("auction_bidder_contacts")
+          .select("id,auction_code,bidder_name,bidder_email")
+          .eq("id", leadingContactId)
+          .eq("auction_code", auctionCode)
+          .maybeSingle();
+
+        if (
+          !contactError &&
+          winningContact &&
+          String(winningContact.bidder_name || "").trim().toLowerCase() ===
+            String(leadingBidder || "").trim().toLowerCase()
+        ) {
+          registeredWinnerEmail =
+            String(winningContact.bidder_email || "").trim().toLowerCase() || null;
+        }
+      }
+
+      const soldArtworkPatch: {
+        status: string;
+        sold_amount: number;
+        winning_bidder: string;
+        winner_email?: string;
+        invoice_email_requested_at?: string;
+      } = {
+        status: "sold",
+        sold_amount: currentBid,
+        winning_bidder: leadingBidder,
+      };
+
+      if (registeredWinnerEmail) {
+        soldArtworkPatch.winner_email = registeredWinnerEmail;
+        soldArtworkPatch.invoice_email_requested_at = new Date().toISOString();
+      }
+
+      const { data: savedArtwork, error: soldArtworkError } = await supabaseAdmin
         .from("demo_artworks")
-        .update({ status: "sold", sold_amount: currentBid, winning_bidder: leadingBidder })
+        .update(soldArtworkPatch)
         .eq("auction_code", auctionCode)
+        .eq("id", updatedAuction.artwork_id)
         .eq("status", "live")
-        .is("invoice_email_requested_at", null);
+        .is("invoice_email_requested_at", null)
+        .select("id")
+        .maybeSingle();
+
+      if (soldArtworkError || !savedArtwork) {
+        console.error("Could not save sold artwork and winner email:", soldArtworkError);
+
+        return jsonError(
+          "Auction reached SOLD, but the artwork record could not be saved. Admin intervention required.",
+          500
+        );
+      }
 
       await addActivity(supabaseAdmin, auctionCode, `SOLD to ${leadingBidder} for R${currentBid.toLocaleString()}`);
       return NextResponse.json({ action: "sold", auction: updatedAuction });

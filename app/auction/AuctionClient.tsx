@@ -104,6 +104,33 @@ export default function DemoAuctionPage({
   const [bids, setBids] = useState<Bid[]>([]);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [bidderName, setBidderName] = useState("");
+  const [bidderEmail, setBidderEmail] = useState("");
+  const [bidderContactId, setBidderContactId] = useState<string | null>(null);
+  const [bidderToken, setBidderToken] = useState<string | null>(null);
+  const [joiningAuction, setJoiningAuction] = useState(false);
+
+  // Restore parent details for this specific auction.
+  // Parents must still tap Join Auction to enable browser audio.
+  useEffect(() => {
+    try {
+      const storageKey = `bragwall-bidder-${auctionCode}`;
+      const savedRaw = window.localStorage.getItem(storageKey);
+
+      if (!savedRaw) return;
+
+      const saved = JSON.parse(savedRaw);
+
+      if (
+        typeof saved.bidderName === "string" &&
+        typeof saved.bidderEmail === "string"
+      ) {
+        setBidderName(saved.bidderName);
+        setBidderEmail(saved.bidderEmail);
+      }
+    } catch (error) {
+      console.error("Could not restore saved bidder details:", error);
+    }
+  }, [auctionCode]);
   const [joined, setJoined] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -666,13 +693,79 @@ export default function DemoAuctionPage({
     }
   }
 
-  function handleJoinAuction() {
+  async function handleJoinAuction() {
     const cleanBidderName = bidderName.trim();
+    const cleanBidderEmail = bidderEmail.trim().toLowerCase();
 
     if (!cleanBidderName) {
       alert("Please enter your bidder name first.");
       return;
     }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanBidderEmail)) {
+      alert("Please enter a valid email address.");
+      return;
+    }
+
+    if (joiningAuction) return;
+
+    setJoiningAuction(true);
+
+    try {
+      const storageKey = `bragwall-bidder-${auctionCode}`;
+
+      const savedRaw = localStorage.getItem(storageKey);
+      const saved = savedRaw ? JSON.parse(savedRaw) : null;
+
+      let contactId: string | null = null;
+      let contactToken: string | null = null;
+
+      if (
+        saved &&
+        saved.bidderName === cleanBidderName &&
+        saved.bidderEmail === cleanBidderEmail &&
+        typeof saved.bidderContactId === "string" &&
+        typeof saved.bidderToken === "string" &&
+        saved.bidderToken.length >= 32
+      ) {
+        contactId = saved.bidderContactId;
+        contactToken = saved.bidderToken;
+      } else {
+        const response = await fetch("/api/register-auction-bidder", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            auctionCode,
+            bidderName: cleanBidderName,
+            bidderEmail: cleanBidderEmail,
+          }),
+        });
+
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || !result?.bidderContactId || !result?.bidderToken) {
+          throw new Error(result?.error || "Could not register bidder.");
+        }
+
+        contactId = result.bidderContactId;
+        contactToken = result.bidderToken;
+      }
+
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          bidderName: cleanBidderName,
+          bidderEmail: cleanBidderEmail,
+          bidderContactId: contactId,
+          bidderToken: contactToken,
+        })
+      );
+
+      setBidderContactId(contactId);
+      setBidderToken(contactToken);
+      setBidderEmail(cleanBidderEmail);
 
     if (typeof document !== "undefined") {
       const activeElement = document.activeElement;
@@ -694,6 +787,11 @@ export default function DemoAuctionPage({
     // Parent join must not start the auction.
     // Parents join the waiting room, enable sound, and can view the gallery.
     // The admin controls the real auction start from the Live Room.
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Could not join auction.");
+    } finally {
+      setJoiningAuction(false);
+    }
   }
 
   async function openBiddingAfterIntro(reason: "audio-finished" | "backup-timer") {
@@ -1011,7 +1109,7 @@ export default function DemoAuctionPage({
     if (previousArtworkKeyRef.current !== activeArtworkKey) {
       previousArtworkKeyRef.current = activeArtworkKey;
       setEmailSubmittedArtworkKey(null);
-      setWinnerEmail("");
+      setWinnerEmail(bidderEmail);
       setSubmittingEmail(false);
     }
   }, [activeArtworkKey]);
@@ -1282,6 +1380,8 @@ export default function DemoAuctionPage({
         body: JSON.stringify({
           auctionCode: auctionCode,
           bidderName: cleanBidderName,
+          bidderContactId,
+          bidderToken,
           amount,
         }),
       });
@@ -1351,6 +1451,8 @@ export default function DemoAuctionPage({
         body: JSON.stringify({
           auctionCode: auctionCode,
           bidderName: cleanBidderName || cleanEmail,
+          bidderContactId,
+          bidderToken,
           email: cleanEmail,
           artworkId: auction.artwork_id || activeArtwork?.id || null,
         }),
@@ -1362,12 +1464,11 @@ export default function DemoAuctionPage({
         throw new Error(result?.error || "Could not save email.");
       }
 
-      if (result?.auction) {
-        setAuction({
-          ...result.auction,
-          winner_email_submitted: true,
-          winner_email: result.auction.winner_email || cleanEmail,
-        });
+      // Confirmation saves the email only.
+      // Auction progression remains controlled by the existing rhythm.
+      if (result?.emailConfirmed) {
+        setEmailSubmittedArtworkKey(activeArtworkKey);
+        setBidderEmail(cleanEmail);
       }
 
       setEmailSubmittedArtworkKey(activeArtworkKey);
@@ -1478,6 +1579,15 @@ export default function DemoAuctionPage({
                 className="w-full rounded-[22px] border-2 border-slate-200 bg-white px-5 py-3.5 text-base font-bold outline-none focus:border-[#16d66d]"
               />
 
+              <input
+                type="email"
+                value={bidderEmail}
+                onChange={(event) => setBidderEmail(event.target.value)}
+                placeholder="Your email address"
+                autoComplete="email"
+                className="w-full rounded-[22px] border-2 border-slate-200 bg-white px-5 py-3.5 text-base font-bold outline-none focus:border-[#16d66d]"
+              />
+
               <button
                 type="button"
                 onTouchStart={() => {
@@ -1487,9 +1597,10 @@ export default function DemoAuctionPage({
                   audioUnlockedRef.current = true;
                 }}
                 onClick={handleJoinAuction}
+                disabled={joiningAuction}
                 className="relative z-10 w-full touch-manipulation select-none rounded-[26px] bg-[#07152b] py-4 text-base font-black text-white shadow-[0_18px_35px_rgba(7,21,43,0.28)] active:scale-[0.98]"
               >
-                JOIN AUCTION & ENABLE SOUND
+                {joiningAuction ? "JOINING AUCTION..." : "JOIN AUCTION & ENABLE SOUND"}
               </button>
 
               <p className="px-2 pb-1 text-center text-[9px] font-black leading-snug text-slate-500">
@@ -1754,7 +1865,7 @@ export default function DemoAuctionPage({
                       </h2>
 
                       <p className="text-slate-600 font-bold leading-relaxed">
-                        Enter your email for the invoice and artwork certificate. If you do not enter it in time, the auction will keep moving and admin can follow up later.
+                        Your email has been saved automatically. You can correct it before the auction moves on.
                       </p>
                     </div>
                   </div>
@@ -1774,7 +1885,7 @@ export default function DemoAuctionPage({
                   >
                     {submittingEmail
                       ? "Saving Email..."
-                      : "Receive invoice and artwork certificate"}
+                      : "Confirm Email"}
                   </button>
 
                   <p className="text-center text-slate-500 text-sm font-bold mt-4">
