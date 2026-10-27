@@ -580,7 +580,17 @@ function InvoicePreview({
   winnerEmail: string;
   artworkName: string;
 }) {
-  const paymentReference = `BW-${String(item.id).replace(/[^a-zA-Z0-9]/g, "").toUpperCase()}`;
+  const shortReferencePrefixes: Record<string, string> = {
+    rynfieldgrade2ab: "G2AB",
+    rynfieldgrade2cd: "G2CD",
+    rynfieldgrade2e: "G2E",
+  };
+
+  const referencePrefix = shortReferencePrefixes[item.auction_code || ""];
+
+  const paymentReference = referencePrefix
+    ? `${referencePrefix}-${String(item.sort_order).padStart(3, "0")}-${String(item.id).replace(/-/g, "").slice(0, 4).toUpperCase()}`
+    : `BW-${String(item.id).replace(/[^a-zA-Z0-9]/g, "").toUpperCase()}`;
   const isAfterAuctionRequest = item.status === "after_auction_request";
 
   return (
