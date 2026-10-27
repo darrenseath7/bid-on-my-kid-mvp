@@ -52,7 +52,7 @@ type SchoolProfile = {
 };
 
 const DEFAULT_AUCTION_CODE = "demo";
-let AUCTION_CODE = DEFAULT_AUCTION_CODE;
+
 const DEFAULT_BID_STEP = 100;
 
 function getSafeAuctionCode(value: unknown) {
@@ -273,21 +273,22 @@ async function assertAdmin(request: NextRequest) {
 
 async function addActivity(
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
-  message: string
+  message: string,
+  auctionCode: string
 ) {
   const { error } = await supabaseAdmin.from("live_activity_feed").insert({
-    auction_code: AUCTION_CODE,
+    auction_code: auctionCode,
     message,
   });
 
   if (error) throw new Error(error.message);
 }
 
-async function fetchAuction(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>) {
+async function fetchAuction(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>, auctionCode: string) {
   const { data, error } = await supabaseAdmin
     .from("live_auction_state")
     .select("*")
-    .eq("auction_code", AUCTION_CODE)
+    .eq("auction_code", auctionCode)
     .single();
 
   if (error) throw new Error(error.message);
@@ -295,11 +296,11 @@ async function fetchAuction(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>) 
   return data as AuctionState;
 }
 
-async function fetchBidIncrement(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>) {
+async function fetchBidIncrement(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>, auctionCode: string) {
   const { data } = await supabaseAdmin
     .from("demo_school_profile")
     .select("auction_code,bid_increment")
-    .eq("auction_code", AUCTION_CODE)
+    .eq("auction_code", auctionCode)
     .maybeSingle();
 
   const profile = data as SchoolProfile | null;
@@ -307,11 +308,11 @@ async function fetchBidIncrement(supabaseAdmin: ReturnType<typeof getSupabaseAdm
   return getSafeBidIncrement(profile?.bid_increment);
 }
 
-async function fetchArtworks(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>) {
+async function fetchArtworks(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>, auctionCode: string) {
   const { data, error } = await supabaseAdmin
     .from("demo_artworks")
     .select("*")
-    .eq("auction_code", AUCTION_CODE)
+    .eq("auction_code", auctionCode)
     .order("sort_order", { ascending: true });
 
   if (error) throw new Error(error.message);
@@ -321,7 +322,8 @@ async function fetchArtworks(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>)
 
 async function fetchArtworkById(
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
-  artworkId: string
+  artworkId: string,
+  auctionCode: string
 ) {
   const safeArtworkId = String(artworkId || "").trim();
 
@@ -332,7 +334,7 @@ async function fetchArtworkById(
   const { data, error } = await supabaseAdmin
     .from("demo_artworks")
     .select("*")
-    .eq("auction_code", AUCTION_CODE)
+    .eq("auction_code", auctionCode)
     .eq("id", safeArtworkId)
     .maybeSingle();
 
@@ -342,7 +344,7 @@ async function fetchArtworkById(
 
   if (!data) {
     throw new Error(
-      `Artwork not found for auction "${AUCTION_CODE}". Please refresh Admin Live and select an active artwork again.`
+      `Artwork not found for auction "${auctionCode}". Please refresh Admin Live and select an active artwork again.`
     );
   }
 
@@ -352,7 +354,8 @@ async function fetchArtworkById(
 async function generateMcVoiceAudio(
   request: NextRequest,
   artwork: Artwork,
-  commentary: string
+  commentary: string,
+  auctionCode: string
 ) {
   try {
     const origin = request.headers.get("origin") || new URL(request.url).origin;
@@ -363,7 +366,7 @@ async function generateMcVoiceAudio(
         Cookie: request.headers.get("cookie") || "",
       },
       body: JSON.stringify({
-        auctionCode: AUCTION_CODE,
+        auctionCode: auctionCode,
         artworkId: artwork.id,
         text: commentary,
         childName: [artwork.child_name, artwork.child_surname]
@@ -391,19 +394,20 @@ async function generateMcVoiceAudio(
 async function moveToArtwork(
   request: NextRequest,
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
-  artworkId: string
+  artworkId: string,
+  auctionCode: string
 ) {
-  const artwork = await fetchArtworkById(supabaseAdmin, artworkId);
-  const bidIncrement = await fetchBidIncrement(supabaseAdmin);
+  const artwork = await fetchArtworkById(supabaseAdmin, artworkId, auctionCode);
+  const bidIncrement = await fetchBidIncrement(supabaseAdmin, auctionCode);
   const displayUrl = getArtworkDisplayUrl(artwork);
   const commentary = await generateAiMcIntroText(request, artwork, displayUrl);
 
-  await supabaseAdmin.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
+  await supabaseAdmin.from("live_bids").delete().eq("auction_code", auctionCode);
 
   const { error: queueError } = await supabaseAdmin
     .from("demo_artworks")
     .update({ status: "queued" })
-    .eq("auction_code", AUCTION_CODE)
+    .eq("auction_code", auctionCode)
     .in("status", [
       "live",
       "preparing_intro",
@@ -446,16 +450,17 @@ async function moveToArtwork(
       mc_audio_url: null,
       updated_at: new Date().toISOString(),
     })
-    .eq("auction_code", AUCTION_CODE);
+    .eq("auction_code", auctionCode);
 
   if (preparingError) throw new Error(preparingError.message);
 
   await addActivity(
     supabaseAdmin,
-    `Preparing AI MC intro for ${artwork.child_name} ${artwork.child_surname}`
+    `Preparing AI MC intro for ${artwork.child_name} ${artwork.child_surname}`,
+    auctionCode
   );
 
-  const mcAudioUrl = await generateMcVoiceAudio(request, artwork, commentary);
+  const mcAudioUrl = await generateMcVoiceAudio(request, artwork, commentary, auctionCode);
 
   const { error: finalArtworkError } = await supabaseAdmin
     .from("demo_artworks")
@@ -490,7 +495,7 @@ async function moveToArtwork(
       mc_audio_url: mcAudioUrl,
       updated_at: new Date().toISOString(),
     })
-    .eq("auction_code", AUCTION_CODE);
+    .eq("auction_code", auctionCode);
 
   if (stateError) throw new Error(stateError.message);
 
@@ -498,7 +503,8 @@ async function moveToArtwork(
     supabaseAdmin,
     mcAudioUrl
       ? `AI MC voice generated for ${artwork.child_name} ${artwork.child_surname}`
-      : `MC intro started for ${artwork.child_name} ${artwork.child_surname}`
+      : `MC intro started for ${artwork.child_name} ${artwork.child_surname}`,
+    auctionCode
   );
 }
 
@@ -517,25 +523,25 @@ export async function POST(request: NextRequest) {
     return jsonError("Invalid JSON body.");
   }
 
-  AUCTION_CODE = getSafeAuctionCode((body as { auctionCode?: unknown }).auctionCode);
+  const auctionCode = getSafeAuctionCode((body as { auctionCode?: unknown }).auctionCode);
   const action = String(body.action || "");
 
   try {
     const supabaseAdmin = getSupabaseAdmin();
-    const bidIncrement = await fetchBidIncrement(supabaseAdmin);
+    const bidIncrement = await fetchBidIncrement(supabaseAdmin, auctionCode);
 
     if (action === "move-to-artwork") {
       const artworkId = String(body.artworkId || "");
 
       if (!artworkId) return jsonError("Missing artworkId.");
 
-      await moveToArtwork(request, supabaseAdmin, artworkId);
+      await moveToArtwork(request, supabaseAdmin, artworkId, auctionCode);
       return NextResponse.json({ ok: true });
     }
 
     if (action === "next-artwork") {
-      const auction = await fetchAuction(supabaseAdmin);
-      const artworks = await fetchArtworks(supabaseAdmin);
+      const auction = await fetchAuction(supabaseAdmin, auctionCode);
+      const artworks = await fetchArtworks(supabaseAdmin, auctionCode);
       const currentArtwork = getCurrentArtwork(auction, artworks);
       const activeQueueArtworks = artworks.filter(
         (artwork) => !artwork.invoice_email_requested_at && artwork.status !== "sold" && artwork.status !== "archived" && artwork.status !== "after_auction_request"
@@ -546,7 +552,7 @@ export async function POST(request: NextRequest) {
         return jsonError("There are no more queued artworks.");
       }
 
-      await moveToArtwork(request, supabaseAdmin, nextArtwork.id);
+      await moveToArtwork(request, supabaseAdmin, nextArtwork.id, auctionCode);
       return NextResponse.json({ ok: true });
     }
 
@@ -561,10 +567,10 @@ export async function POST(request: NextRequest) {
             "The auctioneer has paused the action. Hold your bids for just a moment.",
           updated_at: new Date().toISOString(),
         })
-        .eq("auction_code", AUCTION_CODE);
+        .eq("auction_code", auctionCode);
 
       if (error) throw new Error(error.message);
-      await addActivity(supabaseAdmin, "Auction paused");
+      await addActivity(supabaseAdmin, "Auction paused", auctionCode);
       return NextResponse.json({ ok: true });
     }
 
@@ -579,15 +585,15 @@ export async function POST(request: NextRequest) {
             "We are back live. The next bid is waiting for a brave parent.",
           updated_at: new Date().toISOString(),
         })
-        .eq("auction_code", AUCTION_CODE);
+        .eq("auction_code", auctionCode);
 
       if (error) throw new Error(error.message);
-      await addActivity(supabaseAdmin, "Auction resumed");
+      await addActivity(supabaseAdmin, "Auction resumed", auctionCode);
       return NextResponse.json({ ok: true });
     }
 
     if (action === "going-once") {
-      const auction = await fetchAuction(supabaseAdmin);
+      const auction = await fetchAuction(supabaseAdmin, auctionCode);
 
       if (Number(auction.current_bid || 0) <= 0) {
         return jsonError("You need at least one bid before going once.");
@@ -603,15 +609,15 @@ export async function POST(request: NextRequest) {
           mc_commentary: `Going once at R${Number(auction.current_bid).toLocaleString()} for ${auction.leading_bidder}. Last chance to beat this bid.`,
           updated_at: new Date().toISOString(),
         })
-        .eq("auction_code", AUCTION_CODE);
+        .eq("auction_code", auctionCode);
 
       if (error) throw new Error(error.message);
-      await addActivity(supabaseAdmin, `Going once at R${Number(auction.current_bid).toLocaleString()}`);
+      await addActivity(supabaseAdmin, `Going once at R${Number(auction.current_bid).toLocaleString()}`, auctionCode);
       return NextResponse.json({ ok: true });
     }
 
     if (action === "going-twice") {
-      const auction = await fetchAuction(supabaseAdmin);
+      const auction = await fetchAuction(supabaseAdmin, auctionCode);
 
       if (Number(auction.current_bid || 0) <= 0) {
         return jsonError("You need at least one bid before going twice.");
@@ -627,16 +633,16 @@ export async function POST(request: NextRequest) {
           mc_commentary: `Going twice at R${Number(auction.current_bid).toLocaleString()}. ${auction.leading_bidder} is seconds away from serious bragging rights.`,
           updated_at: new Date().toISOString(),
         })
-        .eq("auction_code", AUCTION_CODE);
+        .eq("auction_code", auctionCode);
 
       if (error) throw new Error(error.message);
-      await addActivity(supabaseAdmin, `Going twice at R${Number(auction.current_bid).toLocaleString()}`);
+      await addActivity(supabaseAdmin, `Going twice at R${Number(auction.current_bid).toLocaleString()}`, auctionCode);
       return NextResponse.json({ ok: true });
     }
 
     if (action === "mark-sold") {
-      const auction = await fetchAuction(supabaseAdmin);
-      const artworks = await fetchArtworks(supabaseAdmin);
+      const auction = await fetchAuction(supabaseAdmin, auctionCode);
+      const artworks = await fetchArtworks(supabaseAdmin, auctionCode);
       const currentArtwork = getCurrentArtwork(auction, artworks);
 
       if (!currentArtwork) return jsonError("There is no current artwork.");
@@ -657,7 +663,7 @@ export async function POST(request: NextRequest) {
           .from("auction_bidder_contacts")
           .select("id,auction_code,bidder_name,bidder_email")
           .eq("id", leadingContactId)
-          .eq("auction_code", AUCTION_CODE)
+          .eq("auction_code", auctionCode)
           .maybeSingle();
 
         if (
@@ -704,22 +710,22 @@ export async function POST(request: NextRequest) {
           mc_commentary: `Sold to ${auction.leading_bidder} for R${Number(auction.current_bid).toLocaleString()}. A masterpiece has found its forever wall.`,
           updated_at: new Date().toISOString(),
         })
-        .eq("auction_code", AUCTION_CODE);
+        .eq("auction_code", auctionCode);
 
       if (stateError) throw new Error(stateError.message);
-      await addActivity(supabaseAdmin, `SOLD to ${auction.leading_bidder} for R${Number(auction.current_bid).toLocaleString()}`);
+      await addActivity(supabaseAdmin, `SOLD to ${auction.leading_bidder} for R${Number(auction.current_bid).toLocaleString()}`, auctionCode);
       return NextResponse.json({ ok: true });
     }
 
     if (action === "archive-unsold") {
-      const auction = await fetchAuction(supabaseAdmin);
-      const artworks = await fetchArtworks(supabaseAdmin);
+      const auction = await fetchAuction(supabaseAdmin, auctionCode);
+      const artworks = await fetchArtworks(supabaseAdmin, auctionCode);
       const currentArtwork = getCurrentArtwork(auction, artworks);
 
       if (!currentArtwork) return jsonError("There is no current artwork to archive.");
       if (currentArtwork.status === "sold") return jsonError("This artwork is already marked as sold.");
 
-      await supabaseAdmin.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
+      await supabaseAdmin.from("live_bids").delete().eq("auction_code", auctionCode);
 
       const { error: artworkError } = await supabaseAdmin
         .from("demo_artworks")
@@ -755,20 +761,20 @@ export async function POST(request: NextRequest) {
           mc_audio_url: null,
           updated_at: new Date().toISOString(),
         })
-        .eq("auction_code", AUCTION_CODE);
+        .eq("auction_code", auctionCode);
 
       if (stateError) throw new Error(stateError.message);
-      await addActivity(supabaseAdmin, `Archived unsold artwork: ${currentArtwork.child_name} ${currentArtwork.child_surname}`);
+      await addActivity(supabaseAdmin, `Archived unsold artwork: ${currentArtwork.child_name} ${currentArtwork.child_surname}`, auctionCode);
       return NextResponse.json({ ok: true });
     }
 
     if (action === "reset") {
-      await supabaseAdmin.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
+      await supabaseAdmin.from("live_bids").delete().eq("auction_code", auctionCode);
 
       const { error: artworkError } = await supabaseAdmin
         .from("demo_artworks")
         .update({ status: "queued" })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .is("invoice_email_requested_at", null)
         .neq("status", "sold")
         .neq("status", "archived")
@@ -797,15 +803,15 @@ export async function POST(request: NextRequest) {
           mc_audio_url: null,
           updated_at: new Date().toISOString(),
         })
-        .eq("auction_code", AUCTION_CODE);
+        .eq("auction_code", auctionCode);
 
       if (stateError) throw new Error(stateError.message);
-      await addActivity(supabaseAdmin, "Auction reset to waiting");
+      await addActivity(supabaseAdmin, "Auction reset to waiting", auctionCode);
       return NextResponse.json({ ok: true });
     }
 
     if (action === "clear-bids") {
-      await supabaseAdmin.from("live_bids").delete().eq("auction_code", AUCTION_CODE);
+      await supabaseAdmin.from("live_bids").delete().eq("auction_code", auctionCode);
 
       const { error } = await supabaseAdmin
         .from("live_auction_state")
@@ -824,10 +830,10 @@ export async function POST(request: NextRequest) {
           mc_audio_url: null,
           updated_at: new Date().toISOString(),
         })
-        .eq("auction_code", AUCTION_CODE);
+        .eq("auction_code", auctionCode);
 
       if (error) throw new Error(error.message);
-      await addActivity(supabaseAdmin, "Bids cleared");
+      await addActivity(supabaseAdmin, "Bids cleared", auctionCode);
       return NextResponse.json({ ok: true });
     }
 
