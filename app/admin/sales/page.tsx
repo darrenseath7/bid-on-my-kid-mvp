@@ -439,10 +439,83 @@ function DocumentPreviewModal({
   const winnerEmail = item.winner_email || "Winner email not captured";
   const artworkName = `${item.child_name} ${item.child_surname}`.trim() || `Artwork #${item.sort_order}`;
 
+  function printDocument() {
+    const documentElement = document.getElementById("bragwall-print-document");
+
+    if (!documentElement) {
+      alert("Could not find the document to print.");
+      return;
+    }
+
+    const printWindow = window.open("", "_blank", "width=900,height=1100");
+
+    if (!printWindow) {
+      alert("Please allow pop-ups to print this document.");
+      return;
+    }
+
+    const styles = Array.from(
+      document.querySelectorAll('style, link[rel="stylesheet"]')
+    )
+      .map((element) => element.outerHTML)
+      .join("\n");
+
+    printWindow.document.open();
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>BragWall ${isInvoice ? "Invoice" : "Certificate"}</title>
+          ${styles}
+          <style>
+            @page {
+              size: A4;
+              margin: 12mm;
+            }
+
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+              overflow: visible !important;
+              height: auto !important;
+            }
+
+            #bragwall-print-document {
+              width: 100% !important;
+              max-width: none !important;
+              height: auto !important;
+              max-height: none !important;
+              overflow: visible !important;
+              box-shadow: none !important;
+              break-inside: auto;
+            }
+
+            * {
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+          </style>
+        </head>
+        <body>
+          ${documentElement.outerHTML}
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+      printWindow.focus();
+      printWindow.print();
+    };
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020b18]/82 px-4 py-6 backdrop-blur-xl">
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[32px] border border-white/15 bg-white p-5 text-[#07152b] shadow-2xl lg:p-8">
-        <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 md:flex-row md:items-center md:justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020b18]/82 px-4 py-6 backdrop-blur-xl print:static print:block print:bg-white print:p-0 print:backdrop-blur-none">
+      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[32px] border border-white/15 bg-white p-5 text-[#07152b] shadow-2xl lg:p-8 print:max-h-none print:max-w-none print:overflow-visible print:rounded-none print:border-0 print:p-0 print:shadow-none">
+        <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 md:flex-row md:items-center md:justify-between print:hidden">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.28em] text-slate-400">
               Admin Preview
@@ -455,7 +528,7 @@ function DocumentPreviewModal({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => window.print()}
+              onClick={printDocument}
               className="rounded-2xl bg-[#07152b] px-4 py-3 text-sm font-black text-white"
             >
               Print / Save PDF
@@ -470,6 +543,7 @@ function DocumentPreviewModal({
           </div>
         </div>
 
+        <div id="bragwall-print-document">
         {isInvoice ? (
           <InvoicePreview
             item={item}
@@ -487,6 +561,7 @@ function DocumentPreviewModal({
             certificateReleased={certificateReleased}
           />
         )}
+        </div>
       </div>
     </div>
   );
