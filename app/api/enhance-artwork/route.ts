@@ -1,8 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import {
+  ADMIN_SESSION_COOKIE,
+  verifyAdminSessionToken,
+} from "@/lib/adminSession";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+
+function getAllowedAdminEmails() {
+  return (process.env.ADMIN_ALLOWED_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+async function requireAdmin(request: NextRequest) {
+  const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value || null;
+  const session = await verifyAdminSessionToken(token);
+
+  if (!session) {
+    return null;
+  }
+
+  const allowedEmails = getAllowedAdminEmails();
+
+  if (
+    allowedEmails.length > 0 &&
+    !allowedEmails.includes(session.email.toLowerCase())
+  ) {
+    return null;
+  }
+
+  return session;
+}
 
 type EnhanceArtworkBody = {
   artworkId?: string;
@@ -113,8 +145,8 @@ export async function POST(request: NextRequest) {
     if (!imageResponse.ok) {
       await updateArtworkEnhancementStatus({
         artworkId,
-        status: "failed",
-        notes: "Could not download original artwork image.",
+        status: "not_enhanced",
+        notes: "Using original artwork image.",
       });
 
       return NextResponse.json(
@@ -165,8 +197,8 @@ Grade: ${grade}
 
       await updateArtworkEnhancementStatus({
         artworkId,
-        status: "failed",
-        notes: `AI enhancement failed: ${errorText.slice(0, 500)}`,
+        status: "not_enhanced",
+        notes: "Using original artwork image.",
       });
 
       return NextResponse.json(
@@ -184,8 +216,8 @@ Grade: ${grade}
     if (!imageBase64) {
       await updateArtworkEnhancementStatus({
         artworkId,
-        status: "failed",
-        notes: "AI enhancement did not return an image.",
+        status: "not_enhanced",
+        notes: "Using original artwork image.",
       });
 
       return NextResponse.json(
@@ -212,8 +244,8 @@ Grade: ${grade}
     if (uploadError) {
       await updateArtworkEnhancementStatus({
         artworkId,
-        status: "failed",
-        notes: `Enhanced image upload failed: ${uploadError.message}`,
+        status: "not_enhanced",
+        notes: "Using original artwork image.",
       });
 
       return NextResponse.json(
@@ -245,8 +277,8 @@ Grade: ${grade}
     if (artworkId) {
       await updateArtworkEnhancementStatus({
         artworkId,
-        status: "failed",
-        notes: error instanceof Error ? error.message : String(error),
+        status: "not_enhanced",
+        notes: "Using original artwork image.",
       }).catch(() => {});
     }
 

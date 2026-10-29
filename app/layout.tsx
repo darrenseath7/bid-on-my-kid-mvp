@@ -2,7 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Bid On My Kid MVP',
+  title: 'BragWall | Young Art. Big Pride.',
   description: 'Live school art auction fundraising platform'
 };
 

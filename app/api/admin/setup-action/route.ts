@@ -8,17 +8,26 @@ import {
 type SchoolProfilePayload = {
   auction_code?: string;
   school_name?: string;
-  bank_name?: string;
-  account_name?: string;
-  account_number?: string;
   branch_code?: string;
   payment_reference_prefix?: string;
   collection_instructions?: string;
   bid_increment?: number | string | null;
 };
 
-const AUCTION_CODE = "demo";
+const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
+
+function getSafeAuctionCode(value: unknown) {
+  const cleaned = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+
+  return cleaned || DEFAULT_AUCTION_CODE;
+}
 
 function getSupabaseAdmin() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -88,7 +97,7 @@ async function assertAdmin(request: NextRequest) {
     .filter(Boolean);
 
   if (
-    allowedEmails.length > 0 &&
+    allowedEmails.length === 0 ||
     !allowedEmails.includes(session.email.toLowerCase())
   ) {
     return null;
@@ -105,6 +114,7 @@ async function generateAuctionIntro(request: NextRequest, payload: Record<string
       headers: {
         "Content-Type": "application/json",
         Cookie: request.headers.get("cookie") || "",
+        "x-bragwall-mc-token": process.env.BRAGWALL_MC_INTERNAL_TOKEN || "",
       },
       body: JSON.stringify(payload),
     });
@@ -137,27 +147,80 @@ async function enhanceArtwork(request: NextRequest, payload: Record<string, unkn
     const result = await response.json().catch(() => ({}));
 
     if (!response.ok) {
+      console.error("Artwork enhancement fallback:", result?.details || result?.error || result);
       return {
         ok: false,
-        message:
-          result?.details ||
-          result?.error ||
-          "Artwork was uploaded, but AI enhancement failed.",
+        message: "Artwork added. Using the original artwork image.",
       };
     }
 
-    return { ok: true, message: "Enhanced framed auction version created successfully." };
+    return { ok: true, message: "Artwork added. Enhanced framed auction version created successfully." };
   } catch (error) {
+    console.error("Artwork enhancement fallback:", error);
     return {
       ok: false,
-      message:
-        error instanceof Error
-          ? `Artwork uploaded, but enhancement failed: ${error.message}`
-          : "Artwork uploaded, but enhancement failed.",
+      message: "Artwork added. Using the original artwork image.",
     };
   }
 }
 
+export async function GET(request: NextRequest) {
+  const session = await assertAdmin(request);
+
+  if (!session) {
+    return jsonError("Admin login required.", 401);
+  }
+
+  try {
+    const auctionCode = getSafeAuctionCode(
+      request.nextUrl.searchParams.get("auctionCode")
+    );
+
+    const supabaseAdmin = getSupabaseAdmin();
+
+    const { data, error } = await supabaseAdmin
+      .from("demo_school_profile")
+      .select(
+        "auction_code,school_name,branch_code,payment_reference_prefix,collection_instructions,bid_increment"
+      )
+      .eq("auction_code", auctionCode)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Could not load school profile:", error);
+      return jsonError("Could not load school profile.", 500);
+    }
+
+    const includeArtworks =
+      request.nextUrl.searchParams.get("includeArtworks") === "true";
+
+    if (includeArtworks) {
+      const { data: artworks, error: artworkError } = await supabaseAdmin
+        .from("demo_artworks")
+        .select("*")
+        .eq("auction_code", auctionCode)
+        .order("sort_order", { ascending: true });
+
+      if (artworkError) {
+        console.error("Could not load school artworks:", artworkError);
+        return jsonError("Could not load school artworks.", 500);
+      }
+
+      return NextResponse.json(
+        { profile: data, artworks: artworks || [] },
+        { headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
+
+    return NextResponse.json(
+      { profile: data },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
+  } catch (error) {
+    console.error("School profile request failed:", error);
+    return jsonError("Could not load school profile.", 500);
+  }
+}
 export async function POST(request: NextRequest) {
   const session = await assertAdmin(request);
 
@@ -173,6 +236,7 @@ export async function POST(request: NextRequest) {
     if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData();
       const action = String(formData.get("action") || "");
+      const auctionCode = getSafeAuctionCode(formData.get("auctionCode"));
 
       if (action !== "upload-artwork") {
         return jsonError("Unknown setup upload action.");
@@ -201,7 +265,7 @@ export async function POST(request: NextRequest) {
       const extension = getExtension(file.name, file.type);
       const safeName = createSafeFilePart(`${childName}-${childSurname}`);
       const fileName = `${Date.now()}-${safeName}.${extension}`;
-      const filePath = `${AUCTION_CODE}/${fileName}`;
+      const filePath = `${auctionCode}/${fileName}`;
       const fileBytes = new Uint8Array(await file.arrayBuffer());
 
       const { error: uploadError } = await supabaseAdmin.storage
@@ -231,7 +295,7 @@ export async function POST(request: NextRequest) {
       const { data: insertedArtwork, error: insertError } = await supabaseAdmin
         .from("demo_artworks")
         .insert({
-          auction_code: AUCTION_CODE,
+          auction_code: auctionCode,
           sort_order: nextSortOrder,
           child_name: childName,
           child_surname: childSurname,
@@ -265,9 +329,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
           ok: true,
-          message: enhancement.ok
-            ? "Artwork added. Enhanced framed auction version created successfully."
-            : enhancement.message,
+          message: enhancement.message,
         });
       }
 
@@ -284,17 +346,15 @@ export async function POST(request: NextRequest) {
     if (!body) return jsonError("Invalid JSON body.");
 
     const action = String(body.action || "");
+    const auctionCode = getSafeAuctionCode((body as { auctionCode?: unknown }).auctionCode || body.profile?.auction_code);
 
     if (action === "save-profile") {
       const profile = body.profile || {};
 
       const { error } = await supabaseAdmin.from("demo_school_profile").upsert(
         {
-          auction_code: AUCTION_CODE,
+          auction_code: auctionCode,
           school_name: cleanText(profile.school_name, 160),
-          bank_name: cleanText(profile.bank_name, 120),
-          account_name: cleanText(profile.account_name, 160),
-          account_number: cleanText(profile.account_number, 80),
           branch_code: cleanText(profile.branch_code, 80),
           payment_reference_prefix: cleanText(profile.payment_reference_prefix, 80),
           collection_instructions: cleanText(profile.collection_instructions, 1000),
@@ -305,9 +365,34 @@ export async function POST(request: NextRequest) {
 
       if (error) throw new Error(error.message);
 
+      const { error: stateError } = await supabaseAdmin.from("live_auction_state").upsert(
+        {
+          auction_code: auctionCode,
+          child_name: "",
+          child_surname: "",
+          grade: "",
+          artwork_url: "",
+          current_bid: 0,
+          leading_bidder: "No bids yet",
+          status: "waiting",
+          status_deadline: null,
+          bid_pause_until: null,
+          next_bid_amount: getSafeBidIncrement(profile.bid_increment),
+          last_bid_at: null,
+          winner_email: null,
+          winner_email_submitted_at: null,
+          mc_commentary: "Welcome to BragWall. The auction is waiting to begin.",
+          mc_audio_url: null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "auction_code", ignoreDuplicates: true }
+      );
+
+      if (stateError) throw new Error(stateError.message);
+
       return NextResponse.json({
         ok: true,
-        message: "School, banking and auction setup saved successfully.",
+        message: "School and auction setup saved successfully.",
       });
     }
 
@@ -319,7 +404,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabaseAdmin
         .from("demo_artworks")
         .update({ status: "archived" })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .eq("id", artworkId);
 
       if (error) throw new Error(error.message);
@@ -335,7 +420,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabaseAdmin
         .from("demo_artworks")
         .update({ status: "pending" })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .eq("id", artworkId);
 
       if (error) throw new Error(error.message);
@@ -347,7 +432,7 @@ export async function POST(request: NextRequest) {
       const { error } = await supabaseAdmin
         .from("demo_artworks")
         .update({ status: "archived" })
-        .eq("auction_code", AUCTION_CODE)
+        .eq("auction_code", auctionCode)
         .neq("status", "sold");
 
       if (error) throw new Error(error.message);

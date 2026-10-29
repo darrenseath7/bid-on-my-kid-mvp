@@ -1,11 +1,13 @@
 type BrandHeaderProps = {
   dark?: boolean;
   center?: boolean;
+  compact?: boolean;
 };
 
 export default function BrandHeader({
   dark = false,
   center = false,
+  compact = false,
 }: BrandHeaderProps) {
   return (
     <div className={center ? "text-center" : ""}>
@@ -13,28 +15,14 @@ export default function BrandHeader({
         <img
           src="/bragwall-logo.png"
           alt="BragWall"
-          className="
-            h-24
-            md:h-28
-            w-auto
-            object-contain
-          "
+          className={`${compact ? "h-14 md:h-16" : "h-20 md:h-24"} w-auto object-contain`}
         />
       </div>
 
       <p
-        className={`
-          mt-4
-          uppercase
-          tracking-[0.45em]
-          text-[11px]
-          font-black
-          ${
-            dark
-              ? "text-white/50"
-              : "text-slate-400"
-          }
-        `}
+        className={`mt-3 uppercase tracking-[0.42em] text-[9px] font-black md:text-[10px] ${
+          dark ? "text-white/55" : "text-slate-400"
+        }`}
       >
         Young Art • Big Pride
       </p>

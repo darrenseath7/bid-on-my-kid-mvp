@@ -12,16 +12,20 @@
     "@supabase/supabase-js": "latest",
     "@tailwindcss/postcss": "latest",
     "framer-motion": "^12.39.0",
+    "music-metadata": "12.3.2",
     "next": "latest",
+    "nodemailer": "^9.0.1",
     "openai": "^6.38.0",
     "react": "latest",
     "react-dom": "latest",
+    "server-only": "0.0.1",
     "tailwindcss": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "tsx": "4.23.15",
     "typescript": "latest"
   }
 }

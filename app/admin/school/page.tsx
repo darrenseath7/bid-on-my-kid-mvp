@@ -2,15 +2,11 @@
 
 import { useEffect, useState } from "react";
 import BrandHeader from "@/components/BrandHeader";
-import { supabase } from "@/lib/supabase";
 
 type SchoolProfile = {
   id?: string;
   auction_code: string;
   school_name: string;
-  bank_name: string;
-  account_name: string;
-  account_number: string;
   branch_code: string;
   payment_reference_prefix: string;
   collection_instructions: string;
@@ -20,9 +16,6 @@ export default function SchoolProfilePage() {
   const [profile, setProfile] = useState<SchoolProfile>({
     auction_code: "demo",
     school_name: "",
-    bank_name: "",
-    account_name: "",
-    account_number: "",
     branch_code: "",
     payment_reference_prefix: "",
     collection_instructions: "",
@@ -36,14 +29,27 @@ export default function SchoolProfilePage() {
   }, []);
 
   async function fetchProfile() {
-    const { data } = await supabase
-      .from("demo_school_profile")
-      .select("*")
-      .eq("auction_code", "demo")
-      .single();
+    try {
+      const response = await fetch(
+        "/api/admin/setup-action?auctionCode=demo",
+        { cache: "no-store" }
+      );
 
-    if (data) {
-      setProfile(data);
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not load school profile.");
+      }
+
+      if (result?.profile) {
+        setProfile(result.profile);
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load school profile."
+      );
     }
   }
 
@@ -51,23 +57,38 @@ export default function SchoolProfilePage() {
     setSaving(true);
     setMessage("");
 
-    const { error } = await supabase.from("demo_school_profile").upsert(
-      {
-        ...profile,
-        auction_code: "demo",
-      },
-      {
-        onConflict: "auction_code",
+    try {
+      const response = await fetch("/api/admin/setup-action", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "save-profile",
+          auctionCode: "demo",
+          profile: {
+            ...profile,
+            auction_code: "demo",
+          },
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not save school profile.");
       }
-    );
 
-    if (error) {
-      setMessage(error.message);
-    } else {
       setMessage("School profile saved successfully.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not save school profile."
+      );
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
   }
 
   function updateField(field: keyof SchoolProfile, value: string) {
@@ -101,7 +122,7 @@ export default function SchoolProfilePage() {
             </a>
 
             <a
-              href="/auction/winner"
+              href="/admin/sales"
               className="rounded-2xl bg-white text-[#07152b] px-6 py-4 font-black shadow-xl"
             >
               Preview Certificate
@@ -119,7 +140,7 @@ export default function SchoolProfilePage() {
           </h1>
 
           <p className="text-white/55 text-2xl max-w-4xl leading-relaxed">
-            These details power the winner certificate, payment instructions,
+            These details power the winner certificate, invoice reference,
             collection notes, and school identity shown to families after an
             artwork is sold.
           </p>
@@ -134,7 +155,7 @@ export default function SchoolProfilePage() {
                 </p>
 
                 <h2 className="text-4xl font-black">
-                  Payment & collection details
+                  Event & collection details
                 </h2>
               </div>
 
@@ -153,44 +174,21 @@ export default function SchoolProfilePage() {
 
               <div className="grid md:grid-cols-2 gap-5">
                 <Field
-                  label="Bank Name"
-                  value={profile.bank_name}
-                  onChange={(value) => updateField("bank_name", value)}
-                  placeholder="FNB"
-                />
-
-                <Field
-                  label="Account Name"
-                  value={profile.account_name}
-                  onChange={(value) => updateField("account_name", value)}
-                  placeholder="Demo Primary School"
-                />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-5">
-                <Field
-                  label="Account Number"
-                  value={profile.account_number}
-                  onChange={(value) => updateField("account_number", value)}
-                  placeholder="1234567890"
+                  label="Payment Reference Prefix"
+                  value={profile.payment_reference_prefix}
+                  onChange={(value) =>
+                    updateField("payment_reference_prefix", value)
+                  }
+                  placeholder="Optional - e.g. SCHOOL-ART"
                 />
 
                 <Field
                   label="Branch Code"
                   value={profile.branch_code}
                   onChange={(value) => updateField("branch_code", value)}
-                  placeholder="250655"
+                  placeholder="Optional"
                 />
               </div>
-
-              <Field
-                label="Payment Reference Prefix"
-                value={profile.payment_reference_prefix}
-                onChange={(value) =>
-                  updateField("payment_reference_prefix", value)
-                }
-                placeholder="BRAG"
-              />
 
               <div>
                 <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
@@ -203,7 +201,7 @@ export default function SchoolProfilePage() {
                     updateField("collection_instructions", event.target.value)
                   }
                   className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg outline-none min-h-[180px]"
-                  placeholder="Please make payment using the reference shown on the certificate. Artwork may be collected from the school office after payment confirmation."
+                  placeholder="Artwork may be collected from the school office after payment confirmation."
                 />
               </div>
 
@@ -234,12 +232,6 @@ export default function SchoolProfilePage() {
               </h2>
 
               <div className="grid md:grid-cols-2 gap-4">
-                <PreviewCard label="Bank" value={profile.bank_name} />
-                <PreviewCard label="Account Name" value={profile.account_name} />
-                <PreviewCard
-                  label="Account Number"
-                  value={profile.account_number}
-                />
                 <PreviewCard label="Branch Code" value={profile.branch_code} />
               </div>
 
@@ -272,11 +264,11 @@ export default function SchoolProfilePage() {
 
               <div className="space-y-4 text-white/70 text-lg leading-relaxed">
                 <p>
-                  • Parents need clear payment instructions immediately after
+                  • Parents need clear invoice and collection instructions after
                   winning.
                 </p>
                 <p>
-                  • The certificate becomes a keepsake and a payment reference.
+                  • The certificate becomes a keepsake after payment is confirmed.
                 </p>
                 <p>
                   • Clean collection notes reduce admin queries after the event.

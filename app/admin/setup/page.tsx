@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import AdminLogoutButton from "@/components/AdminLogoutButton";
+import { useEffect, useRef, useState, type DragEvent } from "react";
+import AdminAuctionSelector from "@/components/AdminAuctionSelector";
+import AdminShell from "@/components/admin/AdminShell";
+import AdminPanel from "@/components/admin/AdminPanel";
+import AdminStatCard from "@/components/admin/AdminStatCard";
 import { supabase } from "@/lib/supabase";
+import { sanitizeAuctionCode, useAdminAuctionCode } from "@/lib/useAdminAuctionCode";
 
 type SchoolProfile = {
   id?: string;
   auction_code: string;
   school_name: string;
-  bank_name: string;
-  account_name: string;
-  account_number: string;
   branch_code: string;
   payment_reference_prefix: string;
   collection_instructions: string;
@@ -34,7 +35,127 @@ type Artwork = {
   status: string;
 };
 
-const AUCTION_CODE = "demo";
+const DEFAULT_AUCTION_CODE = "demo";
+
+function sanitizeDraftAuctionCode(value: unknown) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+const MAX_COMPRESSED_IMAGE_WIDTH = 1600;
+const MAX_COMPRESSED_IMAGE_BYTES = 1.8 * 1024 * 1024;
+const COMPRESSED_IMAGE_QUALITY = 0.82;
+
+function formatBytes(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+
+  const megabytes = bytes / (1024 * 1024);
+
+  if (megabytes >= 1) {
+    return `${megabytes.toFixed(1)} MB`;
+  }
+
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+function createCompressedFileName(fileName: string) {
+  const cleanBaseName = fileName
+    .replace(/\.[^/.]+$/, "")
+    .replace(/[^a-z0-9-]+/gi, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70) || "artwork";
+
+  return `${cleanBaseName}-bragwall.jpg`;
+}
+
+async function loadImageFromFile(file: File) {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Could not read this image file."));
+      img.src = objectUrl;
+    });
+
+    return image;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function compressArtworkImage(file: File) {
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Please choose an image file for the artwork.");
+  }
+
+  const image = await loadImageFromFile(file).catch((error) => {
+    if (file.size > MAX_COMPRESSED_IMAGE_BYTES) {
+      throw new Error(
+        "This image is too large and could not be compressed in the browser. Please save it as a JPG/PNG first, or upload a screenshot/cropped version."
+      );
+    }
+
+    throw error;
+  });
+
+  const largestSide = Math.max(image.naturalWidth, image.naturalHeight);
+  const needsResize = largestSide > MAX_COMPRESSED_IMAGE_WIDTH;
+  const needsSizeCompression = file.size > MAX_COMPRESSED_IMAGE_BYTES;
+
+  if (!needsResize && !needsSizeCompression && file.type !== "image/heic") {
+    return {
+      file,
+      compressed: false,
+      originalSize: file.size,
+      compressedSize: file.size,
+    };
+  }
+
+  const scale = needsResize ? MAX_COMPRESSED_IMAGE_WIDTH / largestSide : 1;
+  const width = Math.max(1, Math.round(image.naturalWidth * scale));
+  const height = Math.max(1, Math.round(image.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Could not prepare the artwork image for upload.");
+  }
+
+  context.fillStyle = "#ffffff";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", COMPRESSED_IMAGE_QUALITY);
+  });
+
+  if (!blob) {
+    throw new Error("Could not compress this artwork image.");
+  }
+
+  const compressedFile = new File([blob], createCompressedFileName(file.name), {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+
+  return {
+    file: compressedFile,
+    compressed: compressedFile.size < file.size || needsResize || needsSizeCompression,
+    originalSize: file.size,
+    compressedSize: compressedFile.size,
+  };
+}
 
 function createHash(value: string) {
   let hash = 0;
@@ -113,12 +234,10 @@ function createStoryPreview({
 }
 
 export default function AdminSetupPage() {
+  const [auctionCode, setAdminAuctionCode] = useAdminAuctionCode(DEFAULT_AUCTION_CODE);
   const [profile, setProfile] = useState<SchoolProfile>({
-    auction_code: AUCTION_CODE,
+    auction_code: DEFAULT_AUCTION_CODE,
     school_name: "",
-    bank_name: "",
-    account_name: "",
-    account_number: "",
     branch_code: "",
     payment_reference_prefix: "",
     collection_instructions: "",
@@ -130,11 +249,18 @@ export default function AdminSetupPage() {
   const [grade, setGrade] = useState("Grade 3");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [isArtworkDragging, setIsArtworkDragging] = useState(false);
   const [enhanceArtwork, setEnhanceArtwork] = useState(true);
   const [artworks, setArtworks] = useState<Artwork[]>([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState("");
   const [message, setMessage] = useState("");
+  const uploadAbortControllerRef = useRef<AbortController | null>(null);
+  const activeAuctionCodeRef = useRef(sanitizeAuctionCode(DEFAULT_AUCTION_CODE));
+
+  const draftAuctionCode = sanitizeDraftAuctionCode(profile.auction_code);
+  const parentDraftAuctionCode = draftAuctionCode || "new-school";
 
   const liveUpcomingArtworks = artworks.filter((artwork) => {
     return artwork.status !== "sold" && artwork.status !== "archived";
@@ -165,27 +291,44 @@ export default function AdminSetupPage() {
   ).length;
 
   useEffect(() => {
-    fetchProfile();
-    fetchArtworks();
+    const activeAuctionCode = sanitizeAuctionCode(auctionCode || DEFAULT_AUCTION_CODE);
+    let cancelled = false;
+
+    activeAuctionCodeRef.current = activeAuctionCode;
+    setMessage("");
+    setArtworks([]);
+    setProfile((current) => ({
+      ...current,
+      auction_code: activeAuctionCode,
+      school_name: "",
+      branch_code: "",
+      payment_reference_prefix: "",
+      collection_instructions: "",
+      bid_increment: current.bid_increment || 100,
+    }));
+
+    fetchProfile(activeAuctionCode, () => cancelled);
+    fetchArtworks(activeAuctionCode, () => cancelled);
 
     const channel = supabase
-      .channel("admin-setup-school-artwork")
+      .channel(`admin-setup-school-artwork-${activeAuctionCode}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "demo_artworks",
-          filter: `auction_code=eq.${AUCTION_CODE}`,
+          filter: `auction_code=eq.${activeAuctionCode}`,
         },
-        () => fetchArtworks()
+        () => fetchArtworks(activeAuctionCode, () => cancelled)
       )
       .subscribe();
 
     return () => {
+      cancelled = true;
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [auctionCode]);
 
   useEffect(() => {
     return () => {
@@ -195,42 +338,88 @@ export default function AdminSetupPage() {
     };
   }, [previewUrl]);
 
-  async function fetchProfile() {
-    const { data } = await supabase
-      .from("demo_school_profile")
-      .select("*")
-      .eq("auction_code", AUCTION_CODE)
-      .single();
+  async function fetchProfile(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
+    const cleanAuctionCode = sanitizeAuctionCode(targetAuctionCode || DEFAULT_AUCTION_CODE);
+
+    const response = await fetch(
+      `/api/admin/setup-action?auctionCode=${encodeURIComponent(cleanAuctionCode)}`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      if (!isCancelled() && activeAuctionCodeRef.current === cleanAuctionCode) {
+        setMessage("Could not load school profile. Please refresh and try again.");
+      }
+      return;
+    }
+
+    const result = await response.json();
+    const data = result.profile;
+
+    if (isCancelled() || activeAuctionCodeRef.current !== cleanAuctionCode) return;
 
     if (data) {
       setProfile({
-        auction_code: AUCTION_CODE,
+        auction_code: cleanAuctionCode,
         school_name: data.school_name || "",
-        bank_name: data.bank_name || "",
-        account_name: data.account_name || "",
-        account_number: data.account_number || "",
         branch_code: data.branch_code || "",
         payment_reference_prefix: data.payment_reference_prefix || "",
         collection_instructions: data.collection_instructions || "",
         bid_increment: data.bid_increment || 100,
       });
+    } else {
+      setProfile((current) => ({
+        ...current,
+        auction_code: cleanAuctionCode,
+        school_name: "",
+        branch_code: "",
+        payment_reference_prefix: "",
+        collection_instructions: "",
+        bid_increment: current.bid_increment || 100,
+      }));
     }
   }
 
-  async function fetchArtworks() {
-    const { data } = await supabase
-      .from("demo_artworks")
-      .select("*")
-      .eq("auction_code", AUCTION_CODE)
-      .order("sort_order", { ascending: true });
+  async function fetchArtworks(
+    targetAuctionCode = auctionCode,
+    isCancelled: () => boolean = () => false
+  ) {
+    const cleanAuctionCode = sanitizeAuctionCode(targetAuctionCode || DEFAULT_AUCTION_CODE);
 
-    setArtworks(data || []);
+    const response = await fetch(
+      `/api/admin/setup-action?auctionCode=${encodeURIComponent(cleanAuctionCode)}&includeArtworks=true`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      if (!isCancelled() && activeAuctionCodeRef.current === cleanAuctionCode) {
+        setMessage("Could not load school artwork. Please refresh and try again.");
+      }
+      return;
+    }
+
+    const result = await response.json();
+    const data = result.artworks;
+
+    if (isCancelled() || activeAuctionCodeRef.current !== cleanAuctionCode) return;
+
+    setArtworks(((data || []) as Artwork[]).filter((artwork) => artwork.auction_code === cleanAuctionCode));
   }
 
   function updateProfileField(field: keyof SchoolProfile, value: string) {
     setProfile((current) => ({
       ...current,
-      [field]: value,
+      [field]: field === "auction_code" ? sanitizeDraftAuctionCode(value) : value,
+    }));
+  }
+
+  function updateSchoolName(value: string) {
+    setProfile((current) => ({
+      ...current,
+      school_name: value,
     }));
   }
 
@@ -249,7 +438,7 @@ export default function AdminSetupPage() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ auctionCode, ...payload }),
     });
 
     const result = await response.json().catch(() => null);
@@ -265,15 +454,37 @@ export default function AdminSetupPage() {
     setMessage("");
 
     try {
+      const targetAuctionCode = sanitizeDraftAuctionCode(profile.auction_code);
+
+      if (!targetAuctionCode) {
+        setMessage("Please type a School URL slug first, for example: great-foundation.");
+        setSavingProfile(false);
+        return;
+      }
+
       const result = await runSetupAction({
         action: "save-profile",
-        profile,
+        auctionCode: targetAuctionCode,
+        profile: {
+          ...profile,
+          auction_code: targetAuctionCode,
+        },
       });
 
       setMessage(
-        result.message || "School, banking and auction setup saved successfully."
+        result.message || "School and auction setup saved successfully."
       );
-      fetchProfile();
+      setAdminAuctionCode(targetAuctionCode);
+
+      if (targetAuctionCode !== auctionCode) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("auctionCode", targetAuctionCode);
+        window.location.href = url.toString();
+        return;
+      }
+
+      fetchProfile(targetAuctionCode);
+      fetchArtworks(targetAuctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not save school setup."
@@ -283,6 +494,11 @@ export default function AdminSetupPage() {
     setSavingProfile(false);
   }
   function handleFileChange(selectedFile: File | null) {
+    if (selectedFile && !selectedFile.type.startsWith("image/")) {
+      setMessage("Please choose an image file for the artwork.");
+      return;
+    }
+
     setFile(selectedFile);
 
     if (previewUrl) {
@@ -291,9 +507,40 @@ export default function AdminSetupPage() {
 
     if (selectedFile) {
       setPreviewUrl(URL.createObjectURL(selectedFile));
+      setMessage(
+        selectedFile.size > MAX_COMPRESSED_IMAGE_BYTES
+          ? `Large image selected (${formatBytes(selectedFile.size)}). BragWall will compress it before upload.`
+          : ""
+      );
     } else {
       setPreviewUrl("");
+      setMessage("");
     }
+  }
+
+  function handleArtworkDrop(event: DragEvent<HTMLLabelElement>) {
+    event.preventDefault();
+    setIsArtworkDragging(false);
+
+    const selectedFile = event.dataTransfer.files?.[0] || null;
+
+    if (!selectedFile) return;
+
+    handleFileChange(selectedFile);
+  }
+
+  function handleArtworkDragLeave(event: DragEvent<HTMLLabelElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setIsArtworkDragging(false);
+    }
+  }
+
+  function cancelArtworkUpload() {
+    uploadAbortControllerRef.current?.abort();
+    uploadAbortControllerRef.current = null;
+    setUploading(false);
+    setUploadStage("");
+    setMessage("Upload cancelled. Your selected artwork is still ready if you want to try again.");
   }
 
   async function uploadArtwork() {
@@ -302,32 +549,70 @@ export default function AdminSetupPage() {
       return;
     }
 
+    const abortController = new AbortController();
+    uploadAbortControllerRef.current = abortController;
     setUploading(true);
-    setMessage(
-      enhanceArtwork
-        ? "Uploading original artwork and preparing AI enhancement..."
-        : "Uploading original artwork..."
-    );
+    setUploadStage("Preparing image...");
+    setMessage("Preparing artwork image for upload...");
 
     try {
+      const preparedImage = await compressArtworkImage(file);
+
+      if (abortController.signal.aborted) {
+        throw new DOMException("Upload cancelled.", "AbortError");
+      }
+
+      if (preparedImage.compressed) {
+        setMessage(
+          `Large image compressed from ${formatBytes(preparedImage.originalSize)} to ${formatBytes(preparedImage.compressedSize)} for a faster upload.`
+        );
+      }
+
+      setUploadStage(
+        enhanceArtwork
+          ? "Uploading and enhancing artwork..."
+          : "Uploading artwork..."
+      );
+
+      const targetAuctionCode = sanitizeDraftAuctionCode(profile.auction_code);
+
+      if (!targetAuctionCode) {
+        setMessage("Please save a School URL slug before uploading artwork.");
+        return;
+      }
+
+
+
       const formData = new FormData();
+
+
       formData.append("action", "upload-artwork");
+
+
+      formData.append("auctionCode", targetAuctionCode);
       formData.append("childName", childName);
       formData.append("childSurname", childSurname);
       formData.append("grade", grade);
       formData.append("nextSortOrder", String(nextSortOrder));
       formData.append("storyPreview", storyPreview);
       formData.append("enhanceArtwork", String(enhanceArtwork));
-      formData.append("file", file);
+      formData.append("file", preparedImage.file);
 
       const response = await fetch("/api/admin/setup-action", {
         method: "POST",
         body: formData,
+        signal: abortController.signal,
       });
 
       const result = await response.json().catch(() => null);
 
       if (!response.ok) {
+        if (response.status === 413) {
+          throw new Error(
+            "This image is still too large for the server. Please crop it or save it as a smaller JPG, then try again."
+          );
+        }
+
         throw new Error(result?.error || "Could not upload artwork.");
       }
 
@@ -337,14 +622,24 @@ export default function AdminSetupPage() {
       setGrade("Grade 3");
       setFile(null);
       setPreviewUrl("");
-      fetchArtworks();
+      setAdminAuctionCode(targetAuctionCode);
+      fetchArtworks(targetAuctionCode);
     } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "Could not upload artwork."
-      );
-    }
+      if (error instanceof DOMException && error.name === "AbortError") {
+        setMessage("Upload cancelled. Your selected artwork is still ready if you want to try again.");
+      } else {
+        setMessage(
+          error instanceof Error ? error.message : "Could not upload artwork."
+        );
+      }
+    } finally {
+      if (uploadAbortControllerRef.current === abortController) {
+        uploadAbortControllerRef.current = null;
+      }
 
-    setUploading(false);
+      setUploading(false);
+      setUploadStage("");
+    }
   }
   async function archiveArtwork(artwork: Artwork) {
     const confirmed = window.confirm(
@@ -365,7 +660,7 @@ export default function AdminSetupPage() {
         result.message ||
           `${artwork.child_name} ${artwork.child_surname}'s artwork has been archived.`
       );
-      fetchArtworks();
+      fetchArtworks(draftAuctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not archive artwork."
@@ -385,7 +680,7 @@ export default function AdminSetupPage() {
         result.message ||
           `${artwork.child_name} ${artwork.child_surname}'s artwork has been restored to upcoming artworks.`
       );
-      fetchArtworks();
+      fetchArtworks(draftAuctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "Could not restore artwork."
@@ -407,7 +702,7 @@ export default function AdminSetupPage() {
       });
 
       setMessage(result.message || "All unsold artworks have been moved to the archive.");
-      fetchArtworks();
+      fetchArtworks(draftAuctionCode);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -417,570 +712,364 @@ export default function AdminSetupPage() {
     }
   }
   return (
-    <main className="min-h-screen bg-[#020b18] text-white">
-      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(circle_at_18%_10%,rgba(22,214,109,0.15),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(255,200,87,0.13),transparent_32%),linear-gradient(180deg,#061124,#020b18_65%,#010712)]" />
-      <div className="fixed inset-0 pointer-events-none opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
-
-      <div className="relative grid xl:grid-cols-[280px_1fr] min-h-screen">
-        <aside className="border-r border-white/10 bg-[#061124]/85 backdrop-blur-xl p-5 xl:sticky xl:top-0 xl:h-screen">
-          <div className="rounded-[24px] border border-white/10 bg-[#020b18] shadow-2xl relative overflow-hidden px-4 py-5 mb-6">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(22,214,109,0.12),transparent_45%)]" />
-
-            <div className="relative text-center">
-              <div className="flex items-center justify-center">
-                <span className="font-black text-[34px] leading-none tracking-[-0.08em] text-white">
-                  Brag
-                </span>
-
-                <span className="mx-[-2px] rotate-[-8deg] inline-flex h-[36px] w-[32px] items-center justify-center border-[3px] border-[#ef2b20] bg-[#0b63ce] text-white shadow-[0_0_18px_rgba(11,99,206,0.4)]">
-                  <span className="font-black text-[24px] leading-none">
-                    W
-                  </span>
-                </span>
-
-                <span className="font-black text-[34px] leading-none tracking-[-0.08em] text-white">
-                  all
-                </span>
-              </div>
-
-              <p className="mt-3 uppercase tracking-[0.32em] text-[8px] text-white/58 font-black">
-                Young Art • Big Pride
+    <AdminShell
+      active="setup"
+      eyebrow="Add School & Artwork"
+      title="Setup studio"
+      description="Create the school auction profile, set payment references, upload children's artwork, and manage the artwork lifecycle from one polished BragWall workspace."
+      status={
+        <div className="inline-flex items-center gap-3 rounded-full border border-[#16d66d]/35 bg-[#16d66d]/12 px-4 py-3 text-sm font-black text-[#16d66d] shadow-[0_0_30px_rgba(22,214,109,0.12)]">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#16d66d] shadow-[0_0_16px_rgba(22,214,109,0.9)]" />
+          {artworks.length} loaded
+        </div>
+      }
+      selector={
+        <AdminPanel className="p-4 md:p-4">
+          <div className="space-y-3">
+            <AdminAuctionSelector />
+            <div className="rounded-[18px] border border-[#16d66d]/20 bg-[#16d66d]/10 px-4 py-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.25em] text-[#16d66d]">
+                Parent link
+              </p>
+              <p className="mt-1 break-all text-xs font-black text-white/82">
+                /auction/{parentDraftAuctionCode}
               </p>
             </div>
           </div>
-
-          <nav className="space-y-3 mb-6">
-            <AdminNavLink href="/admin" label="Dashboard" icon="⌂" />
-            <AdminNavLink
-              href="/admin/setup"
-              label="Add School & Artwork"
-              icon="✦"
-              active
-            />
-            <AdminNavLink href="/admin/live" label="Live Room" icon="⌁" />
-            <AdminNavLink href="/admin/sales" label="Sales Records" icon="▣" />
-            <AdminNavLink href="/auction/demo" label="Parent View" icon="◌" />
-          </nav>
-
-          <div className="rounded-[28px] bg-white/5 border border-white/10 p-4 mb-5">
-            <p className="uppercase tracking-[0.3em] text-[10px] text-white/40 font-black mb-3">
-              Setup Progress
-            </p>
-
-            <p className="text-3xl font-black text-[#16d66d]">
-              {artworks.length}
-            </p>
-
-            <p className="text-white/50 text-sm font-bold mt-2">
-              artworks loaded for this auction
-            </p>
-          </div>
-
-          <AdminLogoutButton />
-        </aside>
-
-        <section className="min-h-screen">
-          <header className="border-b border-white/10 bg-[#020b18]/70 backdrop-blur-xl p-5 lg:p-8">
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
-              <div>
-                <div className="inline-flex items-center gap-3 rounded-full bg-white/10 border border-white/10 px-4 py-3 mb-4">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#16d66d] shadow-[0_0_16px_rgba(22,214,109,0.9)]" />
-                  <span className="uppercase tracking-[0.32em] text-[10px] font-black text-white/60">
-                    Add School and Artwork
-                  </span>
-                </div>
-
-                <h1 className="text-5xl lg:text-7xl font-black leading-[0.9]">
-                  Set up the school. Load the art.
-                </h1>
-
-                <p className="text-white/55 text-lg font-bold mt-3 max-w-4xl">
-                  Capture school payment details, set the bidding increment,
-                  upload artwork, and manage sold or archived pieces from one
-                  place.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 min-w-full lg:min-w-[560px]">
-                <MetricCard
-                  label="Upcoming"
-                  value={`${liveUpcomingArtworks.length}`}
-                />
-                <MetricCard label="Sold" value={`${soldArtworks.length}`} green />
-                <MetricCard
-                  label="Archived"
-                  value={`${archivedArtworks.length}`}
-                  gold
-                />
-              </div>
-            </div>
-          </header>
-
-          <div className="grid 2xl:grid-cols-[0.92fr_1.08fr] gap-5 p-5 lg:p-8">
-            <div className="space-y-5">
-              <section className="rounded-[36px] bg-white text-[#07152b] p-6 lg:p-7 shadow-2xl">
-                <div className="flex items-center justify-between gap-4 mb-7">
-                  <div>
-                    <p className="uppercase tracking-[0.3em] text-xs text-slate-400 font-black mb-3">
-                      School Setup
-                    </p>
-
-                    <h2 className="text-4xl font-black">
-                      Payment, reference & increment
-                    </h2>
-                  </div>
-
-                  <div className="w-16 h-16 rounded-[24px] bg-[#eaf2ff] flex items-center justify-center text-4xl">
-                    🏫
-                  </div>
-                </div>
-
-                <div className="space-y-5">
-                  <Field
-                    label="School Name"
-                    value={profile.school_name}
-                    onChange={(value) =>
-                      updateProfileField("school_name", value)
-                    }
-                    placeholder="St John's Preparatory"
-                  />
-
-                  <div className="grid md:grid-cols-2 gap-5">
-                    <Field
-                      label="Bank Name"
-                      value={profile.bank_name}
-                      onChange={(value) =>
-                        updateProfileField("bank_name", value)
-                      }
-                      placeholder="FNB"
-                    />
-
-                    <Field
-                      label="Account Name"
-                      value={profile.account_name}
-                      onChange={(value) =>
-                        updateProfileField("account_name", value)
-                      }
-                      placeholder="St John's Preparatory"
-                    />
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-5">
-                    <Field
-                      label="Account Number"
-                      value={profile.account_number}
-                      onChange={(value) =>
-                        updateProfileField("account_number", value)
-                      }
-                      placeholder="1234567890"
-                    />
-
-                    <Field
-                      label="Branch Code"
-                      value={profile.branch_code}
-                      onChange={(value) =>
-                        updateProfileField("branch_code", value)
-                      }
-                      placeholder="250655"
-                    />
-                  </div>
-
-                  <div className="grid md:grid-cols-2 gap-5">
-                    <Field
-                      label="Reference Code"
-                      value={profile.payment_reference_prefix}
-                      onChange={(value) =>
-                        updateProfileField("payment_reference_prefix", value)
-                      }
-                      placeholder="BRAG-STJOHNS"
-                    />
-
-                    <NumberField
-                      label="Bid Increment"
-                      value={String(profile.bid_increment || 100)}
-                      onChange={updateBidIncrement}
-                      placeholder="100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
-                      Collection Instructions
-                    </label>
-
-                    <textarea
-                      value={profile.collection_instructions}
-                      onChange={(event) =>
-                        updateProfileField(
-                          "collection_instructions",
-                          event.target.value
-                        )
-                      }
-                      className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg outline-none min-h-[150px]"
-                      placeholder="Artwork may be collected from the school office after payment confirmation."
-                    />
-                  </div>
-
-                  <button
-                    onClick={saveProfile}
-                    disabled={savingProfile}
-                    className="w-full bg-[#07152b] text-white rounded-[24px] py-5 font-black text-xl shadow-xl disabled:opacity-50 hover:scale-[1.01] transition"
-                  >
-                    {savingProfile ? "Saving Setup..." : "Save School Setup"}
-                  </button>
-                </div>
-              </section>
-
-              <section className="rounded-[36px] bg-white text-[#07152b] p-6 lg:p-7 shadow-2xl">
-                <div className="flex items-center justify-between gap-4 mb-7">
-                  <div>
-                    <p className="uppercase tracking-[0.3em] text-xs text-slate-400 font-black mb-3">
-                      New Artwork
-                    </p>
-
-                    <h2 className="text-4xl font-black">Upload & enhance</h2>
-                  </div>
-
-                  <div className="w-16 h-16 rounded-[24px] bg-[#fff2d2] flex items-center justify-center text-4xl">
-                    🎨
-                  </div>
-                </div>
-
-                <div className="space-y-5">
-                  <Field
-                    label="Child Name"
-                    value={childName}
-                    onChange={setChildName}
-                    placeholder="Ethan"
-                  />
-
-                  <Field
-                    label="Child Surname"
-                    value={childSurname}
-                    onChange={setChildSurname}
-                    placeholder="Smith"
-                  />
-
-                  <Field
-                    label="Grade"
-                    value={grade}
-                    onChange={setGrade}
-                    placeholder="Grade 3"
-                  />
-
-                  <div>
-                    <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
-                      Artwork Image
-                    </label>
-
-                    <label className="block rounded-[28px] border-2 border-dashed border-slate-200 bg-[#fbf8f1] p-6 cursor-pointer hover:border-[#16b85d] transition">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(event) =>
-                          handleFileChange(event.target.files?.[0] || null)
-                        }
-                        className="hidden"
-                      />
-
-                      <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-[24px] bg-white shadow flex items-center justify-center text-4xl shrink-0">
-                          🖼️
-                        </div>
-
-                        <div>
-                          <p className="text-xl font-black">
-                            {file ? file.name : "Choose artwork image"}
-                          </p>
-                          <p className="text-slate-500 font-bold mt-1">
-                            Use a clear, bright photo of the child’s artwork.
-                          </p>
-                        </div>
-                      </div>
-                    </label>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setEnhanceArtwork(!enhanceArtwork)}
-                    className={`w-full rounded-[28px] border-2 p-5 text-left transition ${
-                      enhanceArtwork
-                        ? "border-[#16b85d] bg-[#eafff2]"
-                        : "border-slate-200 bg-white"
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center font-black shrink-0 ${
-                          enhanceArtwork
-                            ? "bg-[#16b85d] text-white"
-                            : "bg-slate-100 text-slate-400"
-                        }`}
-                      >
-                        {enhanceArtwork ? "✓" : ""}
-                      </div>
-
-                      <div>
-                        <p className="text-xl font-black mb-2">
-                          Enhance artwork for auction display
-                        </p>
-
-                        <p className="text-slate-600 font-bold leading-relaxed">
-                          Keep the original safely stored, then create a
-                          cleaner, brighter auction-ready version.
-                        </p>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={uploadArtwork}
-                    disabled={uploading}
-                    className="w-full bg-[#07152b] text-white rounded-[24px] py-5 font-black text-xl shadow-xl disabled:opacity-50 hover:scale-[1.01] transition"
-                  >
-                    {uploading
-                      ? enhanceArtwork
-                        ? "Creating Enhanced Artwork..."
-                        : "Creating BragWall Story..."
-                      : "Add Artwork to Queue"}
-                  </button>
-
-                  {message && (
-                    <div className="rounded-[24px] bg-[#07152b] text-white p-5 font-bold leading-relaxed">
-                      {message}
-                    </div>
-                  )}
-                </div>
-              </section>
-            </div>
-
-            <div className="space-y-5">
-              <section className="rounded-[36px] bg-[#16d66d] text-[#07152b] p-7 shadow-2xl">
-                <p className="uppercase tracking-[0.3em] text-xs font-black mb-4">
-                  School Preview
-                </p>
-
-                <h2 className="text-5xl lg:text-6xl font-black leading-tight mb-6">
-                  {profile.school_name || "School Name"}
-                </h2>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <PreviewCard label="Bank" value={profile.bank_name} />
-                  <PreviewCard
-                    label="Account Name"
-                    value={profile.account_name}
-                  />
-                  <PreviewCard
-                    label="Account Number"
-                    value={profile.account_number}
-                  />
-                  <PreviewCard label="Branch Code" value={profile.branch_code} />
-                </div>
-
-                <div className="mt-5 bg-[#07152b] text-white rounded-[28px] p-6">
-                  <p className="uppercase tracking-[0.3em] text-xs text-white/40 font-black mb-3">
-                    Payment Reference
-                  </p>
-
-                  <p className="text-3xl font-black">
-                    {(profile.payment_reference_prefix || "BRAG") +
-                      "-WinnerName"}
-                  </p>
-                </div>
-              </section>
-
-              <section className="rounded-[42px] bg-white/5 border border-white/10 p-4 lg:p-6 shadow-[0_35px_100px_rgba(0,0,0,0.38)]">
-                <div className="rounded-[36px] bg-[#061124] border border-white/10 p-5 shadow-2xl">
-                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
-                    <div>
-                      <p className="uppercase tracking-[0.35em] text-[10px] text-[#16d66d] font-black mb-2">
-                        BragWall Preview
-                      </p>
-
-                      <h2 className="text-4xl lg:text-5xl font-black leading-none">
-                        {childName || "Child"} {childSurname || ""}
-                      </h2>
-
-                      <p className="text-white/50 font-bold mt-2">{grade}</p>
-                    </div>
-
-                    <div className="rounded-[24px] bg-[#ffc857] text-[#07152b] px-5 py-4 text-center shrink-0">
-                      <p className="uppercase tracking-[0.25em] text-[9px] font-black opacity-70">
-                        Artwork
-                      </p>
-                      <p className="text-xl font-black">#{nextSortOrder}</p>
-                    </div>
-                  </div>
-
-                  {previewUrl ? (
-                    <>
-                      <PremiumFrame src={previewUrl} alt="Artwork preview" />
-
-                      <div className="mt-5 grid md:grid-cols-2 gap-4">
-                        <div className="bg-white text-[#07152b] rounded-[28px] p-5 shadow-xl">
-                          <p className="uppercase tracking-[0.25em] text-[10px] text-slate-400 font-black mb-3">
-                            AI Story Preview
-                          </p>
-
-                          <p className="text-lg font-black leading-snug">
-                            “{storyPreview}”
-                          </p>
-                        </div>
-
-                        <div
-                          className={`rounded-[28px] p-5 shadow-xl ${
-                            enhanceArtwork
-                              ? "bg-[#16d66d] text-[#07152b]"
-                              : "bg-white/5 border border-white/10 text-white"
-                          }`}
-                        >
-                          <p className="uppercase tracking-[0.25em] text-[10px] font-black mb-3 opacity-70">
-                            Enhancement
-                          </p>
-
-                          <p className="text-lg font-black leading-snug">
-                            {enhanceArtwork
-                              ? "AI will create a polished framed auction version after upload."
-                              : "Only the original image will be stored."}
-                          </p>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="min-h-[420px] rounded-[32px] border border-dashed border-white/20 flex items-center justify-center text-center px-8">
-                      <div>
-                        <div className="text-8xl mb-6">🖼️</div>
-                        <h3 className="text-4xl font-black mb-4">
-                          Preview appears here
-                        </h3>
-                        <p className="text-white/50 text-xl max-w-xl mx-auto">
-                          Select an artwork image to see the framed BragWall
-                          presentation.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-              <section className="rounded-[34px] bg-[#061124]/90 border border-white/10 p-5 shadow-2xl">
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-5">
-                  <div>
-                    <p className="uppercase tracking-[0.3em] text-[10px] text-[#16d66d] font-black mb-2">
-                      Artwork Studio
-                    </p>
-                    <h2 className="text-3xl font-black leading-none">
-                      Live, sold and archived
-                    </h2>
-                    <p className="text-white/50 font-bold mt-2">
-                      Manage the full artwork lifecycle from one place.
-                    </p>
-                  </div>
-
-                  <div className="flex gap-3 shrink-0">
-                    <button
-                      onClick={fetchArtworks}
-                      className="rounded-2xl bg-white/10 border border-white/10 px-5 py-4 font-black hover:bg-white/15 transition"
-                    >
-                      Refresh
-                    </button>
-
-                    <button
-                      onClick={archiveAllUnsoldArtworks}
-                      disabled={liveUpcomingArtworks.length === 0}
-                      className="rounded-2xl bg-[#ffc857] text-[#07152b] px-5 py-4 font-black disabled:opacity-40"
-                    >
-                      Archive Unsold
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-5 max-h-[900px] overflow-auto pr-1">
-                  <ArtworkSection
-                    title="Live / Upcoming Artworks"
-                    subtitle="Artworks still available for the auction."
-                    emptyText="No upcoming artworks."
-                    artworks={liveUpcomingArtworks}
-                    actionLabel="Archive"
-                    onAction={archiveArtwork}
-                  />
-
-                  <ArtworkSection
-                    title="Sold Artworks"
-                    subtitle="Completed artworks with winning bid details."
-                    emptyText="No sold artworks yet."
-                    artworks={soldArtworks}
-                  />
-
-                  <ArtworkSection
-                    title="Archived / Unsold Artworks"
-                    subtitle="Unsold artworks removed from the active auction queue."
-                    emptyText="No archived artworks yet."
-                    artworks={archivedArtworks}
-                    actionLabel="Restore"
-                    onAction={restoreArtwork}
-                  />
-                </div>
-              </section>
-            </div>
-          </div>
-        </section>
-      </div>
-    </main>
-  );
-}
-
-function AdminNavLink({
-  href,
-  label,
-  icon,
-  active = false,
-}: {
-  href: string;
-  label: string;
-  icon: string;
-  active?: boolean;
-}) {
-  return (
-    <a
-      href={href}
-      className={`flex items-center gap-3 rounded-[22px] px-4 py-4 font-black transition ${
-        active
-          ? "bg-[#16d66d] text-[#07152b]"
-          : "bg-white/5 text-white/70 border border-white/10 hover:bg-white/10"
-      }`}
+        </AdminPanel>
+      }
     >
-      <span className="text-2xl">{icon}</span>
-      <span>{label}</span>
-    </a>
-  );
-}
+      {message && (
+        <div className="mb-5 rounded-[22px] border border-[#16d66d]/25 bg-[#16d66d]/10 px-5 py-4 text-sm font-black leading-relaxed text-white shadow-[0_20px_70px_rgba(0,0,0,0.28)]">
+          {message}
+        </div>
+      )}
 
-function MetricCard({
-  label,
-  value,
-  green = false,
-  gold = false,
-}: {
-  label: string;
-  value: string;
-  green?: boolean;
-  gold?: boolean;
-}) {
-  return (
-    <div className="rounded-[26px] bg-white/5 border border-white/10 p-4 shadow-xl">
-      <p className="uppercase tracking-[0.25em] text-[9px] text-white/40 font-black mb-2">
-        {label}
-      </p>
-      <p
-        className={`text-2xl lg:text-3xl font-black leading-none ${
-          green ? "text-[#16d66d]" : gold ? "text-[#ffc857]" : "text-white"
-        }`}
-      >
-        {value}
-      </p>
-    </div>
+      <div className="mb-5 grid gap-4 md:grid-cols-3">
+        <AdminStatCard
+          label="Upcoming"
+          value={`${liveUpcomingArtworks.length}`}
+          subtext="Ready for auction"
+          tone="green"
+          icon={<span>🎨</span>}
+        />
+        <AdminStatCard
+          label="Sold"
+          value={`${soldArtworks.length}`}
+          subtext="Completed artworks"
+          tone="yellow"
+          icon={<span>🔨</span>}
+        />
+        <AdminStatCard
+          label="Archived"
+          value={`${archivedArtworks.length}`}
+          subtext="Removed from queue"
+          tone="purple"
+          icon={<span>🗂️</span>}
+        />
+      </div>
+
+      <div className="grid gap-5 2xl:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+        <div className="space-y-5">
+          <AdminPanel
+            eyebrow="School setup"
+            title="Payment, reference & increment"
+            description="Set the school name, auction link, payment reference, bidding step and collection instructions."
+            action={<div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-white text-3xl shadow-xl">🏫</div>}
+          >
+            <div className="grid gap-4">
+              <Field
+                label="School Name"
+                value={profile.school_name}
+                onChange={updateSchoolName}
+                placeholder="St John's Preparatory"
+              />
+
+              <Field
+                label="School URL slug"
+                value={profile.auction_code}
+                onChange={(value) => updateProfileField("auction_code", value)}
+                placeholder="prime-primary"
+              />
+
+              <div className="rounded-[20px] border border-[#16d66d]/20 bg-[#16d66d]/10 px-4 py-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#16d66d]">
+                  Parent auction link
+                </p>
+                <p className="mt-1 break-all text-sm font-black text-white">
+                  /auction/{parentDraftAuctionCode}
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field
+                  label="Reference Code"
+                  value={profile.payment_reference_prefix}
+                  onChange={(value) => updateProfileField("payment_reference_prefix", value)}
+                  placeholder="Optional - e.g. SCHOOL-ART"
+                />
+
+                <div>
+                  <label className="mb-3 block text-[11px] font-black uppercase tracking-[0.22em] text-white/42">
+                    Bid Increment
+                  </label>
+                  <select
+                    value={String(profile.bid_increment || 100)}
+                    onChange={(event) => updateBidIncrement(event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-[#061124]/80 px-5 py-4 text-base font-black text-white outline-none focus:border-[#16d66d]"
+                  >
+                    <option value="25">R25</option>
+                    <option value="50">R50</option>
+                    <option value="100">R100</option>
+                    <option value="250">R250</option>
+                    <option value="500">R500</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-3 block text-[11px] font-black uppercase tracking-[0.22em] text-white/42">
+                  Collection Instructions
+                </label>
+                <textarea
+                  value={profile.collection_instructions}
+                  onChange={(event) => updateProfileField("collection_instructions", event.target.value)}
+                  className="min-h-[118px] w-full rounded-2xl border border-white/10 bg-[#061124]/80 px-5 py-4 text-base font-bold text-white outline-none focus:border-[#16d66d]/70"
+                  placeholder="Artwork may be collected from the school office after payment confirmation."
+                />
+              </div>
+
+              <button
+                onClick={saveProfile}
+                disabled={savingProfile}
+                className="rounded-[18px] bg-[#16d66d] px-6 py-4 text-base font-black text-[#031124] shadow-[0_20px_55px_rgba(22,214,109,0.18)] transition hover:scale-[1.01] disabled:opacity-50"
+              >
+                {savingProfile ? "Saving Setup..." : "Save School Setup"}
+              </button>
+            </div>
+          </AdminPanel>
+
+          <AdminPanel
+            eyebrow="New artwork"
+            title="Upload & enhance"
+            description="Add the child, grade and artwork photo. BragWall will keep the original and optionally create a cleaner auction display image."
+            action={<div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#fff2d2] text-3xl shadow-xl">🎨</div>}
+          >
+            <div className="grid gap-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Field label="Child Name" value={childName} onChange={setChildName} placeholder="Ethan" />
+                <Field label="Child Surname" value={childSurname} onChange={setChildSurname} placeholder="Smith" />
+              </div>
+
+              <Field label="Grade" value={grade} onChange={setGrade} placeholder="Grade 3" />
+
+              <div>
+                <label className="mb-3 block text-[11px] font-black uppercase tracking-[0.22em] text-white/42">
+                  Artwork Image
+                </label>
+                <label
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsArtworkDragging(true);
+                  }}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    setIsArtworkDragging(true);
+                  }}
+                  onDragLeave={handleArtworkDragLeave}
+                  onDrop={handleArtworkDrop}
+                  className={`group block cursor-pointer rounded-[26px] border border-dashed p-5 transition ${
+                    isArtworkDragging
+                      ? "border-[#16d66d] bg-[#16d66d]/12 shadow-[0_0_42px_rgba(22,214,109,0.18)]"
+                      : "border-white/15 bg-white/[0.04] hover:border-[#16d66d]/70 hover:bg-white/[0.06]"
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => handleFileChange(event.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-white/10 text-4xl shadow transition group-hover:scale-[1.03]">
+                      🖼️
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-lg font-black">
+                        {file ? "Artwork ready to upload" : isArtworkDragging ? "Drop artwork image here" : "Drag artwork here or click to browse"}
+                      </p>
+                      <p className="mt-1 truncate text-sm font-black text-[#16d66d]/90">
+                        {file ? file.name : "JPG, PNG, WEBP or HEIC artwork photo"}
+                      </p>
+                      <p className="mt-2 text-sm font-bold leading-relaxed text-white/48">
+                        Use a clear, bright photo. Large phone images are compressed before upload to prevent size errors.
+                      </p>
+                    </div>
+                    {file ? (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          handleFileChange(null);
+                        }}
+                        className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.18em] text-white/72 transition hover:border-[#ffc857]/60 hover:text-[#ffc857]"
+                      >
+                        Replace
+                      </button>
+                    ) : null}
+                  </div>
+                </label>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setEnhanceArtwork(!enhanceArtwork)}
+                className={`rounded-[22px] border p-4 text-left transition ${
+                  enhanceArtwork
+                    ? "border-[#16d66d]/50 bg-[#16d66d]/12 shadow-[0_0_40px_rgba(22,214,109,0.10)]"
+                    : "border-white/10 bg-white/[0.04]"
+                }`}
+              >
+                <div className="flex items-start gap-4">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl font-black ${enhanceArtwork ? "bg-[#16d66d] text-[#031124]" : "bg-white/10 text-white/40"}`}>
+                    {enhanceArtwork ? "✓" : ""}
+                  </div>
+                  <div>
+                    <p className="text-lg font-black">Enhance artwork for auction display</p>
+                    <p className="mt-1 text-sm font-bold leading-relaxed text-white/56">
+                      Keep the original safely stored, then create a cleaner, brighter auction-ready version. This can take longer than saving the original only.
+                    </p>
+                  </div>
+                </div>
+              </button>
+
+              {uploading ? (
+                <div className="rounded-[22px] border border-[#ffc857]/30 bg-[#ffc857]/10 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-base font-black text-white">
+                        {uploadStage || "Uploading artwork..."}
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-white/55">
+                        You can cancel and try again with the same selected image.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={cancelArtworkUpload}
+                      className="rounded-[16px] border border-[#ffc857]/40 bg-[#ffc857]/16 px-5 py-3 text-sm font-black text-[#ffc857] transition hover:bg-[#ffc857]/24"
+                    >
+                      Cancel Upload
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              <button
+                onClick={uploadArtwork}
+                disabled={uploading}
+                className="rounded-[18px] bg-[#16d66d] px-6 py-4 text-base font-black text-[#031124] shadow-[0_20px_55px_rgba(22,214,109,0.18)] transition hover:scale-[1.01] disabled:opacity-50"
+              >
+                {uploading ? "Upload Running..." : "Add Artwork to Queue"}
+              </button>
+            </div>
+          </AdminPanel>
+        </div>
+
+        <div className="space-y-5">
+          <AdminPanel className="relative overflow-hidden border-[#16d66d]/20 bg-[#062d2b]/72">
+            <img
+              src="/bragwall-admin-paint-texture.png"
+              alt=""
+              className="pointer-events-none absolute right-[-62px] top-[-76px] h-[270px] w-[230px] object-contain opacity-45"
+              aria-hidden="true"
+            />
+            <div className="relative z-10">
+              <p className="mb-3 text-[10px] font-black uppercase tracking-[0.32em] text-[#16d66d]">School Preview</p>
+              <h2 className="mb-5 text-4xl font-black leading-none tracking-[-0.06em] md:text-6xl">
+                {profile.school_name || "School Name"}
+              </h2>
+              <div className="grid gap-4 md:grid-cols-2">
+                <PreviewCard label="Bid Increment" value={`R${Number(profile.bid_increment || 100).toLocaleString()}`} />
+                <PreviewCard label="Payment Reference" value={profile.payment_reference_prefix || "BRAG"} />
+              </div>
+              <div className="mt-4 rounded-[22px] border border-white/10 bg-[#07152b] p-4">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.28em] text-white/40">Payment Reference</p>
+                <p className="text-2xl font-black">{(profile.payment_reference_prefix || "BRAG") + "-WinnerName"}</p>
+              </div>
+            </div>
+          </AdminPanel>
+
+          <AdminPanel eyebrow="BragWall Preview" title={`${childName || "Child"} ${childSurname || ""}`.trim()} description={grade}>
+            {previewUrl ? (
+              <>
+                <PremiumFrame src={previewUrl} alt="Artwork preview" />
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div className="rounded-[22px] border border-white/10 bg-white/[0.05] p-4">
+                    <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-white/42">AI Story Preview</p>
+                    <p className="text-base font-black leading-snug">“{storyPreview}”</p>
+                  </div>
+                  <div className={`rounded-[22px] p-4 ${enhanceArtwork ? "bg-[#16d66d]/14 text-white border border-[#16d66d]/35" : "bg-white/5 border border-white/10 text-white"}`}>
+                    <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] opacity-70">Enhancement</p>
+                    <p className="text-base font-black leading-snug">
+                      {enhanceArtwork
+                        ? "AI will create a polished framed auction version after upload."
+                        : "Only the original image will be stored."}
+                    </p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="rounded-[24px] border border-dashed border-white/12 bg-white/[0.035] p-8 text-center">
+                <p className="text-4xl">🖼️</p>
+                <p className="mt-3 text-xl font-black">Choose an artwork image to preview it here.</p>
+                <p className="mt-2 text-sm font-semibold text-white/45">The preview will show the auction frame and generated MC story before upload.</p>
+              </div>
+            )}
+          </AdminPanel>
+
+          <AdminPanel
+            eyebrow="Artwork studio"
+            title="Live, sold and archived"
+            description="Manage the full artwork lifecycle from one place."
+            action={
+              <div className="flex flex-wrap gap-3">
+                <button onClick={() => fetchArtworks(draftAuctionCode)} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black transition hover:bg-white/15">Refresh</button>
+                <button onClick={archiveAllUnsoldArtworks} disabled={liveUpcomingArtworks.length === 0} className="rounded-2xl bg-[#ffc857] px-4 py-3 text-sm font-black text-[#07152b] disabled:opacity-40">Archive Unsold</button>
+              </div>
+            }
+          >
+            <div className="space-y-4 max-h-[720px] overflow-y-auto overflow-x-hidden pr-1">
+              <ArtworkSection
+                title="Live / Upcoming Artworks"
+                subtitle="Artworks still available for the auction."
+                emptyText="No upcoming artworks."
+                artworks={liveUpcomingArtworks}
+                actionLabel="Archive"
+                onAction={archiveArtwork}
+              />
+              <ArtworkSection
+                title="Sold Artworks"
+                subtitle="Completed artworks with winning bid details."
+                emptyText="No sold artworks yet."
+                artworks={soldArtworks}
+              />
+              <ArtworkSection
+                title="Archived / Unsold Artworks"
+                subtitle="Unsold artworks removed from the active auction queue."
+                emptyText="No archived artworks yet."
+                artworks={archivedArtworks}
+                actionLabel="Restore"
+                onAction={restoreArtwork}
+              />
+            </div>
+          </AdminPanel>
+        </div>
+      </div>
+    </AdminShell>
   );
+
 }
 
 function Field({
@@ -996,14 +1085,18 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+      <label className="block text-sm font-black uppercase tracking-[0.2em] text-white/42 mb-3">
         {label}
       </label>
 
       <input
+        type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg outline-none"
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        className="w-full rounded-2xl border border-white/10 bg-[#061124]/80 px-5 py-4 text-base font-bold text-white outline-none focus:border-[#16d66d]/70"
         placeholder={placeholder}
       />
     </div>
@@ -1023,7 +1116,7 @@ function NumberField({
 }) {
   return (
     <div>
-      <label className="block text-sm font-black uppercase tracking-[0.2em] text-slate-400 mb-3">
+      <label className="block text-sm font-black uppercase tracking-[0.2em] text-white/42 mb-3">
         {label}
       </label>
 
@@ -1033,7 +1126,7 @@ function NumberField({
         step="1"
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-slate-200 px-5 py-5 text-lg outline-none"
+        className="w-full rounded-2xl border border-white/10 bg-[#061124]/80 px-5 py-4 text-base font-bold text-white outline-none focus:border-[#16d66d]/70"
         placeholder={placeholder}
       />
     </div>
@@ -1042,12 +1135,12 @@ function NumberField({
 
 function PreviewCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-[#07152b]/10 rounded-[24px] p-5">
+    <div className="rounded-[24px] border border-white/10 bg-white/[0.06] p-5">
       <p className="uppercase tracking-[0.25em] text-xs font-black opacity-60 mb-3">
         {label}
       </p>
 
-      <p className="text-2xl font-black">{value || "-"}</p>
+      <p className="text-2xl font-black text-white">{value || "-"}</p>
     </div>
   );
 }
@@ -1139,16 +1232,22 @@ function ArtworkRow({
     <div className="rounded-[26px] bg-white/5 border border-white/10 p-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <div className="w-20 h-20 rounded-[22px] overflow-hidden bg-white shrink-0">
+          <div className="relative w-20 h-20 rounded-[22px] overflow-hidden bg-white shrink-0">
             {displayUrl ? (
               <img
                 src={displayUrl}
                 alt=""
-                className="w-full h-full object-cover"
+                className={`w-full h-full object-cover ${artwork.status === "sold" ? "opacity-60" : ""}`}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-slate-400">
+              <div className="w-full h-full flex items-center justify-center text-white/42">
                 🎨
+              </div>
+            )}
+
+            {artwork.status === "sold" && (
+              <div className="absolute inset-x-[-10px] top-1/2 -translate-y-1/2 rotate-[-14deg] bg-[#ef2b20] py-1 text-center text-[10px] font-black text-white shadow-lg">
+                SOLD
               </div>
             )}
           </div>
@@ -1191,8 +1290,8 @@ function ArtworkRow({
               onClick={() => onAction(artwork)}
               className={`mt-3 rounded-2xl px-4 py-2 text-sm font-black ${
                 actionLabel === "Restore"
-                  ? "bg-[#16d66d] text-[#07152b]"
-                  : "bg-[#ffc857] text-[#07152b]"
+                  ? "bg-[#16d66d] text-white"
+                  : "bg-[#ffc857] text-white"
               }`}
             >
               {actionLabel}
@@ -1209,11 +1308,11 @@ function StatusBadge({ status }: { status?: string | null }) {
 
   const styles =
     cleanStatus === "live"
-      ? "bg-[#16d66d] text-[#07152b]"
+      ? "bg-[#16d66d] text-white"
       : cleanStatus === "sold"
       ? "bg-[#ef2b20] text-white"
       : cleanStatus === "archived"
-      ? "bg-[#ffc857] text-[#07152b]"
+      ? "bg-[#ffc857] text-white"
       : "bg-white/10 text-white/70";
 
   return (
@@ -1234,7 +1333,7 @@ function EnhancementBadge({
 
   if (hasEnhancedImage || cleanStatus === "complete") {
     return (
-      <span className="inline-block rounded-full bg-[#16d66d] text-[#07152b] px-3 py-1 text-xs font-black">
+      <span className="inline-block rounded-full bg-[#16d66d] text-white px-3 py-1 text-xs font-black">
         ENHANCED
       </span>
     );
@@ -1242,7 +1341,7 @@ function EnhancementBadge({
 
   if (cleanStatus === "processing") {
     return (
-      <span className="inline-block rounded-full bg-[#ffc857] text-[#07152b] px-3 py-1 text-xs font-black">
+      <span className="inline-block rounded-full bg-[#ffc857] text-white px-3 py-1 text-xs font-black">
         ENHANCING
       </span>
     );
@@ -1250,8 +1349,8 @@ function EnhancementBadge({
 
   if (cleanStatus === "failed") {
     return (
-      <span className="inline-block rounded-full bg-[#ef2b20] text-white px-3 py-1 text-xs font-black">
-        FAILED
+      <span className="inline-block rounded-full bg-white/10 text-white/60 px-3 py-1 text-xs font-black">
+        ORIGINAL
       </span>
     );
   }
