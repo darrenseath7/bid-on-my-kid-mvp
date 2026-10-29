@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     const email = data.user.email.toLowerCase();
     const allowedAdminEmails = getAllowedAdminEmails();
 
-    if (allowedAdminEmails.length > 0 && !allowedAdminEmails.includes(email)) {
+    if ((allowedAdminEmails.length === 0 || !allowedAdminEmails.includes(email))) {
       return NextResponse.json(
         { error: "This email is not allowed to access BragWall admin." },
         { status: 403 }

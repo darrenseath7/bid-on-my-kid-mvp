@@ -180,6 +180,210 @@ export async function POST(request: NextRequest) {
       return jsonError("Bidder details could not be verified. Please rejoin the auction.", 403);
     }
 
+    // BRAGWALL_ATOMIC_BIDDING_API_V1
+    //
+    // Staging-only atomic bid processing.
+    // Disabled unless explicitly enabled.
+    //
+    // The existing bidding pathway below remains unchanged.
+    //
+    // PostgreSQL locks the auction row and atomically inserts
+    // the accepted bid and updates the auction state.
+
+    if (process.env.BRAGWALL_ATOMIC_BIDDING_ENABLED === "true") {
+      const stagingUrl =
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+
+      const permittedAuctions = [
+        "mc-timing-e2e-20261029-01",
+        "mc-timing-e2e-20261029-02",
+        "mc-timing-e2e-20261029-03",
+      ];
+
+      if (
+        !stagingUrl.includes("nxgtyzsqqpivstpcyskm") ||
+        process.env.BRAGWALL_MOCK_ELEVENLABS !== "true"
+      ) {
+        return jsonError(
+          "Atomic bidding test is restricted to Staging mock mode.",
+          503
+        );
+      }
+
+      if (!permittedAuctions.includes(auctionCode)) {
+        return jsonError(
+          "This auction is outside the atomic bidding test.",
+          403
+        );
+      }
+
+      const { data: atomicResult, error: atomicError } =
+        await supabase.rpc("place_test_bid_atomic", {
+          p_auction_code: auctionCode,
+          p_bidder_name: bidderName,
+          p_bidder_contact_id: bidderContactId,
+          p_bidder_token_hash: bidderTokenHash,
+          p_amount: roundedAmount,
+        });
+
+      if (atomicError) {
+        console.error("Atomic bidding RPC failed:", atomicError);
+
+        return jsonError(
+          "Unable to process your bid. Please try again.",
+          500
+        );
+      }
+
+      if (!atomicResult || atomicResult.ok !== true) {
+        const reason = String(atomicResult?.reason || "");
+
+        if (
+          reason === "invalid_bidder" ||
+          reason === "bidder_name_mismatch"
+        ) {
+          return jsonError(
+            "Bidder details could not be verified. Please rejoin the auction.",
+            403
+          );
+        }
+
+        if (reason === "bidding_paused") {
+          return jsonError(
+            "Bidding is paused for a moment. Please try again when the next bid opens.",
+            409
+          );
+        }
+
+        if (reason === "bid_too_low") {
+          const minimum = Number(atomicResult.minimumBid || 0);
+
+          return jsonError(
+            `This bid is no longer high enough. The next bid is R${minimum.toLocaleString()}.`,
+            409
+          );
+        }
+
+        if (reason === "bidding_closed") {
+          return jsonError(
+            "Bidding is not open yet.",
+            409
+          );
+        }
+
+        if (reason === "auction_not_found") {
+          return jsonError("Auction is not available.", 404);
+        }
+
+        if (reason === "auction_not_allowed") {
+          return jsonError("Auction is not permitted.", 403);
+        }
+
+        if (reason === "invalid_request") {
+          return jsonError("Invalid bid request.", 400);
+        }
+
+        return jsonError(
+          "Your bid could not be accepted. Please try again.",
+          409
+        );
+      }
+
+      // The atomic database function has committed the bid.
+      // Never retry an accepted bid merely because a later
+      // activity or commentary update fails.
+
+      const acceptedAmount = Number(
+        atomicResult.acceptedAmount
+      );
+
+      const nextAsk = Number(
+        atomicResult.nextBidAmount
+      );
+
+      const { data: freshAuction, error: freshError } =
+        await supabase
+          .from("live_auction_state")
+          .select("*")
+          .eq("auction_code", auctionCode)
+          .single<AuctionState>();
+
+      if (freshError || !freshAuction) {
+        console.error(
+          "Accepted atomic bid; auction refresh failed:",
+          freshError
+        );
+
+        return NextResponse.json({
+          ok: true,
+          accepted: true,
+          bidId: atomicResult.bidId,
+          nextBidAmount: nextAsk,
+          refreshRequired: true,
+        });
+      }
+
+      // Preserve the existing activity feed and MC reactions.
+      // These are secondary effects, not part of bid acceptance.
+
+      try {
+        const { count: acceptedBidCount } = await supabase
+          .from("live_bids")
+          .select("id", { count: "exact", head: true })
+          .eq("auction_code", auctionCode);
+
+        const safeBidCount = Number(acceptedBidCount || 0);
+
+        const standardMessage =
+          `R${acceptedAmount.toLocaleString()} received from ` +
+          `${bidderName}. Do I hear R${nextAsk.toLocaleString()}?`;
+
+        const shouldUseMcReaction =
+          safeBidCount > 0 &&
+          safeBidCount % MC_REACTION_EVERY_NTH_BID === 0;
+
+        const message = shouldUseMcReaction
+          ? createBidReaction({
+              bidderName,
+              amount: acceptedAmount,
+              nextAsk,
+              bidCount: safeBidCount,
+            })
+          : standardMessage;
+
+        // Never overwrite commentary belonging to a later bid.
+        await supabase
+          .from("live_auction_state")
+          .update({
+            mc_commentary: message,
+          })
+          .eq("auction_code", auctionCode)
+          .eq("current_bid", acceptedAmount)
+          .eq("leading_bidder_contact_id", bidderContactId);
+
+        await supabase
+          .from("live_activity_feed")
+          .insert({
+            auction_code: auctionCode,
+            message:
+              `R${acceptedAmount.toLocaleString()} received from ${bidderName}`,
+          });
+      } catch (secondaryError) {
+        console.error(
+          "Atomic bid accepted; secondary updates failed:",
+          secondaryError
+        );
+      }
+
+      return NextResponse.json({
+        ok: true,
+        accepted: true,
+        bidId: atomicResult.bidId,
+        auction: freshAuction,
+        nextBidAmount: nextAsk,
+      });
+    }
+
     const { data: auction, error: auctionError } = await supabase
       .from("live_auction_state")
       .select("*")

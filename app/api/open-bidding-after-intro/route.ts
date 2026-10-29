@@ -82,6 +82,40 @@ export async function POST(request: NextRequest) {
       return jsonError("Invalid open-bidding reason.", 400);
     }
 
+    // BRAGWALL_PARENT_MC_TIMING_PROTECTION_V1
+    //
+    // When server-controlled timing is enabled, parent browsers
+    // must never advance the AI MC introduction.
+    //
+    // The central controller will make that transition instead.
+    //
+    // When disabled, the original endpoint works as before.
+
+    if (process.env.BRAGWALL_SERVER_MC_TIMING_ENABLED === "true") {
+      const stagingUrl =
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+
+      if (
+        !stagingUrl.includes("nxgtyzsqqpivstpcyskm") ||
+        process.env.BRAGWALL_MOCK_ELEVENLABS !== "true"
+      ) {
+        return jsonError(
+          "Server-controlled MC timing configuration is invalid.",
+          503
+        );
+      }
+
+      return NextResponse.json(
+        {
+          ok: false,
+          serverControlled: true,
+          message:
+            "The central auction controller manages the AI MC countdown.",
+        },
+        { status: 409 }
+      );
+    }
+
     const supabase = getSupabaseAdmin();
 
     const { data: auction, error: auctionError } = await supabase
@@ -145,8 +179,32 @@ export async function POST(request: NextRequest) {
       .select("*")
       .maybeSingle<AuctionState>();
 
-    if (updateError || !updatedAuction) {
-      return jsonError(updateError?.message || "Could not open bidding.", 409);
+    if (updateError) {
+      return jsonError(updateError.message, 409);
+    }
+
+    // BRAGWALL_INTRO_CONCURRENT_REQUEST_V1
+    // Another parent may have completed the same transition.
+    if (!updatedAuction) {
+      const { data: latestAuction, error: latestError } = await supabase
+        .from("live_auction_state")
+        .select("*")
+        .eq("auction_code", auctionCode)
+        .maybeSingle<AuctionState>();
+
+      if (
+        !latestError &&
+        latestAuction &&
+        latestAuction.status !== "intro"
+      ) {
+        return NextResponse.json({
+          ok: true,
+          alreadyAdvanced: true,
+          auction: latestAuction,
+        });
+      }
+
+      return jsonError("Could not open bidding.", 409);
     }
 
     await supabase.from("live_activity_feed").insert({

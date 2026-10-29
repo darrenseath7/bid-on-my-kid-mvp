@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const DEFAULT_AUCTION_CODE = "demo";
@@ -153,18 +153,44 @@ function sanitizeArtwork(artwork: RawArtwork) {
   };
 }
 
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const auctionCode = normalizeAuctionCode(searchParams.get("auctionCode"));
+// BRAGWALL_AUCTION_CACHE_V1
+// Short-lived, per-process cache for public auction snapshots.
+// This does not replace distributed caching or reliable server-side progression.
 
-    if (!isValidAuctionCode(auctionCode)) {
-      return jsonError("Invalid auction code.", 400);
-    }
+const AUCTION_CACHE_TTL_MS = 750;
+const AUCTION_CACHE_MAX_ENTRIES = 100;
 
-    const supabase = getSupabaseAdmin();
+type PublicAuctionSnapshot = {
+  ok: true;
+  auctionCode: string;
+  auction: ReturnType<typeof sanitizeAuction>;
+  profile: {
+    auction_code: string;
+    bid_increment: number;
+  };
+  bids: ReturnType<typeof sanitizeBid>[];
+  artworks: ReturnType<typeof sanitizeArtwork>[];
+};
 
-    const [auctionResult, profileResult, bidsResult, artworksResult] = await Promise.all([
+type AuctionCacheEntry = {
+  expiresAt: number;
+  value: PublicAuctionSnapshot;
+};
+
+const auctionSnapshotCache = new Map<string, AuctionCacheEntry>();
+
+const auctionSnapshotInFlight = new Map<
+  string,
+  Promise<PublicAuctionSnapshot>
+>();
+
+async function loadAuctionSnapshot(
+  auctionCode: string
+): Promise<PublicAuctionSnapshot> {
+  const supabase = getSupabaseAdmin();
+
+  const [auctionResult, profileResult, bidsResult, artworksResult] =
+    await Promise.all([
       supabase
         .from("live_auction_state")
         .select(
@@ -172,17 +198,23 @@ export async function GET(request: NextRequest) {
         )
         .eq("auction_code", auctionCode)
         .maybeSingle<RawAuctionState>(),
+
       supabase
         .from("demo_school_profile")
         .select("auction_code,bid_increment")
         .eq("auction_code", auctionCode)
-        .maybeSingle<{ auction_code: string; bid_increment?: number | null }>(),
+        .maybeSingle<{
+          auction_code: string;
+          bid_increment?: number | null;
+        }>(),
+
       supabase
         .from("live_bids")
         .select("id,bidder_name,amount,created_at")
         .eq("auction_code", auctionCode)
         .order("amount", { ascending: false })
         .limit(500),
+
       supabase
         .from("demo_artworks")
         .select(
@@ -192,53 +224,111 @@ export async function GET(request: NextRequest) {
         .order("sort_order", { ascending: true }),
     ]);
 
-    if (auctionResult.error) {
-      return jsonError(auctionResult.error.message, 500);
-    }
+  if (auctionResult.error) {
+    throw new Error(auctionResult.error.message);
+  }
 
-    if (profileResult.error) {
-      return jsonError(profileResult.error.message, 500);
-    }
+  if (profileResult.error) {
+    throw new Error(profileResult.error.message);
+  }
 
-    if (bidsResult.error) {
-      return jsonError(bidsResult.error.message, 500);
-    }
+  if (bidsResult.error) {
+    throw new Error(bidsResult.error.message);
+  }
 
-    if (artworksResult.error) {
-      return jsonError(artworksResult.error.message, 500);
-    }
+  if (artworksResult.error) {
+    throw new Error(artworksResult.error.message);
+  }
 
-    const profile = profileResult.data
-      ? {
-          auction_code: auctionCode,
-          bid_increment: getSafeBidIncrement(profileResult.data.bid_increment),
-        }
-      : {
-          auction_code: auctionCode,
-          bid_increment: DEFAULT_BID_STEP,
-        };
+  const profile = {
+    auction_code: auctionCode,
+    bid_increment: getSafeBidIncrement(
+      profileResult.data?.bid_increment
+    ),
+  };
 
-    return NextResponse.json(
-      {
-        ok: true,
-        auctionCode,
-        auction: sanitizeAuction(auctionResult.data || null),
-        profile,
-        bids: (bidsResult.data || []).map(sanitizeBid),
-        artworks: (artworksResult.data || []).map(sanitizeArtwork),
-      },
-      {
-        headers: {
-          "Cache-Control": "no-store, max-age=0",
-        },
+  return {
+    ok: true,
+    auctionCode,
+    auction: sanitizeAuction(auctionResult.data || null),
+    profile,
+    bids: (bidsResult.data || []).map(sanitizeBid),
+    artworks: (artworksResult.data || []).map(sanitizeArtwork),
+  };
+}
+
+async function getAuctionSnapshot(
+  auctionCode: string
+): Promise<PublicAuctionSnapshot> {
+  const now = Date.now();
+
+  const cached = auctionSnapshotCache.get(auctionCode);
+
+  if (cached && now < cached.expiresAt) {
+    return cached.value;
+  }
+
+  if (cached) {
+    auctionSnapshotCache.delete(auctionCode);
+  }
+
+  const existingRequest = auctionSnapshotInFlight.get(auctionCode);
+
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request = loadAuctionSnapshot(auctionCode);
+
+  auctionSnapshotInFlight.set(auctionCode, request);
+
+  try {
+    const snapshot = await request;
+
+    if (auctionSnapshotCache.size >= AUCTION_CACHE_MAX_ENTRIES) {
+      const oldestKey = auctionSnapshotCache.keys().next().value;
+
+      if (oldestKey !== undefined) {
+        auctionSnapshotCache.delete(oldestKey);
       }
-    );
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not load auction.";
-    return jsonError(message, 500);
+    }
+
+    auctionSnapshotCache.set(auctionCode, {
+      expiresAt: Date.now() + AUCTION_CACHE_TTL_MS,
+      value: snapshot,
+    });
+
+    return snapshot;
+  } finally {
+    auctionSnapshotInFlight.delete(auctionCode);
   }
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
 
+    const auctionCode = normalizeAuctionCode(
+      searchParams.get("auctionCode")
+    );
 
+    if (!isValidAuctionCode(auctionCode)) {
+      return jsonError("Invalid auction code.", 400);
+    }
 
+    const snapshot = await getAuctionSnapshot(auctionCode);
+
+    return NextResponse.json(snapshot, {
+      headers: {
+        "Cache-Control": "no-store, max-age=0",
+      },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Could not load auction.";
+
+    return jsonError(message, 500);
+  }
+}

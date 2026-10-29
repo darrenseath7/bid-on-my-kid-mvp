@@ -79,7 +79,7 @@ async function requireAdmin(request: NextRequest) {
   const allowedEmails = getAllowedAdminEmails();
 
   if (
-    allowedEmails.length > 0 &&
+    allowedEmails.length === 0 ||
     !allowedEmails.includes(session.email.toLowerCase())
   ) {
     return null;
@@ -226,4 +226,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

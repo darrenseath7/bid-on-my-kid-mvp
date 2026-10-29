@@ -97,7 +97,7 @@ async function assertAdmin(request: NextRequest) {
     .filter(Boolean);
 
   if (
-    allowedEmails.length > 0 &&
+    allowedEmails.length === 0 ||
     !allowedEmails.includes(session.email.toLowerCase())
   ) {
     return null;
@@ -114,6 +114,7 @@ async function generateAuctionIntro(request: NextRequest, payload: Record<string
       headers: {
         "Content-Type": "application/json",
         Cookie: request.headers.get("cookie") || "",
+        "x-bragwall-mc-token": process.env.BRAGWALL_MC_INTERNAL_TOKEN || "",
       },
       body: JSON.stringify(payload),
     });
@@ -163,6 +164,63 @@ async function enhanceArtwork(request: NextRequest, payload: Record<string, unkn
   }
 }
 
+export async function GET(request: NextRequest) {
+  const session = await assertAdmin(request);
+
+  if (!session) {
+    return jsonError("Admin login required.", 401);
+  }
+
+  try {
+    const auctionCode = getSafeAuctionCode(
+      request.nextUrl.searchParams.get("auctionCode")
+    );
+
+    const supabaseAdmin = getSupabaseAdmin();
+
+    const { data, error } = await supabaseAdmin
+      .from("demo_school_profile")
+      .select(
+        "auction_code,school_name,branch_code,payment_reference_prefix,collection_instructions,bid_increment"
+      )
+      .eq("auction_code", auctionCode)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Could not load school profile:", error);
+      return jsonError("Could not load school profile.", 500);
+    }
+
+    const includeArtworks =
+      request.nextUrl.searchParams.get("includeArtworks") === "true";
+
+    if (includeArtworks) {
+      const { data: artworks, error: artworkError } = await supabaseAdmin
+        .from("demo_artworks")
+        .select("*")
+        .eq("auction_code", auctionCode)
+        .order("sort_order", { ascending: true });
+
+      if (artworkError) {
+        console.error("Could not load school artworks:", artworkError);
+        return jsonError("Could not load school artworks.", 500);
+      }
+
+      return NextResponse.json(
+        { profile: data, artworks: artworks || [] },
+        { headers: { "Cache-Control": "private, no-store" } }
+      );
+    }
+
+    return NextResponse.json(
+      { profile: data },
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
+  } catch (error) {
+    console.error("School profile request failed:", error);
+    return jsonError("Could not load school profile.", 500);
+  }
+}
 export async function POST(request: NextRequest) {
   const session = await assertAdmin(request);
 

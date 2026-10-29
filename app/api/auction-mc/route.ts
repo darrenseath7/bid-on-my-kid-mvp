@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { createHash, timingSafeEqual } from "node:crypto";
 
 type AuctionMcRequest = {
   childName?: string;
@@ -13,6 +14,32 @@ type AuctionMcRequest = {
 };
 
 export async function POST(req: Request) {
+  // BRAGWALL_AUCTION_MC_INTERNAL_AUTH_V1
+  // Only authenticated server-side callers may generate AI MC scripts.
+  const configuredToken = process.env.BRAGWALL_MC_INTERNAL_TOKEN;
+  const suppliedToken = req.headers.get("x-bragwall-mc-token");
+
+  if (!configuredToken || !suppliedToken) {
+    return Response.json(
+      { error: "Forbidden" },
+      { status: 403 }
+    );
+  }
+
+  const expectedHash = createHash("sha256")
+    .update(configuredToken)
+    .digest();
+
+  const suppliedHash = createHash("sha256")
+    .update(suppliedToken)
+    .digest();
+
+  if (!timingSafeEqual(expectedHash, suppliedHash)) {
+    return Response.json(
+      { error: "Forbidden" },
+      { status: 403 }
+    );
+  }
   try {
     const apiKey = process.env.OPENAI_API_KEY;
     const body = (await req.json()) as AuctionMcRequest;

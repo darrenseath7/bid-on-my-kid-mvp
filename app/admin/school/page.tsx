@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import BrandHeader from "@/components/BrandHeader";
-import { supabase } from "@/lib/supabase";
 
 type SchoolProfile = {
   id?: string;
@@ -30,14 +29,27 @@ export default function SchoolProfilePage() {
   }, []);
 
   async function fetchProfile() {
-    const { data } = await supabase
-      .from("demo_school_profile")
-      .select("*")
-      .eq("auction_code", "demo")
-      .single();
+    try {
+      const response = await fetch(
+        "/api/admin/setup-action?auctionCode=demo",
+        { cache: "no-store" }
+      );
 
-    if (data) {
-      setProfile(data);
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not load school profile.");
+      }
+
+      if (result?.profile) {
+        setProfile(result.profile);
+      }
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not load school profile."
+      );
     }
   }
 
@@ -45,23 +57,38 @@ export default function SchoolProfilePage() {
     setSaving(true);
     setMessage("");
 
-    const { error } = await supabase.from("demo_school_profile").upsert(
-      {
-        ...profile,
-        auction_code: "demo",
-      },
-      {
-        onConflict: "auction_code",
+    try {
+      const response = await fetch("/api/admin/setup-action", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action: "save-profile",
+          auctionCode: "demo",
+          profile: {
+            ...profile,
+            auction_code: "demo",
+          },
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not save school profile.");
       }
-    );
 
-    if (error) {
-      setMessage(error.message);
-    } else {
       setMessage("School profile saved successfully.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Could not save school profile."
+      );
+    } finally {
+      setSaving(false);
     }
-
-    setSaving(false);
   }
 
   function updateField(field: keyof SchoolProfile, value: string) {
@@ -95,7 +122,7 @@ export default function SchoolProfilePage() {
             </a>
 
             <a
-              href="/auction/winner"
+              href="/admin/sales"
               className="rounded-2xl bg-white text-[#07152b] px-6 py-4 font-black shadow-xl"
             >
               Preview Certificate

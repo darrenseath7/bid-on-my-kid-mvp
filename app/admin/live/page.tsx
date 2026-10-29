@@ -280,11 +280,19 @@ export default function AdminLivePage() {
     targetAuctionCode = auctionCode,
     isCancelled: () => boolean = () => false
   ) {
-    const { data, error } = await supabase
-      .from("live_auction_state")
-      .select("*")
-      .eq("auction_code", targetAuctionCode)
-      .single();
+    const response = await fetch(
+      `/api/admin/live-data?auctionCode=${encodeURIComponent(targetAuctionCode)}&section=auction`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      console.error("Could not load Live Room auction status.");
+      return;
+    }
+
+    const result = await response.json();
+    const data = result.auction as AuctionState | null;
+    const error = null;
 
     if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
 
@@ -297,11 +305,18 @@ export default function AdminLivePage() {
     targetAuctionCode = auctionCode,
     isCancelled: () => boolean = () => false
   ) {
-    const { data } = await supabase
-      .from("demo_school_profile")
-      .select("auction_code,bid_increment")
-      .eq("auction_code", targetAuctionCode)
-      .maybeSingle();
+    const response = await fetch(
+      `/api/admin/live-data?auctionCode=${encodeURIComponent(targetAuctionCode)}&section=profile`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      console.error("Could not load school bidding increment.");
+      return;
+    }
+
+    const result = await response.json();
+    const data = result.profile as SchoolProfile | null;
 
     if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
 
@@ -314,11 +329,18 @@ export default function AdminLivePage() {
     targetAuctionCode = auctionCode,
     isCancelled: () => boolean = () => false
   ) {
-    const { data } = await supabase
-      .from("demo_artworks")
-      .select("*")
-      .eq("auction_code", targetAuctionCode)
-      .order("sort_order", { ascending: true });
+    const response = await fetch(
+      `/api/admin/live-data?auctionCode=${encodeURIComponent(targetAuctionCode)}&section=artworks`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      console.error("Could not load Live Room artworks.");
+      return;
+    }
+
+    const result = await response.json();
+    const data = result.artworks as Artwork[];
 
     if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
 
@@ -329,12 +351,18 @@ export default function AdminLivePage() {
     targetAuctionCode = auctionCode,
     isCancelled: () => boolean = () => false
   ) {
-    const { data } = await supabase
-      .from("live_bids")
-      .select("*")
-      .eq("auction_code", targetAuctionCode)
-      .order("amount", { ascending: false })
-      .limit(500);
+    const response = await fetch(
+      `/api/admin/live-data?auctionCode=${encodeURIComponent(targetAuctionCode)}&section=bids`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      console.error("Could not load Live Room bidding history.");
+      return;
+    }
+
+    const result = await response.json();
+    const data = result.bids as Bid[];
 
     if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
 
@@ -345,24 +373,24 @@ export default function AdminLivePage() {
     targetAuctionCode = auctionCode,
     isCancelled: () => boolean = () => false
   ) {
-    const { data } = await supabase
-      .from("live_activity_feed")
-      .select("*")
-      .eq("auction_code", targetAuctionCode)
-      .order("created_at", { ascending: false })
-      .limit(12);
+    const response = await fetch(
+      `/api/admin/live-data?auctionCode=${encodeURIComponent(targetAuctionCode)}&section=activity`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      console.error("Could not load Live Room activity.");
+      return;
+    }
+
+    const result = await response.json();
+    const data = result.activity as ActivityItem[];
 
     if (isCancelled() || activeAuctionCodeRef.current !== targetAuctionCode) return;
 
     setActivity((data || []).filter((item) => item.auction_code === targetAuctionCode));
   }
 
-  async function addActivity(message: string) {
-    await supabase.from("live_activity_feed").insert({
-      auction_code: auctionCode,
-      message,
-    });
-  }
 
   async function runLiveAction(
     action: string,
@@ -1745,10 +1773,3 @@ function toneText(tone: Tone) {
   if (tone === "red") return "text-[#ef2b20]";
   return "text-white";
 }
-
-
-
-
-
-
-

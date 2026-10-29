@@ -1,3 +1,4 @@
+import { resolveMcIntroAudio } from "@/lib/resolveMcIntroAudio";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -151,7 +152,10 @@ async function generateAiMcIntroText(
     const origin = new URL(request.url).origin;
     const response = await fetch(`${origin}/api/auction-mc`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-bragwall-mc-token": process.env.BRAGWALL_MC_INTERNAL_TOKEN || "",
+      },
       body: JSON.stringify({
         mode: "intro",
         childName: artwork.child_name,
@@ -262,7 +266,7 @@ async function assertAdmin(request: NextRequest) {
     .filter(Boolean);
 
   if (
-    allowedEmails.length > 0 &&
+    allowedEmails.length === 0 ||
     !allowedEmails.includes(session.email.toLowerCase())
   ) {
     return null;
@@ -358,39 +362,22 @@ async function generateMcVoiceAudio(
   auctionCode: string
 ) {
   try {
-    const origin = request.headers.get("origin") || new URL(request.url).origin;
-    const response = await fetch(`${origin}/api/mc-voice`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: request.headers.get("cookie") || "",
-      },
-      body: JSON.stringify({
-        auctionCode: auctionCode,
-        artworkId: artwork.id,
-        text: commentary,
-        childName: [artwork.child_name, artwork.child_surname]
-          .filter(Boolean)
-          .join(" ")
-          .trim(),
-        grade: artwork.grade,
-        forceRegenerate: true,
-      }),
+    return await resolveMcIntroAudio({
+      origin: new URL(request.url).origin,
+      auctionCode,
+      artworkId: artwork.id,
+      text: commentary,
+      childName: [artwork.child_name, artwork.child_surname]
+        .filter(Boolean)
+        .join(" ")
+        .trim(),
+      grade: artwork.grade,
     });
-
-    const result = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new Error(result?.error || "Could not generate MC voice.");
-    }
-
-    return String(result.audioUrl || "");
   } catch (error) {
-    console.error("Could not generate AI MC voice:", error);
+    console.error("Could not resolve admin AI MC audio:", error);
     return null;
   }
 }
-
 async function moveToArtwork(
   request: NextRequest,
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
@@ -461,6 +448,12 @@ async function moveToArtwork(
   );
 
   const mcAudioUrl = await generateMcVoiceAudio(request, artwork, commentary, auctionCode);
+
+  if (!mcAudioUrl) {
+    throw new Error(
+      "AI MC introduction audio is unavailable. Auction remains in preparation."
+    );
+  }
 
   const { error: finalArtworkError } = await supabaseAdmin
     .from("demo_artworks")
@@ -846,4 +839,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

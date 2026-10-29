@@ -1,361 +1,172 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { rateLimit } from "@/lib/rateLimit";
+import { createHash, timingSafeEqual } from "node:crypto";
+
+import { POST as legacyVoice } from "./legacy";
+import { POST as modernVoice } from "./modern";
 
 export const runtime = "nodejs";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
-);
+// BRAGWALL_MC_PRODUCTION_SECURITY_V1
+// Legacy audio remains available while new Supabase audio jobs are disabled.
+// Verify every request BEFORE invoking the paid voice-generation provider.
 
-const AUCTION_CODE = "demo";
-const MC_AUDIO_BUCKET = "mc-audio";
-const DEFAULT_ELEVENLABS_VOICE_ID = "0S5oIfi8zOZixuSj8K6n";
-
-type GenerateMcVoiceRequest = {
+type VoiceRequest = {
   artworkId?: string | null;
   auctionCode?: string | null;
   text?: string | null;
-  childName?: string | null;
-  grade?: string | null;
-  forceRegenerate?: boolean | null;
 };
 
-type DemoArtworkAudioLookup = {
-  mc_audio_url?: string | null;
-};
+function cleanText(value: unknown): string {
+  return typeof value === "string"
+    ? value.replace(/\s+/g, " ").replace(/[<>]/g, "").trim().slice(0, 8000)
+    : "";
+}
+
+function validAuctionCode(value: string): boolean {
+  return /^[a-z0-9-]{1,80}$/.test(value);
+}
+
+function tokenMatches(expected: string, supplied: string): boolean {
+  if (!expected || !supplied) return false;
+
+  const a = createHash("sha256").update(expected).digest();
+  const b = createHash("sha256").update(supplied).digest();
+
+  return timingSafeEqual(a, b);
+}
+
+function getExpectedReaction(commentary: string, bidder: string): string {
+  const reactionText = commentary.replace(/^MC_REACTION:\s*/i, "").trim();
+
+  const options = [
+    `${bidder} came to play!`,
+    "Yoh, now it is getting serious!",
+    "Parents, the gloves are off!",
+    `${bidder} wants bragging rights!`,
+    "That bid has attitude!",
+    "Now we have an auction!",
+    "Eish, things are heating up!",
+    `${bidder} is not browsing!`,
+    "The wall-space battle begins!",
+    "Someone wants fridge fame!",
+  ];
+
+  let seed = 0;
+
+  for (const character of `${reactionText}|${bidder}`) {
+    seed += character.charCodeAt(0);
+  }
+
+  return options[Math.abs(seed) % options.length];
+}
+
+function reject(message: string, status: number) {
+  return NextResponse.json(
+    { error: message },
+    {
+      status,
+      headers: { "Cache-Control": "no-store" },
+    }
+  );
+}
 
 export async function POST(request: NextRequest) {
+  // Modern mode retains its existing validation and audio-job handling.
+  if (process.env.BRAGWALL_MC_AUDIO_JOBS_ENABLED === "true") {
+    return modernVoice(request);
+  }
+
+  let body: VoiceRequest;
+
   try {
-    const limited = rateLimit(request, {
-      keyPrefix: "mc-voice",
-      limit: 60,
-      windowMs: 10 * 60 * 1000,
-      message: "Too many MC voice requests. Please wait a few minutes and try again.",
+    // Read a clone so the original request body remains available
+    // to the legacy voice handler after validation.
+    body = (await request.clone().json()) as VoiceRequest;
+  } catch {
+    return reject("Invalid voice request.", 400);
+  }
+
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return reject("Invalid voice request.", 400);
+  }
+
+  const artworkId = cleanText(body.artworkId);
+  const auctionCode = cleanText(body.auctionCode) || "demo";
+  const sourceText = cleanText(body.text);
+
+  if (!validAuctionCode(auctionCode)) {
+    return reject("Invalid auction code.", 400);
+  }
+
+  if (!sourceText || sourceText.length > 3000) {
+    return reject("Invalid voice text.", 400);
+  }
+
+  if (artworkId) {
+    // Artwork introductions are exclusively server-authorised.
+    const expected = process.env.BRAGWALL_MC_INTERNAL_TOKEN || "";
+    const supplied = request.headers.get("x-bragwall-mc-token") || "";
+
+    if (!tokenMatches(expected, supplied)) {
+      return reject("Artwork introduction generation is restricted.", 403);
+    }
+
+    return legacyVoice(request);
+  }
+
+  // Parent reaction requests must match the actual current bid.
+  // No arbitrary text is accepted from a public browser.
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    return reject("Auction verification is unavailable.", 503);
+  }
+
+  try {
+    const supabase = createClient(url, key, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
     });
 
-    if (limited) {
-      return limited;
+    const { data: auction, error } = await supabase
+      .from("live_auction_state")
+      .select("current_bid,leading_bidder,mc_commentary,status")
+      .eq("auction_code", auctionCode)
+      .maybeSingle();
+
+    if (error || !auction) {
+      return reject("Could not verify the live auction.", 503);
     }
 
-    if (!process.env.ELEVENLABS_API_KEY) {
-      return NextResponse.json(
-        {
-          error:
-            "ELEVENLABS_API_KEY is missing. Add it to .env.local and Vercel environment variables.",
-        },
-        { status: 500 }
-      );
-    }
+    const status = String(auction.status || "");
+    const bidder = String(auction.leading_bidder || "").trim();
+    const commentary = String(auction.mc_commentary || "").trim();
+    const currentBid = Number(auction.current_bid || 0);
 
     if (
-      !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-      !process.env.SUPABASE_SERVICE_ROLE_KEY
+      !["open", "going once", "going twice"].includes(status) ||
+      currentBid <= 0 ||
+      !bidder ||
+      bidder === "No bids yet" ||
+      !commentary.toUpperCase().startsWith("MC_REACTION:")
     ) {
-      return NextResponse.json(
-        {
-          error:
-            "Supabase server credentials are missing. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env.local.",
-        },
-        { status: 500 }
-      );
+      return reject("No valid live bidding reaction is available.", 409);
     }
 
-    const body = (await request.json()) as GenerateMcVoiceRequest;
+    const expectedReaction = getExpectedReaction(commentary, bidder);
 
-    const auctionCode = cleanText(body.auctionCode) || AUCTION_CODE;
-    const artworkId = cleanText(body.artworkId);
-    const childName = cleanText(body.childName) || "our young artist";
-    const grade = cleanText(body.grade) || "the school";
-    const sourceText = cleanText(body.text);
-    const forceRegenerate = Boolean(body.forceRegenerate);
-
-    if (!sourceText) {
-      return NextResponse.json(
-        {
-          error: "No MC intro text was provided.",
-        },
-        { status: 400 }
-      );
+    if (sourceText !== expectedReaction) {
+      return reject("Reaction does not match the current auction event.", 403);
     }
 
-    const voiceId =
-      cleanText(process.env.ELEVENLABS_MC_VOICE_ID) ||
-      DEFAULT_ELEVENLABS_VOICE_ID;
-
-    if (artworkId && !forceRegenerate) {
-      const existingAudio = await getExistingArtworkAudioUrl({
-        auctionCode,
-        artworkId,
-      });
-
-      if (existingAudio) {
-        return NextResponse.json({
-          ok: true,
-          reused: true,
-          provider: "elevenlabs",
-          voiceId,
-          audioUrl: existingAudio,
-          filePath: null,
-          script: null,
-        });
-      }
-    }
-
-    const mcScript = buildMcScript({
-      sourceText,
-      childName,
-      grade,
-    });
-
-    const audioBuffer = await generateElevenLabsAudio({
-      apiKey: process.env.ELEVENLABS_API_KEY,
-      voiceId,
-      text: mcScript,
-    });
-
-    const safeArtworkPart = makeSafeFilePart(artworkId || childName || "intro");
-    const filePath = `${auctionCode}/${safeArtworkPart}-${Date.now()}-elevenlabs.mp3`;
-
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from(MC_AUDIO_BUCKET)
-      .upload(filePath, audioBuffer, {
-        contentType: "audio/mpeg",
-        upsert: true,
-      });
-
-    if (uploadError) {
-      return NextResponse.json(
-        {
-          error: uploadError.message,
-          hint: `Make sure the Supabase Storage bucket "${MC_AUDIO_BUCKET}" exists and is public.`,
-        },
-        { status: 500 }
-      );
-    }
-
-    const { data: publicUrlData } = supabaseAdmin.storage
-      .from(MC_AUDIO_BUCKET)
-      .getPublicUrl(filePath);
-
-    const audioUrl = publicUrlData.publicUrl;
-
-    if (artworkId) {
-      await supabaseAdmin
-        .from("demo_artworks")
-        .update({
-          mc_audio_url: audioUrl,
-        })
-        .eq("id", artworkId)
-        .eq("auction_code", auctionCode);
-    }
-
-    return NextResponse.json({
-      ok: true,
-      reused: false,
-      provider: "elevenlabs",
-      voiceId,
-      audioUrl,
-      filePath,
-      script: mcScript,
-    });
+    // Request has passed live-auction verification.
+    return legacyVoice(request);
   } catch (error) {
-    console.error("MC voice generation failed:", error);
-
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "MC voice generation failed.",
-      },
-      { status: 500 }
-    );
+    console.error("BragWall MC reaction verification failed:", error);
+    return reject("Voice verification is temporarily unavailable.", 503);
   }
-}
-
-async function generateElevenLabsAudio({
-  apiKey,
-  voiceId,
-  text,
-}: {
-  apiKey: string;
-  voiceId: string;
-  text: string;
-}) {
-  const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
-    {
-      method: "POST",
-      headers: {
-        "xi-api-key": apiKey,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
-      },
-      body: JSON.stringify({
-        text,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: {
-          stability: 0.18,
-          similarity_boost: 0.78,
-          style: 0.92,
-          use_speaker_boost: true,
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
-
-    throw new Error(
-      `ElevenLabs voice generation failed: ${response.status} ${response.statusText}${
-        errorText ? ` - ${errorText}` : ""
-      }`
-    );
-  }
-
-  const audioArrayBuffer = await response.arrayBuffer();
-
-  return Buffer.from(audioArrayBuffer);
-}
-
-async function getExistingArtworkAudioUrl({
-  auctionCode,
-  artworkId,
-}: {
-  auctionCode: string;
-  artworkId: string;
-}) {
-  const { data, error } = await supabaseAdmin
-    .from("demo_artworks")
-    .select("mc_audio_url")
-    .eq("id", artworkId)
-    .eq("auction_code", auctionCode)
-    .maybeSingle();
-
-  if (error) {
-    console.warn("Could not check existing MC audio URL:", error.message);
-    return "";
-  }
-
-  const artwork = data as DemoArtworkAudioLookup | null;
-
-  return artwork?.mc_audio_url?.trim() || "";
-}
-
-function cleanText(value?: string | null) {
-  if (!value) return "";
-
-  return value
-    .replace(/\s+/g, " ")
-    .replace(/[<>]/g, "")
-    .trim()
-    .slice(0, 8000);
-}
-
-function removeConsecutiveDuplicateWords(value: string) {
-  return value
-    .split(/(\s+)/)
-    .filter((part, index, parts) => {
-      if (/\s+/.test(part)) return true;
-
-      const previousWord = [...parts]
-        .slice(0, index)
-        .reverse()
-        .find((item) => !/\s+/.test(item));
-
-      if (!previousWord) return true;
-
-      return previousWord.toLowerCase().replace(/[^a-z0-9]/g, "") !==
-        part.toLowerCase().replace(/[^a-z0-9]/g, "");
-    })
-    .join("")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function makeSafeFilePart(value: string) {
-  const cleaned = value
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 80);
-
-  return cleaned || "mc-intro";
-}
-
-function buildMcScript({
-  sourceText,
-}: {
-  sourceText: string;
-  childName: string;
-  grade: string;
-}) {
-  // IMPORTANT:
-  // app/api/auction-mc/route.ts already creates the complete MC script.
-  // This voice route must NOT add another child intro or closing line.
-  // It should only speak the exact script it receives.
-  return limitWords(
-    removeConsecutiveDuplicateWords(
-      ensureSentenceEnds(String(sourceText || "").replace(/\s+/g, " ").trim())
-    ),
-    110
-  );
-}
-
-function makeStoryMoreSpoken(sourceText: string, childName: string, grade: string) {
-  const trimmed = sourceText.trim();
-
-  if (!trimmed) {
-    return "it feels full of colour, imagination, and proper young-artist confidence.";
-  }
-
-  const introPattern = childName
-    ? new RegExp(
-        `^(welcome to|next up|here we go with|eyes on the screen for)?\\s*${escapeRegExp(childName)}\\s*(from|in)?\\s*${escapeRegExp(grade)}[,.!:-]*\\s*`,
-        "i"
-      )
-    : null;
-
-  const cleaned = trimmed
-    .replace(introPattern || /$a/, "")
-    .replace(/^welcome(?:\s+welcome)*(?:\s+to\s+bragwall)?[.!,:;-]*\s*/i, "")
-    .replace(/welcome to\s+from\s*\.?/gi, "")
-    .replace(/from\s+from/gi, "from")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return ensureSentenceEnds(cleaned || trimmed);
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function ensureSentenceEnds(value: string) {
-  if (/[.!?]$/.test(value)) return value;
-
-  return `${value}.`;
-}
-
-function pickScriptLine(options: string[], seed: string) {
-  let total = 0;
-
-  for (const char of seed) {
-    total += char.charCodeAt(0);
-  }
-
-  return options[total % options.length];
-}
-
-
-function limitWords(value: string, maxWords: number) {
-  const words = value.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
-
-  if (words.length <= maxWords) return value.replace(/\s+/g, " ").trim();
-
-  return ensureSentenceEnds(words.slice(0, maxWords).join(" "));
 }

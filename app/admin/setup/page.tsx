@@ -344,11 +344,20 @@ export default function AdminSetupPage() {
   ) {
     const cleanAuctionCode = sanitizeAuctionCode(targetAuctionCode || DEFAULT_AUCTION_CODE);
 
-    const { data } = await supabase
-      .from("demo_school_profile")
-      .select("*")
-      .eq("auction_code", cleanAuctionCode)
-      .maybeSingle();
+    const response = await fetch(
+      `/api/admin/setup-action?auctionCode=${encodeURIComponent(cleanAuctionCode)}`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      if (!isCancelled() && activeAuctionCodeRef.current === cleanAuctionCode) {
+        setMessage("Could not load school profile. Please refresh and try again.");
+      }
+      return;
+    }
+
+    const result = await response.json();
+    const data = result.profile;
 
     if (isCancelled() || activeAuctionCodeRef.current !== cleanAuctionCode) return;
 
@@ -380,15 +389,24 @@ export default function AdminSetupPage() {
   ) {
     const cleanAuctionCode = sanitizeAuctionCode(targetAuctionCode || DEFAULT_AUCTION_CODE);
 
-    const { data } = await supabase
-      .from("demo_artworks")
-      .select("*")
-      .eq("auction_code", cleanAuctionCode)
-      .order("sort_order", { ascending: true });
+    const response = await fetch(
+      `/api/admin/setup-action?auctionCode=${encodeURIComponent(cleanAuctionCode)}&includeArtworks=true`,
+      { cache: "no-store" }
+    );
+
+    if (!response.ok) {
+      if (!isCancelled() && activeAuctionCodeRef.current === cleanAuctionCode) {
+        setMessage("Could not load school artwork. Please refresh and try again.");
+      }
+      return;
+    }
+
+    const result = await response.json();
+    const data = result.artworks;
 
     if (isCancelled() || activeAuctionCodeRef.current !== cleanAuctionCode) return;
 
-    setArtworks((data || []).filter((artwork) => artwork.auction_code === cleanAuctionCode));
+    setArtworks(((data || []) as Artwork[]).filter((artwork) => artwork.auction_code === cleanAuctionCode));
   }
 
   function updateProfileField(field: keyof SchoolProfile, value: string) {
