@@ -70,6 +70,7 @@ export async function resolveMcIntroAudio({
           headers: {
             "Content-Type": "application/json",
             "x-bragwall-mc-token": internalToken,
+            ...(process.env.VERCEL_ENV === "preview" && process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET } : {}),
           },
           body,
           cache: "no-store",
