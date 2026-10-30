@@ -115,58 +115,6 @@ export async function POST(request: NextRequest) {
     return legacyVoice(request);
   }
 
-  // Parent reaction requests must match the actual current bid.
-  // No arbitrary text is accepted from a public browser.
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !key) {
-    return reject("Auction verification is unavailable.", 503);
-  }
-
-  try {
-    const supabase = createClient(url, key, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
-
-    const { data: auction, error } = await supabase
-      .from("live_auction_state")
-      .select("current_bid,leading_bidder,mc_commentary,status")
-      .eq("auction_code", auctionCode)
-      .maybeSingle();
-
-    if (error || !auction) {
-      return reject("Could not verify the live auction.", 503);
-    }
-
-    const status = String(auction.status || "");
-    const bidder = String(auction.leading_bidder || "").trim();
-    const commentary = String(auction.mc_commentary || "").trim();
-    const currentBid = Number(auction.current_bid || 0);
-
-    if (
-      !["open", "going once", "going twice"].includes(status) ||
-      currentBid <= 0 ||
-      !bidder ||
-      bidder === "No bids yet" ||
-      !commentary.toUpperCase().startsWith("MC_REACTION:")
-    ) {
-      return reject("No valid live bidding reaction is available.", 409);
-    }
-
-    const expectedReaction = getExpectedReaction(commentary, bidder);
-
-    if (sourceText !== expectedReaction) {
-      return reject("Reaction does not match the current auction event.", 403);
-    }
-
-    // Request has passed live-auction verification.
-    return legacyVoice(request);
-  } catch (error) {
-    console.error("BragWall MC reaction verification failed:", error);
-    return reject("Voice verification is temporarily unavailable.", 503);
-  }
+  // Older open browser tabs must not generate spoken bid reactions.
+  return reject("Spoken bid reactions are disabled.", 409);
 }

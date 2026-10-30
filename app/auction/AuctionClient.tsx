@@ -2892,16 +2892,6 @@ export default function DemoAuctionPage({
 
       if (reactionText) {
 
-
-        const reactionKey = `${auction.artwork_id || auction.artwork_url || "artwork"}-${currentBid}-${currentBidder}`;
-
-
-        const shortMcLine = getShortElevenLabsMcLine(reactionText, currentBidder);
-
-
-
-
-
         setMcReaction({
 
 
@@ -2918,19 +2908,6 @@ export default function DemoAuctionPage({
 
 
         playBidEnergySound("reaction");
-
-
-        void playElevenLabsMcReaction({
-
-
-          text: shortMcLine,
-
-
-          key: reactionKey,
-
-
-        });
-
 
       } else {
 
