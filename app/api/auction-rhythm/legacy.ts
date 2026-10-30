@@ -341,10 +341,39 @@ async function moveToArtwork(
   request: Request,
   supabaseAdmin: ReturnType<typeof getSupabaseAdmin>,
   auctionCode: string,
-  artwork: Artwork
+  artwork: Artwork,
+  expectedAuction: AuctionState
 ) {
   const bidIncrement = await fetchBidIncrement(supabaseAdmin, auctionCode);
   const displayUrl = getArtworkDisplayUrl(artwork);
+  // Parent browsers poll in parallel. Only one request may start this intro.
+  // Claim the state BEFORE clearing bids, selecting artwork or calling AI.
+  let claim = supabaseAdmin
+    .from("live_auction_state")
+    .update({
+      artwork_id: artwork.id,
+      child_name: artwork.child_name,
+      child_surname: artwork.child_surname,
+      grade: artwork.grade,
+      artwork_url: displayUrl,
+      status: "preparing_intro",
+      status_deadline: null,
+      mc_commentary: "The AI MC is preparing this artwork intro. Bidding will open after the story.",
+      mc_audio_url: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("auction_code", auctionCode)
+    .eq("status", expectedAuction.status || "")
+    .eq("current_bid", Number(expectedAuction.current_bid || 0));
+
+  claim = expectedAuction.artwork_id
+    ? claim.eq("artwork_id", expectedAuction.artwork_id)
+    : claim.is("artwork_id", null);
+
+  const { data: claimed, error: claimError } = await claim.select("auction_code").maybeSingle();
+  if (claimError) throw new Error(claimError.message);
+  if (!claimed) return null;
+
   const commentary = await generateAiMcIntroText(request, artwork, displayUrl);
 
   await supabaseAdmin.from("live_bids").delete().eq("auction_code", auctionCode);
@@ -390,6 +419,10 @@ async function moveToArtwork(
   await addActivity(supabaseAdmin, auctionCode, `Preparing AI MC intro for ${artwork.child_name} ${artwork.child_surname}`);
 
   const mcAudioUrl = await generateMcVoiceAudio(request, supabaseAdmin, auctionCode, artwork, commentary);
+
+  if (!mcAudioUrl) {
+    throw new Error("AI MC introduction audio is unavailable. Auction remains in preparation.");
+  }
 
   await supabaseAdmin
     .from("demo_artworks")
@@ -556,7 +589,7 @@ export async function runLegacyAuctionRhythm(request: Request) {
         const nextArtwork = currentArtwork || getNextArtwork(null, artworks);
 
         if (nextArtwork) {
-          const updatedAuction = await moveToArtwork(request, supabaseAdmin, auctionCode, nextArtwork);
+          const updatedAuction = await moveToArtwork(request, supabaseAdmin, auctionCode, nextArtwork, auction);
           return NextResponse.json({
             action: "parent_auto_intro_started",
             auction: updatedAuction || auction,
@@ -576,7 +609,7 @@ export async function runLegacyAuctionRhythm(request: Request) {
         return jsonError("Next artwork could not be loaded.", 404);
       }
 
-      const updatedAuction = await moveToArtwork(request, supabaseAdmin, auctionCode, countdownArtwork);
+      const updatedAuction = await moveToArtwork(request, supabaseAdmin, auctionCode, countdownArtwork, auction);
       return NextResponse.json({ action: "next_artwork_intro", auction: updatedAuction || auction });
     }
 
@@ -652,7 +685,7 @@ export async function runLegacyAuctionRhythm(request: Request) {
         return NextResponse.json({ action: "complete", auction: updatedAuction || auction });
       }
 
-      const updatedAuction = await moveToArtwork(request, supabaseAdmin, auctionCode, nextArtwork);
+      const updatedAuction = await moveToArtwork(request, supabaseAdmin, auctionCode, nextArtwork, auction);
       return NextResponse.json({ action: "next_artwork", auction: updatedAuction || auction });
     }
 

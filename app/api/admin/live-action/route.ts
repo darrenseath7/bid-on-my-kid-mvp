@@ -7,6 +7,7 @@ import {
 } from "@/lib/adminSession";
 
 type AuctionState = {
+  artwork_id?: string | null;
   child_name: string;
   child_surname: string;
   grade: string;
@@ -387,6 +388,40 @@ async function moveToArtwork(
   const artwork = await fetchArtworkById(supabaseAdmin, artworkId, auctionCode);
   const bidIncrement = await fetchBidIncrement(supabaseAdmin, auctionCode);
   const displayUrl = getArtworkDisplayUrl(artwork);
+  const previousAuction = await fetchAuction(supabaseAdmin, auctionCode);
+  if (previousAuction.status === "preparing_intro") {
+    throw new Error("An AI MC intro is already being prepared for this school.");
+  }
+
+  // Only one admin or parent request may claim the school's next intro.
+  let claim = supabaseAdmin
+    .from("live_auction_state")
+    .update({
+      artwork_id: artwork.id,
+      child_name: artwork.child_name,
+      child_surname: artwork.child_surname,
+      grade: artwork.grade,
+      artwork_url: displayUrl,
+      status: "preparing_intro",
+      status_deadline: null,
+      mc_commentary: "The AI MC is preparing this artwork intro. Bidding will open after the story.",
+      mc_audio_url: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("auction_code", auctionCode)
+    .eq("status", previousAuction.status)
+    .eq("current_bid", Number(previousAuction.current_bid || 0));
+
+  claim = previousAuction.artwork_id
+    ? claim.eq("artwork_id", previousAuction.artwork_id)
+    : claim.is("artwork_id", null);
+
+  const { data: claimed, error: claimError } = await claim.select("auction_code").maybeSingle();
+  if (claimError) throw new Error(claimError.message);
+  if (!claimed) {
+    throw new Error("Auction state changed. Refresh the Live Room before selecting the artwork again.");
+  }
+
   const commentary = await generateAiMcIntroText(request, artwork, displayUrl);
 
   await supabaseAdmin.from("live_bids").delete().eq("auction_code", auctionCode);
