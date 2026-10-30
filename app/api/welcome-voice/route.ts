@@ -8,7 +8,10 @@ const DEFAULT_WELCOME_TEXT =
   "Tonight we are turning school artwork into a live fundraising event with proud parents, dangerous grandparents, competitive uncles, and masterpieces that deserve prime fridge-door real estate.";
 
 export async function GET(request: NextRequest) {
-  return generateWelcomeVoice(request);
+  return NextResponse.redirect(
+    new URL("/audio/bragwall-welcome-20261030.mp3", request.url),
+    307
+  );
 }
 
 export async function POST(request: NextRequest) {
