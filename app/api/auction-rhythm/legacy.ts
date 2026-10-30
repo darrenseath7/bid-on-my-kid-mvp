@@ -309,7 +309,10 @@ async function generateMcVoiceAudio(
     const origin = new URL(request.url).origin;
     const response = await fetch(`${origin}/api/mc-voice`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-bragwall-mc-token": process.env.BRAGWALL_MC_INTERNAL_TOKEN || "",
+      },
       body: JSON.stringify({
         auctionCode,
         artworkId: artwork.id,

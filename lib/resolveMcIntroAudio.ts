@@ -96,9 +96,17 @@ export async function resolveMcIntroAudio({
         break;
       }
 
-      lastError =
-        result.error ||
-        `MC voice returned HTTP ${response.status}.`;
+      const errorValue: unknown = result.error;
+      const errorDetail =
+        typeof errorValue === "string"
+          ? errorValue
+          : errorValue && typeof errorValue === "object"
+            ? JSON.stringify(errorValue)
+            : "";
+
+      lastError = `MC voice returned HTTP ${response.status}: ${
+        errorDetail.replace(/[\r\n]/g, " ").slice(0, 300) || "No error details."
+      }`;
 
       break;
     } catch (error) {
