@@ -156,7 +156,10 @@ async function generateAiMcIntroText(
     const origin = new URL(request.url).origin;
     const response = await fetch(`${origin}/api/auction-mc`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-bragwall-mc-token": process.env.BRAGWALL_MC_INTERNAL_TOKEN || "",
+      },
       body: JSON.stringify({
         mode: "intro",
         childName: artwork.child_name,
