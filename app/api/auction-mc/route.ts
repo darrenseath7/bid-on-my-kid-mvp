@@ -103,21 +103,39 @@ async function createIntro(body: AuctionMcRequest, apiKey: string) {
       ] as any)
     : prompt;
 
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4.1-mini",
-    messages: [
-      {
-        role: "system",
-        content:
-          "You write only the middle artwork description for a South African school auction MC. Be warm, proud, visual, funny, and cheeky without being rude. Never introduce the child. Never mention names or grades. Never use first, welcome, we have, spotlight, easel, countdown, or bidding.",
-      },
-      {
-        role: "user",
-        content: userContent,
-      },
-    ],
-    temperature: 0.72,
-  });
+  const createCompletion = (content: typeof userContent) =>
+    openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You write only the middle artwork description for a South African school auction MC. Be warm, proud, visual, funny, and cheeky without being rude. Never introduce the child. Never mention names or grades. Never use first, welcome, we have, spotlight, easel, countdown, or bidding.",
+        },
+        {
+          role: "user",
+          content,
+        },
+      ],
+      temperature: 0.72,
+    });
+
+  let completion;
+  try {
+    completion = await createCompletion(userContent);
+  } catch (error) {
+    const imageDownloadFailed =
+      Boolean(body.artworkUrl) &&
+      error instanceof Error &&
+      /error while downloading file/i.test(error.message);
+
+    if (!imageDownloadFailed) throw error;
+
+    console.warn(
+      "AI MC could not download the artwork image; retrying with saved artwork notes."
+    );
+    completion = await createCompletion(prompt);
+  }
 
   const rawMiddle = completion.choices[0]?.message?.content || getFallbackMiddle();
   const middle = cleanMiddle(rawMiddle);
