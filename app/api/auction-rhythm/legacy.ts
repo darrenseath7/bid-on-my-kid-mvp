@@ -159,6 +159,7 @@ async function generateAiMcIntroText(
       headers: {
         "Content-Type": "application/json",
         "x-bragwall-mc-token": process.env.BRAGWALL_MC_INTERNAL_TOKEN || "",
+        ...(process.env.VERCEL_ENV === "preview" && process.env.VERCEL_AUTOMATION_BYPASS_SECRET ? { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET } : {}),
       },
       body: JSON.stringify({
         mode: "intro",
