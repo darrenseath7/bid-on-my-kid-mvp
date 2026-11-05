@@ -444,6 +444,16 @@ export default function DemoAuctionPage({
 
 
   const [auctionFlash, setAuctionFlash] = useState<AuctionFlash | null>(null);
+  const [activeReaction, setActiveReaction] = useState<{ id: number; kind: string } | null>(null);
+  const reactionArtworkRef = useRef<string | null>(null);
+  const lastReactionIdRef = useRef<number | null>(null);
+  const lastLocalReactionAtRef = useRef(0);
+
+  useEffect(() => {
+    if (!activeReaction) return;
+    const timeout = window.setTimeout(() => setActiveReaction(null), 1700);
+    return () => window.clearTimeout(timeout);
+  }, [activeReaction]);
 
 
   const [bidNotice, setBidNotice] = useState<{
@@ -3894,6 +3904,45 @@ export default function DemoAuctionPage({
 
 
 
+  function showNewReactions(events: Array<{ id: number; artwork_id: string; kind: string }>, artworkId: string | null) {
+    if (!artworkId || reactionArtworkRef.current !== artworkId) {
+      reactionArtworkRef.current = artworkId;
+      lastReactionIdRef.current = null;
+    }
+    const valid = events.filter((event) => event.artwork_id === artworkId &&
+      ["heart", "cheer", "dance"].includes(event.kind));
+    const latest = valid.reduce<(typeof valid)[number] | null>(
+      (highest, item) => !highest || item.id > highest.id ? item : highest, null);
+    if (!latest) {
+      if (lastReactionIdRef.current === null) lastReactionIdRef.current = 0;
+      return;
+    }
+    if (lastReactionIdRef.current !== null && latest.id > lastReactionIdRef.current) {
+      setActiveReaction({ id: latest.id, kind: latest.kind });
+    }
+    lastReactionIdRef.current = Math.max(latest.id, lastReactionIdRef.current || 0);
+  }
+
+  async function sendReaction(kind: "heart" | "cheer" | "dance") {
+    const artworkId = auction?.artwork_id;
+    if (!artworkId || !bidderContactId || !bidderToken ||
+        !["intro", "open", "going once", "going twice", "paused"].includes(auction.status)) return;
+    const now = Date.now();
+    if (now - lastLocalReactionAtRef.current < 10_000) return;
+    lastLocalReactionAtRef.current = now;
+    setActiveReaction({ id: now, kind });
+    try {
+      const response = await fetch("/api/auction-reaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auctionCode, artworkId, bidderContactId, bidderToken, kind }),
+      });
+      if (!response.ok) console.warn("Reaction could not be shared.");
+    } catch {
+      console.warn("Reaction could not be shared.");
+    }
+  }
+
   async function fetchPublicAuctionState(targetAuctionCode = auctionCode) {
 
 
@@ -3978,6 +4027,8 @@ export default function DemoAuctionPage({
 
 
 
+      showNewReactions(Array.isArray(result?.reactions) ? result.reactions : [],
+        nextAuction?.artwork_id || null);
       setAuction(nextAuction);
 
 
@@ -5403,7 +5454,7 @@ export default function DemoAuctionPage({
 
 
 
-      <AuctionFlashToast flash={auctionFlash} />
+      <AuctionFlashToast flash={auctionFlash?.kind === "bid" ? null : auctionFlash} />
 
 
       <BidNoticeToast notice={bidNotice} />
@@ -5412,122 +5463,25 @@ export default function DemoAuctionPage({
 
 
 
-      <div className="relative shrink-0 bg-white/90 backdrop-blur border-b-4 border-[#07152b]/10 shadow-[0_10px_30px_rgba(7,21,43,0.12)]">
-
-
-        <div className="max-w-md mx-auto px-4 py-2.5">
-
-
-          <div className="flex items-center justify-between gap-3">
-
-
-            <button
-
-
-              onClick={() => setGalleryOpen(true)}
-
-
-              className="w-11 h-11 rounded-[20px] border-2 border-[#07152b]/10 flex items-center justify-center text-xl shrink-0 bg-[#ffc857] shadow-lg"
-
-
-              aria-label="Open gallery"
-
-
-            >
-
-
-              🖼️
-
-
-            </button>
-
-
-
-
-
-            <div className="bg-white rounded-[22px] px-4 py-2 border-2 border-[#07152b]/5 shadow-lg">
-
-
-              <img
-
-
-                src="/bragwall-logo.png"
-
-
-                alt="BragWall"
-
-
-                className="h-11 w-auto object-contain"
-
-
-              />
-
-
+      <header className="relative z-20 shrink-0 border-b border-[#07152b]/10 bg-white/95 px-3 py-1.5 shadow-sm">
+        <div className="mx-auto flex h-11 max-w-md items-center justify-between gap-2">
+          <button type="button" onClick={() => setGalleryOpen(true)}
+            className="rounded-xl bg-[#ffc857] px-3 py-2 text-xs font-black" aria-label="Open gallery">
+            🖼️ Gallery
+          </button>
+          <p className="min-w-0 truncate text-center text-sm font-black">
+            {auction.child_name} {auction.child_surname}
+          </p>
+          <details className="relative shrink-0">
+            <summary aria-label="Auction details" className="cursor-pointer list-none rounded-xl bg-[#07152b] px-3 py-2 text-sm font-black text-white">⋯</summary>
+            <div className="absolute right-0 top-11 z-50 w-52 rounded-xl bg-[#07152b] p-3 text-xs font-bold text-white shadow-2xl">
+              <p>Bidding as {bidderName}</p>
+              <p className="mt-2">Raised tonight: R{parentRaisedTotal.toLocaleString()}</p>
+              <p className="mt-1">Artworks sold: {parentSoldCount}</p>
             </div>
-
-
-
-
-
-            <div className="text-right shrink-0 max-w-[105px]">
-
-
-              <p className="text-[9px] text-slate-500 font-black">Bidding as</p>
-
-
-
-
-
-              <p className="font-black text-xs leading-tight truncate text-[#07152b]">
-
-
-                {bidderName}
-
-
-                <span className="inline-block w-2 h-2 bg-[#16d66d] rounded-full ml-1 shadow-[0_0_12px_rgba(22,214,109,0.9)]" />
-
-
-              </p>
-
-
-            </div>
-
-
-          </div>
-
-
+          </details>
         </div>
-
-
-      </div>
-
-
-
-
-
-      <div className="relative z-10 mx-auto w-full max-w-md px-4 py-2">
-
-
-        <ParentRaisedTotalCard
-
-
-          totalRaised={parentRaisedTotal}
-
-
-          soldCount={parentSoldCount}
-
-
-          compact
-
-
-        />
-
-
-      </div>
-
-
-
-
+      </header>
 
       <AnimatePresence>
 
@@ -5940,7 +5894,7 @@ export default function DemoAuctionPage({
 
 
 
-      <div className="relative flex-1 min-h-0 max-w-md mx-auto w-full px-3 py-2 flex flex-col gap-2 overflow-y-auto overscroll-contain pb-3">
+      <div className={`relative flex-1 min-h-0 max-w-md mx-auto w-full px-2 py-1.5 flex flex-col gap-1.5 ${isSold ? "overflow-y-auto overscroll-contain" : "overflow-hidden"}`}>
 
 
         {isSold && isWinningBidder && winnerEmailAlreadySubmitted && (
@@ -6028,507 +5982,50 @@ export default function DemoAuctionPage({
 
 
         {isNextArtworkCountdown && (
-
-
-          <motion.div
-
-
-            initial={{ opacity: 0, y: 8 }}
-
-
-            animate={{ opacity: 1, y: 0 }}
-
-
-            className="shrink-0 bg-[#07152b] text-white rounded-[24px] p-4 shadow-xl border border-[#16d66d]/55"
-
-
-          >
-
-
-            <div className="flex items-start gap-3">
-
-
-              <div className="w-14 h-14 rounded-2xl bg-[#16d66d] text-[#07152b] flex items-center justify-center text-3xl shrink-0 shadow-xl">
-
-
-                🎨
-
-
-              </div>
-
-
-
-
-
-              <div className="min-w-0 flex-1">
-
-
-                <div className="flex items-center justify-between gap-3 mb-1.5">
-
-
-                  <p className="uppercase tracking-[0.22em] text-[9px] font-black text-[#16d66d]">
-
-
-                    Next Artwork
-
-
-                  </p>
-
-
-
-
-
-                  <p className="bg-[#16d66d] text-[#07152b] rounded-full px-3 py-1 text-xs font-black shrink-0">
-
-
-                    {secondsRemaining}s
-
-
-                  </p>
-
-
-                </div>
-
-
-
-
-
-                <p className="font-black text-sm leading-snug">
-
-
-                  This is the next artwork. The AI MC starts after the countdown.
-
-
-                </p>
-
-
-
-
-
-                <p className="text-xs font-bold text-white/65 mt-2 leading-relaxed">
-
-
-                  Bidding stays locked while we prepare the full intro.
-
-
-                </p>
-
-
-              </div>
-
-
-            </div>
-
-
-          </motion.div>
-
-
+          <div className="shrink-0 rounded-xl bg-[#07152b] px-3 py-2 text-center text-sm font-black text-white">
+            Next artwork starts in {secondsRemaining}s
+          </div>
         )}
-
-
-
-
 
         {isPreparingIntro && (
-
-
-          <motion.div
-
-
-            initial={{ opacity: 0, y: 8 }}
-
-
-            animate={{ opacity: 1, y: 0 }}
-
-
-            className="shrink-0 bg-[#07152b] text-white rounded-[24px] p-4 shadow-xl border border-[#ffc857]/50"
-
-
-          >
-
-
-            <div className="flex items-start gap-3">
-
-
-              <div className="w-14 h-14 rounded-2xl bg-[#ffc857] text-[#07152b] flex items-center justify-center text-3xl shrink-0 shadow-xl">
-
-
-                ⏳
-
-
-              </div>
-
-
-
-
-
-              <div className="min-w-0 flex-1">
-
-
-                <p className="uppercase tracking-[0.22em] text-[9px] font-black text-[#ffc857] mb-1.5">
-
-
-                  Waiting for MC Intro
-
-
-                </p>
-
-
-
-
-
-                <p className="font-black text-sm leading-snug">
-
-
-                  The artwork is on screen, but bidding has not opened yet.
-
-
-                </p>
-
-
-
-
-
-                <p className="text-xs font-bold text-white/65 mt-2 leading-relaxed">
-
-
-                  The AI MC voice is being prepared. Once the intro starts and finishes,
-
-
-                  the bid button will unlock automatically.
-
-
-                </p>
-
-
-              </div>
-
-
-            </div>
-
-
-          </motion.div>
-
-
+          <div className="shrink-0 rounded-xl bg-[#07152b] px-3 py-2 text-center text-sm font-black text-white">
+            🎙️ Preparing the MC intro. Bidding opens afterwards.
+          </div>
         )}
-
-
-
-
 
         {isIntro && (
-
-
-          <motion.div
-
-
-            initial={{ opacity: 0, y: 8 }}
-
-
-            animate={{ opacity: 1, y: 0 }}
-
-
-            className="shrink-0 bg-[#ffc857] text-[#07152b] rounded-[24px] p-4 shadow-xl border border-[#ffe9a6]"
-
-
-          >
-
-
-            <div className="flex items-start gap-3">
-
-
-              <div className="w-14 h-14 rounded-2xl bg-[#07152b] text-white flex items-center justify-center text-3xl shrink-0 shadow-xl">
-
-
-                🎙️
-
-
-              </div>
-
-
-
-
-
-              <div className="min-w-0 flex-1">
-
-
-                <div className="flex items-center justify-between gap-3 mb-1.5">
-
-
-                  <p className="uppercase tracking-[0.22em] text-[9px] font-black opacity-70">
-
-
-                    AI MC Artwork Intro
-
-
-                  </p>
-
-
-
-
-
-                  <p className="bg-[#07152b] text-white rounded-full px-3 py-1 text-xs font-black shrink-0">
-
-
-                    {introSecondsRemaining}s
-
-
-                  </p>
-
-
-                </div>
-
-
-
-
-
-                {mcAudioUrl && introAudioStatus !== "playing" && (
-
-
-                  <button
-
-
-                    type="button"
-
-
-                    onClick={handleManualIntroAudioTap}
-
-
-                    onTouchEnd={handleManualIntroAudioTap}
-
-
-                    className="mt-4 mb-4 w-full bg-[#07152b] text-white rounded-[24px] px-4 py-6 text-xl font-black shadow-xl border-2 border-white/25 active:scale-[0.98] transition touch-manipulation"
-
-
-                  >
-
-
-                    🔊 Play MC Voice
-
-
-                  </button>
-
-
-                )}
-
-
-
-
-
-                {mcAudioUrl && introAudioStatus === "playing" && (
-
-
-                  <div className="mt-4 mb-4 w-full bg-[#16d66d] text-[#07152b] rounded-[24px] px-4 py-6 text-xl font-black shadow-xl text-center">
-
-
-                    🔊 MC voice playing now
-
-
-                  </div>
-
-
-                )}
-
-
-
-
-
-                {!mcAudioUrl && (
-
-
-                  <div className="mt-4 mb-4 rounded-[22px] bg-[#07152b]/10 border border-[#07152b]/15 p-4 text-center font-black">
-
-
-                    MC voice is still loading.
-
-
-                  </div>
-
-
-                )}
-
-
-
-
-
-                <p className="text-sm font-black leading-snug opacity-75">
-
-
-                  After the MC voice intro, bidding starts in 15 seconds.
-
-
-                </p>
-
-
-
-
-
-                {(introAudioStatus === "blocked" || introAudioStatus === "error") && (
-
-
-                  <p className="text-xs font-black mt-3 opacity-70">
-
-
-                    iPhone blocked the sound. Tap Play MC Voice again.
-
-
-                  </p>
-
-
-                )}
-
-
-              </div>
-
-
-            </div>
-
-
-          </motion.div>
-
-
+          <div className="shrink-0 rounded-xl bg-[#ffc857] p-2 text-center text-sm font-black text-[#07152b]">
+            {mcAudioUrl && introAudioStatus !== "playing" ? (
+              <button type="button" onClick={handleManualIntroAudioTap}
+                onTouchEnd={handleManualIntroAudioTap}
+                className="w-full rounded-xl bg-[#07152b] px-3 py-3 text-base font-black text-white touch-manipulation">
+                🔊 Play MC voice · {introSecondsRemaining}s
+              </button>
+            ) : (
+              <p className="py-2">{introAudioStatus === "playing" ? "🔊 MC voice playing now" : "🎙️ MC voice loading"} · {introSecondsRemaining}s</p>
+            )}
+          </div>
         )}
-
-
-
-
 
         {isStartingSoon && (
-
-
-          <motion.div
-
-
-            initial={{ opacity: 0, y: 8 }}
-
-
-            animate={{ opacity: 1, y: 0 }}
-
-
-            className="shrink-0 rounded-[28px] border-4 border-white bg-[#07152b] p-5 text-center text-white shadow-2xl"
-
-
-          >
-
-
-            <p className="mb-2 text-[10px] font-black uppercase tracking-[0.28em] text-[#ffc857]">MC intro complete</p>
-
-
-            <h2 className="text-3xl font-black leading-tight">Bidding starts in</h2>
-
-
-            <div className="my-3 text-[76px] font-black leading-none text-[#16d66d]">{secondsRemaining}s</div>
-
-
-            <p className="text-sm font-bold text-white/70">Get ready. The bid button unlocks when the countdown reaches zero.</p>
-
-
-          </motion.div>
-
-
+          <div className="shrink-0 rounded-xl bg-[#07152b] px-3 py-2 text-center text-sm font-black text-white">
+            Bidding opens in <span className="text-[#16d66d]">{secondsRemaining}s</span>
+          </div>
         )}
 
+        <div className="flex-1 min-h-[100px] flex flex-col overflow-hidden rounded-[18px] border-2 border-white bg-white shadow-lg">
 
 
+          <div className="flex-1 min-h-0 flex flex-col bg-[#fff5d6] p-1">
 
 
-        <div className="shrink-0 flex items-start justify-between gap-3 rounded-[24px] border-2 border-white/70 bg-white/82 p-3 shadow-[0_12px_30px_rgba(7,21,43,0.16)] backdrop-blur-md">
+            <div className="flex-1 min-h-0 flex flex-col rounded-[16px] bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-1">
 
 
-          <div className="min-w-0">
+              <div className="flex-1 min-h-0 flex flex-col rounded-[12px] bg-[#f8f5ef] p-1">
 
 
-            <p className="uppercase tracking-[0.25em] text-[10px] text-[#16d66d] font-black mb-1">
-
-
-              Live Auction
-
-
-            </p>
-
-
-
-
-
-            <h1 className="text-2xl font-black leading-none truncate text-[#07152b]">
-
-
-              {auction.child_name} {auction.child_surname}
-
-
-            </h1>
-
-
-
-
-
-            <p className="text-slate-600 text-sm font-black mt-1 truncate">
-
-
-              {auction.grade}
-
-
-            </p>
-
-
-
-
-
-            <p className="text-[#0b63ce] text-xs font-black mt-1">
-
-
-              {bidderCounterLabel}
-
-
-            </p>
-
-
-          </div>
-
-
-
-
-
-          <button
-
-
-            onClick={() => setGalleryOpen(true)}
-
-
-            className="border-2 border-white text-[#07152b] rounded-[22px] px-3 py-2 text-center shrink-0 bg-[#ffc857] shadow-lg"
-
-
-          >
-
-
-            <p className="text-[10px] text-[#07152b]/55 font-black">View</p>
-
-
-            <p className="font-black text-sm">Gallery</p>
-
-
-          </button>
-
-
-        </div>
-
-
-
-
-
-        <div className="shrink-0 rounded-[26px] overflow-hidden border-4 border-white shadow-[0_14px_38px_rgba(7,21,43,0.22)] bg-white">
-
-
-          <div className="bg-[#fff5d6] p-2">
-
-
-            <div className="bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-2 rounded-[20px] shadow-[0_0_35px_rgba(255,200,87,0.18)]">
-
-
-              <div className="bg-[#f8f5ef] rounded-[14px] p-2.5">
-
-
-                <div className="relative rounded-[14px] overflow-hidden bg-white h-[25dvh] min-h-[160px] max-h-[240px] flex items-center justify-center">
+                <div className="relative flex-1 min-h-0 overflow-hidden rounded-[12px] bg-white flex items-center justify-center">
 
 
                   {auction.artwork_url ? (
@@ -6599,6 +6096,44 @@ export default function DemoAuctionPage({
 
 
 
+
+                  <AnimatePresence mode="wait">
+                    {auctionFlash?.kind === "bid" && (
+                      <motion.div key={auctionFlash.id}
+                        initial={{ opacity: 0, scale: 0.65 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 1.18 }}
+                        transition={{ duration: 0.35 }}
+                        className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[#07152b]/25">
+                        <div className="rounded-2xl border-2 border-white bg-[#16d66d] px-5 py-3 text-center shadow-2xl">
+                          <p className="text-[10px] font-black uppercase">New bid!</p>
+                          <p className="text-5xl font-black leading-none text-[#07152b]">R{auction.current_bid.toLocaleString()}</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="absolute right-1 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2" aria-label="React to this artwork">
+                    {([ ["heart", "❤️"], ["cheer", "🎉"], ["dance", "💃"] ] as const).map(([kind, emoji]) => (
+                      <button key={kind} type="button" onClick={() => void sendReaction(kind)}
+                        aria-label={kind === "heart" ? "Love this artwork" : kind === "cheer" ? "Cheer for this artwork" : "Dance for this artwork"}
+                        disabled={!bidderContactId || !bidderToken || isSold}
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-white bg-white/90 text-xl shadow-lg disabled:opacity-40">
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <AnimatePresence>
+                    {activeReaction && (
+                      <motion.div key={activeReaction.id} aria-hidden="true"
+                        initial={{ opacity: 0, scale: 0.5, y: 30 }}
+                        animate={{ opacity: 1, scale: 1.5, y: -25 }}
+                        exit={{ opacity: 0, y: -80 }}
+                        className="pointer-events-none absolute bottom-5 right-14 z-20 text-4xl">
+                        {{ heart: "❤️", cheer: "🎉", dance: "💃" }[activeReaction.kind]}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {shouldShowArtworkSoldBanner && (
 
@@ -7110,7 +6645,6 @@ export default function DemoAuctionPage({
 
 
 
-        <div className="flex-1 min-h-0" />
 
 
       </div>
