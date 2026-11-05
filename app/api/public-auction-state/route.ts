@@ -164,6 +164,7 @@ type PublicAuctionSnapshot = {
   ok: true;
   auctionCode: string;
   auction: ReturnType<typeof sanitizeAuction>;
+  reactions: Array<{ id: number; artwork_id: string; kind: string; created_at: string }>;
   profile: {
     auction_code: string;
     bid_increment: number;
@@ -189,7 +190,7 @@ async function loadAuctionSnapshot(
 ): Promise<PublicAuctionSnapshot> {
   const supabase = getSupabaseAdmin();
 
-  const [auctionResult, profileResult, bidsResult, artworksResult] =
+  const [auctionResult, profileResult, bidsResult, artworksResult, reactionsResult] =
     await Promise.all([
       supabase
         .from("live_auction_state")
@@ -222,6 +223,14 @@ async function loadAuctionSnapshot(
         )
         .eq("auction_code", auctionCode)
         .order("sort_order", { ascending: true }),
+
+      supabase
+        .from("auction_reactions")
+        .select("id,artwork_id,kind,created_at")
+        .eq("auction_code", auctionCode)
+        .gte("created_at", new Date(Date.now() - 12_000).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(12),
     ]);
 
   if (auctionResult.error) {
@@ -240,6 +249,11 @@ async function loadAuctionSnapshot(
     throw new Error(artworksResult.error.message);
   }
 
+  // Keep auction state available if reactions are temporarily unavailable.
+  if (reactionsResult.error) {
+    console.warn("Recent reactions unavailable:", reactionsResult.error.message);
+  }
+
   const profile = {
     auction_code: auctionCode,
     bid_increment: getSafeBidIncrement(
@@ -251,6 +265,7 @@ async function loadAuctionSnapshot(
     ok: true,
     auctionCode,
     auction: sanitizeAuction(auctionResult.data || null),
+    reactions: reactionsResult.error ? [] : (reactionsResult.data || []),
     profile,
     bids: (bidsResult.data || []).map(sanitizeBid),
     artworks: (artworksResult.data || []).map(sanitizeArtwork),
