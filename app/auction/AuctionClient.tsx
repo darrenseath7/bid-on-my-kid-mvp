@@ -6093,7 +6093,7 @@ export default function DemoAuctionPage({
                     )}
                   </AnimatePresence>
 
-                  <div className="absolute right-1 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2" aria-label="React to this artwork">
+                  <div className="absolute right-1 top-[38%] z-30 flex -translate-y-1/2 flex-col gap-2" aria-label="React to this artwork">
                     {([ ["heart", "❤️"], ["cheer", "🎉"], ["dance", "💃"] ] as const).map(([kind, emoji]) => (
                       <button key={kind} type="button" onClick={() => void sendReaction(kind)}
                         aria-label={kind === "heart" ? "Love this artwork" : kind === "cheer" ? "Cheer for this artwork" : "Dance for this artwork"}
@@ -6453,6 +6453,7 @@ export default function DemoAuctionPage({
                 isUrgency ? `Last chance · ${secondsRemaining}s left` :
                 isBidPaused ? `Next bid opens in ${pauseRemaining}s` :
                 canBid ? `${bidderCounterLabel} · Tap to bid` :
+                auction.status === "paused" ? "Auction paused · waiting for the host" :
                 "Bidding opens after the MC intro"}
             </p>
             <motion.button whileTap={{ scale: canBid ? 0.97 : 1 }}
@@ -6462,6 +6463,7 @@ export default function DemoAuctionPage({
                 isStartingSoon ? `Starts in ${secondsRemaining}s` :
                 isBidPaused ? `Paused · ${pauseRemaining}s` :
                 biddingNow ? "Placing Bid..." :
+                auction.status === "paused" ? "Auction Paused" :
                 canBid ? `Bid R${nextBidAmount.toLocaleString()}` : "Bidding Not Open"}
             </motion.button>
           </div>
