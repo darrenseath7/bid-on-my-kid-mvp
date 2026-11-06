@@ -157,10 +157,10 @@ export default function HomePage() {
                   <span className="text-2xl leading-none">-&gt;</span>
                 </button>
                 <Link
-                  href="#how-it-works"
+                  href="/school-demo"
                   className="inline-flex items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/5 px-8 py-5 text-lg font-black text-white transition hover:border-[#16d66d]/70 hover:text-[#16d66d]"
                 >
-                  How it works
+                  Try a live auction
                 </Link>
               </div>
 
@@ -197,7 +197,7 @@ export default function HomePage() {
                 </div>
                 <div className="mt-7 flex flex-wrap gap-3">
                   <PrimaryButton onClick={openDemoForm}>Book a live demo</PrimaryButton>
-                  <SecondaryAnchor href="#live-auction">See auction features</SecondaryAnchor>
+                  <SecondaryAnchor href="/school-demo">Try the auction yourself</SecondaryAnchor>
                 </div>
               </div>
 
@@ -289,7 +289,7 @@ export default function HomePage() {
 
             <PanelActions>
               <PrimaryButton onClick={openDemoForm}>Request a demo</PrimaryButton>
-              <SecondaryAnchor href="#how-it-works">How it works</SecondaryAnchor>
+              <SecondaryAnchor href="/school-demo">Try a live auction</SecondaryAnchor>
             </PanelActions>
           </ContentPanel>
         </section>
@@ -610,7 +610,7 @@ function DemoRequestModal({
             </button>
 
             <p className="text-center text-xs font-bold text-white/40">
-              For now this shows a success message only. We can connect email or Supabase later.
+              We will use these details to contact you about your school demo request.
             </p>
           </form>
         )}
