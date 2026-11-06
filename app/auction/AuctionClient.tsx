@@ -4880,307 +4880,87 @@ export default function DemoAuctionPage({
 
 
   if (isWaiting) {
-
-
     return (
-
-
-      <main className="min-h-[100svh] overflow-y-auto bg-[#07152b] text-[#07152b]">
-
-
-        <div className="fixed inset-0 bg-[url('/paintbrush.jpg')] bg-cover bg-center" />
-
-
-        <div className="fixed inset-0 bg-[linear-gradient(180deg,rgba(85,214,255,0.62),rgba(255,255,255,0.72)_48%,rgba(255,245,214,0.96))]" />
-
-
-        <div className="fixed inset-0 opacity-35 bg-[radial-gradient(circle,#ffffff_1.5px,transparent_1.5px)] bg-[size:24px_24px]" />
-
-
-
-
+      <main className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#070d1c] text-white">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_16%,rgba(224,119,54,0.25),transparent_54%),linear-gradient(90deg,#170b12_0%,#070d1c_14%,#070d1c_86%,#170b12_100%)]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[#862e20]/60 to-transparent" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-[#862e20]/60 to-transparent" />
 
         <GalleryModal
-
-
           open={galleryOpen}
-
-
           onClose={() => setGalleryOpen(false)}
-
-
           artworks={artworks}
-
-
           auctionCode={auctionCode}
-
-
           bidderName={bidderName}
-
-
           openingBidAmount={bidIncrement}
-
-
           onRequestSaved={() => fetchPublicAuctionState(auctionCode)}
-
-
         />
 
-
-
-
-
-        <div className="relative mx-auto flex min-h-[100svh] w-full max-w-md flex-col px-4 pb-[calc(18px+env(safe-area-inset-bottom))] pt-4">
-
-
-          <div className="mb-4 rounded-[28px] border-4 border-white bg-white/95 px-5 py-3 text-center shadow-[0_18px_45px_rgba(7,21,43,0.18)]">
-
-
-            <img
-
-
-              src="/bragwall-logo.png"
-
-
-              alt="BragWall"
-
-
-              className="mx-auto h-14 w-auto object-contain"
-
-
-            />
-
-
-          </div>
-
-
-
-
-
-          <div className="mb-4">
-
-
-            <ParentRaisedTotalCard
-
-
-              totalRaised={parentRaisedTotal}
-
-
-              soldCount={parentSoldCount}
-
-
-              light
-
-
-            />
-
-
-          </div>
-
-
-
-
-
-          <section className="flex flex-1 flex-col overflow-hidden rounded-[38px] border-4 border-white bg-white shadow-[0_28px_70px_rgba(7,21,43,0.24)]">
-
-
-            <div className="relative h-56 overflow-hidden">
-
-
-              <img src="/paintbrush.jpg" alt="Paint and brush" className="h-full w-full object-cover" />
-
-
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,21,43,0.08),rgba(7,21,43,0.64))]" />
-
-
-              <div className="absolute bottom-5 left-5 right-5">
-
-
-                <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-[30px] bg-[#16d66d] text-5xl shadow-2xl">
-
-
-                  🎨
-
-
-                </div>
-
-
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.34em] text-[#ffc857]">You joined successfully</p>
-
-
-                <h1 className="text-[54px] font-black leading-none text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.45)]">
-
-
-                  WAITING<br />ROOM
-
-
-                </h1>
-
-
-              </div>
-
-
-            </div>
-
-
-
-
-
-            <div className="flex flex-1 flex-col gap-4 p-5">
-
-
-              <p className="text-lg font-extrabold leading-relaxed text-slate-700">
-
-
-                You are in the right place. The auction has not started yet. Keep this page open.
-
-
+        <div className="relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col gap-2 px-4 pb-[calc(10px+env(safe-area-inset-bottom))] pt-3">
+          <header className="flex shrink-0 items-center justify-between gap-3">
+            <div>
+              <p className="text-2xl font-black leading-none tracking-tight">BragWall</p>
+              <p className="mt-1 text-[10px] font-bold tracking-[0.16em] text-[#f5b16d]">
+                Young Art. Big Pride.
               </p>
-
-
-
-
-
-              <div className="rounded-[26px] border-2 border-[#07152b]/8 bg-[#fff8e6] p-4 shadow-inner">
-
-
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] text-[#0b63ce]">
-
-
-                  While you wait
-
-
-                </p>
-
-
-                <div className="space-y-2 text-sm font-black leading-snug text-slate-700">
-
-
-                  <p>✅ You have joined successfully.</p>
-
-
-                  <p>🖼️ Tap Gallery to preview the artworks.</p>
-
-
-                  <p>🔊 Keep your sound on for the AI MC voice.</p>
-
-
-                  <p>🚫 No need to refresh — your screen updates automatically.</p>
-
-
-                </div>
-
-
-              </div>
-
-
-
-
-
-              <div className="rounded-[26px] bg-[#16d66d] p-4 text-[#07152b] shadow-[0_14px_30px_rgba(22,214,109,0.26)]">
-
-
-                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.25em] opacity-70">Sound</p>
-
-
-                <p className="text-lg font-black">
-
-
-                  {soundEnabled ? "Sound enabled ✅" : "Tap Join Auction to enable sound"}
-
-
-                </p>
-
-
-              </div>
-
-
-
-
-
-              <button
-                type="button"
-                onClick={toggleWaitingMusic}
-                aria-pressed={waitingMusicPlaying}
-                className="w-full rounded-[26px] border border-[#ffc857] bg-[#07152b] px-5 py-4 text-center text-base font-black text-[#ffc857] shadow-lg"
-              >
-                {waitingMusicPlaying ? "Pause waiting-room music" : "Play waiting-room music"}
-              </button>
-              <div className="grid grid-cols-2 gap-3">
-
-
-                <button
-
-
-                  onClick={() => setGalleryOpen(true)}
-
-
-                  className="rounded-[28px] bg-[#ffc857] p-5 text-left text-[#07152b] shadow-xl active:scale-[0.98]"
-
-
-                >
-
-
-                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] opacity-70">Preview</p>
-
-
-                  <p className="text-2xl font-black">Gallery</p>
-
-
-                </button>
-
-
-
-
-
-                <div className="rounded-[28px] bg-[#55d6ff] p-5 text-[#07152b] shadow-xl">
-
-
-                  <p className="mb-2 text-[10px] font-black uppercase tracking-[0.25em] opacity-70">Auction</p>
-
-
-                  <p className="text-2xl font-black">Ready</p>
-
-
-                </div>
-
-
-              </div>
-
-
-
-
-
-              <div className="mt-auto rounded-[26px] bg-[#07152b] p-5 text-white">
-
-
-                <p className="text-center text-sm font-black leading-relaxed">
-
-
-                  Waiting for the host to start the auction. No need to refresh.
-
-
-                </p>
-
-
-              </div>
-
-
             </div>
+            <button
+              type="button"
+              onClick={() => setGalleryOpen(true)}
+              className="rounded-xl border border-[#ffc857]/55 px-4 py-2 text-sm font-black text-[#ffc857]"
+            >
+              Gallery
+            </button>
+          </header>
 
-
+          <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#c98c50]/80 bg-[#091226] shadow-[0_16px_40px_rgba(0,0,0,0.35)]">
+            <img
+              src="/paintbrush.jpg"
+              alt="Colourful artwork while the auction gets ready"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#07152b]/30 via-[#07152b]/20 to-[#07152b]/95" />
+            <div className="relative flex h-full min-h-0 flex-col justify-between p-4">
+              <div className="self-start rounded-full border border-[#ffc857]/65 bg-[#07152b]/85 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#ffc857]">
+                You are in
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-[#ffc857]">
+                  The show starts soon
+                </p>
+                <h1 className="mt-1 text-[clamp(2rem,10vw,3.5rem)] font-black leading-[0.95] tracking-tight text-white">
+                  Waiting<br />room
+                </h1>
+                <p className="mt-2 max-w-xs text-sm font-semibold leading-snug text-white/85">
+                  Enjoy the artwork. We will bring you into the auction when the host starts.
+                </p>
+              </div>
+            </div>
           </section>
 
+          <div className="shrink-0">
+            <ParentRaisedTotalCard
+              totalRaised={parentRaisedTotal}
+              soldCount={parentSoldCount}
+              compact
+            />
+          </div>
 
+          <button
+            type="button"
+            onClick={toggleWaitingMusic}
+            aria-pressed={waitingMusicPlaying}
+            className="shrink-0 rounded-xl border border-[#ffc857]/65 bg-[#10192c] px-4 py-3 text-center text-sm font-black text-[#ffc857] active:scale-[0.98]"
+          >
+            {waitingMusicPlaying ? "Pause waiting-room music" : "Play waiting-room music"}
+          </button>
+
+          <p className="shrink-0 text-center text-[11px] font-semibold leading-tight text-white/70">
+            {soundEnabled ? "Sound is on" : "Enable sound to hear the MC"} · Your screen updates automatically
+          </p>
         </div>
-
-
       </main>
-
-
     );
-
-
   }
 
 
