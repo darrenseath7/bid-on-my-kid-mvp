@@ -540,6 +540,9 @@ export default function DemoAuctionPage({
 
 
   const previousArtworkKeyRef = useRef("");
+  // BRAGWALL_NEXT_ARTWORK_REVEAL_V1: visual state only; auction timing is unchanged.
+  const [artworkRevealKey, setArtworkRevealKey] = useState("");
+  const artworkRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 
   const lastManualIntroTapRef = useRef(0);
@@ -1101,6 +1104,7 @@ export default function DemoAuctionPage({
 
 
   const shouldShowArtworkSoldBanner = isSold;
+  const isArtworkRevealing = Boolean(activeArtworkKey && artworkRevealKey === activeArtworkKey);
 
 
 
@@ -3090,6 +3094,9 @@ export default function DemoAuctionPage({
     previousBidderRef.current = null;
 
 
+    if (artworkRevealTimerRef.current) clearTimeout(artworkRevealTimerRef.current);
+    artworkRevealTimerRef.current = null;
+    setArtworkRevealKey("");
     previousArtworkKeyRef.current = "";
 
 
@@ -3408,6 +3415,16 @@ export default function DemoAuctionPage({
 
 
       previousArtworkKeyRef.current = activeArtworkKey;
+      // A new artwork triggers the effect; joining or refreshing does not.
+      if (joined && auction && !["open", "going once", "going twice", "sold"].includes(auction.status) &&
+          !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        if (artworkRevealTimerRef.current) clearTimeout(artworkRevealTimerRef.current);
+        setArtworkRevealKey(activeArtworkKey);
+        artworkRevealTimerRef.current = setTimeout(() => {
+          setArtworkRevealKey("");
+          artworkRevealTimerRef.current = null;
+        }, 1900);
+      }
 
 
       setEmailSubmittedArtworkKey(null);
@@ -6070,6 +6087,35 @@ export default function DemoAuctionPage({
 
 
 
+
+                  <AnimatePresence>
+                    {isArtworkRevealing && (
+                      <motion.div
+                        key={artworkRevealKey}
+                        aria-label="Revealing the next artwork"
+                        initial={{ opacity: 1 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.35 }}
+                        className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center overflow-hidden bg-[#070d1c]/95"
+                      >
+                        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_90%,rgba(235,177,87,0.15),transparent_55%)]" />
+                        <motion.div
+                          aria-hidden="true"
+                          initial={{ x: "-140%", opacity: 0 }}
+                          animate={{ x: "130%", opacity: [0, 1, 0] }}
+                          transition={{ duration: 1.55, ease: "easeInOut" }}
+                          className="absolute -top-1/3 h-[160%] w-[65%] rotate-[24deg] bg-[linear-gradient(90deg,transparent,rgba(255,197,100,0.12),rgba(255,205,120,0.36),rgba(255,197,100,0.12),transparent)] blur-xl"
+                        />
+                        <div className="relative px-4 text-center">
+                          <p className="text-[10px] font-black uppercase tracking-[0.35em] text-[#f5b16d]">BragWall presents</p>
+                          <p className="mt-4 font-serif text-4xl font-black tracking-[0.06em] text-[#ffd47e] drop-shadow-[0_0_20px_rgba(255,205,120,0.7)] sm:text-5xl">UP NEXT</p>
+                          <div className="mx-auto mt-4 h-px w-36 bg-gradient-to-r from-transparent via-[#ffc877] to-transparent" />
+                          <p className="mt-4 text-sm font-medium text-white/90">A new masterpiece is coming</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-full border border-white/60 bg-[#f07549] px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-white shadow-lg">
                     {auction.status === "open" || auction.status === "going once" || auction.status === "going twice" ? "● LIVE" :
