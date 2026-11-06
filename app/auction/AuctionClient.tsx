@@ -4634,407 +4634,108 @@ export default function DemoAuctionPage({
 
 
 
+  // BRAGWALL_JOIN_STAGE_V1: visual-only entry screen; join and audio handlers stay the same.
   if (!joined) {
-
-
     return (
+      <main className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#070d1c] text-white">
+        <style>{`@media (max-height: 670px) {
+          .bw-join-steps { display: none; }
+          .bw-join-stage { padding: 8px; }
+          .bw-join-headline { font-size: 24px; }
+          .bw-join-help { display: none; }
+        }
+        @media (max-height: 520px) {
+          .bw-join-shell { overflow-y: auto; }
+          .bw-join-stage { flex: none; height: 188px; }
+        }`}</style>
 
-
-      <main className="min-h-[100svh] overflow-y-auto bg-[#07152b] text-[#07152b]">
-
-
-        <div className="fixed inset-0 bg-[url('/paintbrush.jpg')] bg-cover bg-center" />
-
-
-        <div className="fixed inset-0 bg-[linear-gradient(180deg,rgba(7,21,43,0.14),rgba(85,214,255,0.34)_38%,rgba(255,245,214,0.92))]" />
-
-
-        <div className="fixed inset-0 opacity-45 bg-[radial-gradient(circle,#ffffff_1.5px,transparent_1.5px)] bg-[size:24px_24px]" />
-
-
-        <div className="fixed -left-14 top-16 h-36 w-36 rounded-full bg-[#16d66d]/55 blur-3xl" />
-
-
-        <div className="fixed -right-14 top-56 h-36 w-36 rounded-full bg-[#ff6b8a]/50 blur-3xl" />
-
-
-
-
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_12%,rgba(224,119,54,0.28),transparent_54%),linear-gradient(90deg,#170b12_0%,#070d1c_12%,#070d1c_88%,#170b12_100%)]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[#862e20]/60 to-transparent" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-[#862e20]/60 to-transparent" />
 
         <GalleryModal
-
-
           open={galleryOpen}
-
-
           onClose={() => setGalleryOpen(false)}
-
-
           artworks={artworks}
-
-
           auctionCode={auctionCode}
-
-
           bidderName={bidderName}
-
-
           openingBidAmount={bidIncrement}
-
-
           onRequestSaved={() => fetchPublicAuctionState(auctionCode)}
-
-
         />
 
+        <div className="bw-join-shell relative mx-auto flex h-full min-h-0 w-full max-w-md flex-col gap-2 px-3 pb-[max(8px,env(safe-area-inset-bottom))] pt-2">
+          <header className="flex shrink-0 items-center justify-between gap-3 px-1 py-1">
+            <div>
+              <p className="text-xl font-black leading-none tracking-tight">BragWall</p>
+              <p className="mt-0.5 text-[9px] font-bold tracking-[0.12em] text-[#f5b16d]">Young Art. Big Pride.</p>
+            </div>
+            <button type="button" onClick={() => setGalleryOpen(true)}
+              className="min-h-10 rounded-lg px-2 text-sm font-black text-[#ffc07f]">
+              Gallery
+            </button>
+          </header>
 
-
-
-
-        <div className="relative mx-auto flex min-h-[100svh] w-full max-w-md flex-col px-4 pb-[calc(14px+env(safe-area-inset-bottom))] pt-2">
-
-
-          <div className="mb-2 flex justify-center">
-
-
-            <div className="rounded-[24px] border-4 border-white bg-white/95 px-7 py-2.5 shadow-[0_18px_45px_rgba(7,21,43,0.18)]">
-
-
-              <img
-
-
-                src="/bragwall-logo.png"
-
-
-                alt="BragWall"
-
-
-                className="h-10 w-auto object-contain"
-
-
-              />
-
-
+          <section className="bw-join-stage flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded-lg border border-[#f3b16e]/70 bg-[#0a1221] p-2 shadow-[0_0_26px_rgba(241,143,65,0.24)]">
+            <div className="relative min-h-[66px] flex-1 overflow-hidden rounded-sm bg-[#080f1f]">
+              <img src="/paintbrush.jpg" alt="Colourful paint and brush"
+                className="h-full w-full object-cover opacity-70" />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#070d1c]/90 via-[#070d1c]/50 to-[#070d1c]/20" />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_80%_15%,rgba(255,205,120,0.35),transparent_55%)]" />
+              <div className="absolute inset-0 flex flex-col justify-end p-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#f5b16d]">Welcome, parents</p>
+                <h1 className="bw-join-headline mt-1 text-3xl font-black leading-none text-white">Bid. Win. Brag!</h1>
+              </div>
             </div>
 
-
-          </div>
-
-
-
-
-
-          <section className="overflow-hidden rounded-[38px] border-4 border-white bg-white shadow-[0_28px_70px_rgba(7,21,43,0.25)]">
-
-
-            <div className="relative h-40 overflow-hidden bg-[#fff5d6]">
-
-
-              <img
-
-
-                src="/paintbrush.jpg"
-
-
-                alt="Colourful paint and brush"
-
-
-                className="h-full w-full object-cover"
-
-
-              />
-
-
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(7,21,43,0.02),rgba(7,21,43,0.62))]" />
-
-
-              <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-
-
-                <span className="rotate-[-5deg] rounded-full bg-[#ffc857] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#07152b] shadow-lg">Bid</span>
-
-
-                <span className="rotate-[4deg] rounded-full bg-[#16d66d] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#07152b] shadow-lg">Win</span>
-
-
-                <span className="rotate-[-3deg] rounded-full bg-[#ff4f7b] px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-white shadow-lg">Brag!</span>
-
-
+            <div className="flex shrink-0 items-center justify-between rounded-lg border border-[#f3b16e]/35 bg-[#080f1f] px-3 py-2">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#16e777]">Raised tonight</p>
+                <p className="text-2xl font-black leading-tight text-[#ffd47e]">R{parentRaisedTotal.toLocaleString()}</p>
               </div>
-
-
-              <div className="absolute bottom-4 left-4 right-4">
-
-
-                <p className="mb-1 text-[10px] font-black uppercase tracking-[0.32em] text-[#ffc857] drop-shadow">Welcome Parents</p>
-
-
-                <h1 className="text-[40px] font-black leading-[0.86] text-white drop-shadow-[0_3px_14px_rgba(0,0,0,0.45)]">
-
-
-                  Bid. Win.<br />Brag!
-
-
-                </h1>
-
-
+              <div className="text-right">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/60">Artworks sold</p>
+                <p className="text-xl font-black leading-tight text-white">{parentSoldCount}</p>
               </div>
-
-
             </div>
 
-
-
-
-
-            <div className="space-y-2.5 p-3.5">
-
-
-              <ParentRaisedTotalCard
-
-
-                totalRaised={parentRaisedTotal}
-
-
-                soldCount={parentSoldCount}
-
-
-                light
-
-
-              />
-
-
-
-
-
-              <div className="grid grid-cols-2 gap-3">
-
-
-                <button
-
-
-                  type="button"
-
-
-                  onClick={handleWelcomeVoiceTap}
-
-
-                  onTouchEnd={handleWelcomeVoiceTap}
-
-
-                  disabled={welcomeVoiceLoading}
-
-
-                  className="touch-manipulation rounded-[24px] bg-[#16d66d] px-3 py-4 text-sm font-black text-[#07152b] shadow-[0_12px_25px_rgba(22,214,109,0.28)] transition active:scale-[0.98] disabled:opacity-50"
-
-
-                >
-
-
-                  {welcomeVoiceLoading
-
-
-                    ? "Loading..."
-
-
-                    : welcomeVoicePlaying
-
-
-                    ? "🔊 Playing"
-
-
-                    : "🔊 Play Welcome"}
-
-
-                </button>
-
-
-
-
-
-                <button
-
-
-                  onClick={() => setGalleryOpen(true)}
-
-
-                  className="rounded-[24px] bg-[#ffc857] px-3 py-4 text-sm font-black text-[#07152b] shadow-[0_12px_25px_rgba(255,200,87,0.32)] active:scale-[0.98]"
-
-
-                >
-
-
-                  🖼️ Gallery
-
-
-                </button>
-
-
-              </div>
-
-
-
-
-
-              <div className="rounded-[26px] border-2 border-[#07152b]/8 bg-[#fff8e6] p-3 shadow-inner">
-
-
-                <p className="mb-2 text-[9px] font-black uppercase tracking-[0.28em] text-[#0b63ce]">
-
-
-                  How tonight works
-
-
-                </p>
-
-
-                <div className="grid grid-cols-2 gap-2">
-
-
-                  <ParentStep number="1" color="bg-[#16d66d]" title="Enter name" text="Join the room" />
-
-
-                  <ParentStep number="2" color="bg-[#ffc857]" title="View gallery" text="Pick favourites" />
-
-
-                  <ParentStep number="3" color="bg-[#ff6b8a]" title="Go live" text="MC introduces art" dark />
-
-
-                  <ParentStep number="4" color="bg-[#55d6ff]" title="Win & email" text="Invoice follow-up" />
-
-
-                </div>
-
-
-              </div>
-
-
-
-
-
-              <input
-
-
-                value={bidderName}
-
-
-                onChange={(event) => setBidderName(event.target.value)}
-
-
-                placeholder="Your bidder name"
-
-
-                className="w-full rounded-[22px] border-2 border-slate-200 bg-white px-5 py-3.5 text-base font-bold outline-none focus:border-[#16d66d]"
-
-
-              />
-
-
-
-
-
-              <input
-
-
-                type="email"
-
-
-                value={bidderEmail}
-
-
-                onChange={(event) => setBidderEmail(event.target.value)}
-
-
-                placeholder="Your email address"
-
-
-                autoComplete="email"
-
-
-                className="w-full rounded-[22px] border-2 border-slate-200 bg-white px-5 py-3.5 text-base font-bold outline-none focus:border-[#16d66d]"
-
-
-              />
-
-
-
-
-
-              <button
-
-
-                type="button"
-
-
-                onTouchStart={() => {
-
-
-                  audioUnlockedRef.current = true;
-
-
-                }}
-
-
-                onMouseDown={() => {
-
-
-                  audioUnlockedRef.current = true;
-
-
-                }}
-
-
-                onClick={handleJoinAuction}
-
-
-                disabled={joiningAuction}
-
-
-                className="relative z-10 w-full touch-manipulation select-none rounded-[26px] bg-[#07152b] py-4 text-base font-black text-white shadow-[0_18px_35px_rgba(7,21,43,0.28)] active:scale-[0.98]"
-
-
-              >
-
-
-                {joiningAuction ? "JOINING AUCTION..." : "JOIN AUCTION & ENABLE SOUND"}
-
-
-              </button>
-
-
-
-
-
-              <p className="px-2 pb-1 text-center text-[9px] font-black leading-snug text-slate-500">
-
-
-                On iPhone, make sure Silent Mode is off and volume is up. If iOS blocks audio, tap the MC voice button when it appears.
-
-
-              </p>
-
-
+            <div className="bw-join-steps flex shrink-0 items-center justify-between rounded-lg bg-white/5 px-3 py-1.5 text-[10px] font-bold text-white/75">
+              <span><span className="text-[#16e777]">1</span> Join</span>
+              <span><span className="text-[#ffd47e]">2</span> Enjoy the art</span>
+              <span><span className="text-[#16e777]">3</span> Bid &amp; celebrate</span>
             </div>
-
-
           </section>
 
+          <div className="shrink-0 space-y-2">
+            <button type="button" onClick={handleWelcomeVoiceTap} onTouchEnd={handleWelcomeVoiceTap}
+              disabled={welcomeVoiceLoading}
+              className="w-full touch-manipulation rounded-lg border border-[#f3b16e]/40 bg-[#080f1f] px-3 py-2 text-sm font-black text-[#ffd47e] disabled:opacity-50">
+              {welcomeVoiceLoading ? "Loading..." : welcomeVoicePlaying ? "🔊 Playing" : "🔊 Play Welcome"}
+            </button>
 
+            <input value={bidderName} onChange={(event) => setBidderName(event.target.value)}
+              placeholder="Your bidder name" aria-label="Your bidder name" autoComplete="name"
+              className="min-h-11 w-full rounded-lg border border-white/25 bg-white/10 px-4 py-2 text-base font-semibold text-white outline-none placeholder:text-white/65 focus:border-[#ffd47e]" />
+
+            <input type="email" value={bidderEmail} onChange={(event) => setBidderEmail(event.target.value)}
+              placeholder="Your email address" aria-label="Your email address" autoComplete="email"
+              className="min-h-11 w-full rounded-lg border border-white/25 bg-white/10 px-4 py-2 text-base font-semibold text-white outline-none placeholder:text-white/65 focus:border-[#ffd47e]" />
+
+            <button type="button"
+              onTouchStart={() => { audioUnlockedRef.current = true; }}
+              onMouseDown={() => { audioUnlockedRef.current = true; }}
+              onClick={handleJoinAuction} disabled={joiningAuction}
+              className="min-h-[54px] w-full touch-manipulation select-none rounded-full bg-[#13ed77] px-3 py-2 text-base font-black text-[#041424] shadow-[0_6px_24px_rgba(0,230,109,0.25)] active:scale-[0.98] disabled:opacity-50">
+              {joiningAuction ? "JOINING AUCTION..." : "JOIN AUCTION & ENABLE SOUND"}
+            </button>
+          </div>
+
+          <p className="bw-join-help shrink-0 px-2 text-center text-[10px] leading-tight text-white/65">
+            On iPhone, turn Silent Mode off and volume up to hear the MC.
+          </p>
         </div>
-
-
       </main>
-
-
     );
-
-
   }
-
-
-
-
 
   if (!auction) {
 
