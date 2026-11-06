@@ -5170,6 +5170,7 @@ export default function DemoAuctionPage({
 
 
       <AuctionFlashToast flash={auctionFlash?.kind === "bid" ? null : auctionFlash} />
+      <SoldConfetti burstId={auctionFlash?.kind === "sold" ? auctionFlash.id : null} />
 
 
       <BidNoticeToast notice={bidNotice} />
@@ -6559,6 +6560,51 @@ function BidNoticeToast({
 
 
 
+
+// BRAGWALL_SOLD_CONFETTI_V1: visual only; uses the existing SOLD flash.
+function SoldConfetti({ burstId }: { burstId: number | null }) {
+  const colors = ["#ffd47e", "#13ed77", "#ffffff", "#f3b16e"];
+
+  return (
+    <AnimatePresence>
+      {burstId !== null && (
+        <div
+          key={burstId}
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-[60] overflow-hidden"
+        >
+          <style>{`@media (prefers-reduced-motion: reduce) {
+            .bragwall-sold-confetti { display: none; }
+          }`}</style>
+
+          {Array.from({ length: 28 }, (_, index) => (
+            <motion.span
+              key={index}
+              className="bragwall-sold-confetti absolute top-0 block rounded-[2px]"
+              style={{
+                left: `${(index * 37 + 11) % 100}%`,
+                width: index % 3 === 0 ? 9 : 6,
+                height: index % 3 === 0 ? 15 : 10,
+                backgroundColor: colors[index % colors.length],
+              }}
+              initial={{ opacity: 0, y: -25, rotate: 0 }}
+              animate={{
+                opacity: [0, 1, 1, 0],
+                y: "55vh",
+                rotate: index % 2 ? 420 : -420,
+              }}
+              transition={{
+                duration: 1.9,
+                delay: (index % 6) * 0.07,
+                ease: "easeOut",
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
 
 function AuctionFlashToast({ flash }: { flash: AuctionFlash | null }) {
 
