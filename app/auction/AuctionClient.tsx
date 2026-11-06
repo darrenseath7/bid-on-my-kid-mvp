@@ -3423,7 +3423,7 @@ export default function DemoAuctionPage({
         artworkRevealTimerRef.current = setTimeout(() => {
           setArtworkRevealKey("");
           artworkRevealTimerRef.current = null;
-        }, 1900);
+        }, 3000);
       }
 
 
@@ -6104,7 +6104,7 @@ export default function DemoAuctionPage({
                           aria-hidden="true"
                           initial={{ x: "-140%", opacity: 0 }}
                           animate={{ x: "130%", opacity: [0, 1, 0] }}
-                          transition={{ duration: 1.55, ease: "easeInOut" }}
+                          transition={{ duration: 2.6, ease: "easeInOut" }}
                           className="absolute -top-1/3 h-[160%] w-[65%] rotate-[24deg] bg-[linear-gradient(90deg,transparent,rgba(255,197,100,0.12),rgba(255,205,120,0.36),rgba(255,197,100,0.12),transparent)] blur-xl"
                         />
                         <div className="relative px-4 text-center">
