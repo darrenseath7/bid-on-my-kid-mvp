@@ -158,7 +158,7 @@ export default function HomePage() {
                 </button>
                 <Link
                   href="/school-demo"
-                  className="inline-flex items-center justify-center gap-3 rounded-2xl border border-white/12 bg-white/5 px-8 py-5 text-lg font-black text-white transition hover:border-[#16d66d]/70 hover:text-[#16d66d]"
+                  className="inline-flex items-center justify-center gap-3 rounded-2xl bg-[#16d66d] px-8 py-5 text-lg font-black text-[#07152b] shadow-[0_22px_55px_rgba(22,214,109,0.24)] transition hover:scale-[1.02]"
                 >
                   Try a live auction
                 </Link>
@@ -197,7 +197,7 @@ export default function HomePage() {
                 </div>
                 <div className="mt-7 flex flex-wrap gap-3">
                   <PrimaryButton onClick={openDemoForm}>Book a live demo</PrimaryButton>
-                  <SecondaryAnchor href="/school-demo">Try the auction yourself</SecondaryAnchor>
+                  <LinkButton href="/school-demo">Try the auction yourself</LinkButton>
                 </div>
               </div>
 
@@ -289,7 +289,7 @@ export default function HomePage() {
 
             <PanelActions>
               <PrimaryButton onClick={openDemoForm}>Request a demo</PrimaryButton>
-              <SecondaryAnchor href="/school-demo">Try a live auction</SecondaryAnchor>
+              <LinkButton href="/school-demo">Try a live auction</LinkButton>
             </PanelActions>
           </ContentPanel>
         </section>
