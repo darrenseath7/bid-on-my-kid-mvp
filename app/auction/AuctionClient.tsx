@@ -7296,6 +7296,8 @@ function GalleryModal({
 
 
                               src={imageUrl}
+                              loading="lazy"
+                              decoding="async"
 
 
                               alt={`${artwork.child_name} ${artwork.child_surname}`}
