@@ -402,6 +402,7 @@ export default function DemoAuctionPage({
 
 
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [waitingMusicPlaying, setWaitingMusicPlaying] = useState(false);
 
 
   const [galleryOpen, setGalleryOpen] = useState(false);
@@ -534,6 +535,8 @@ export default function DemoAuctionPage({
 
 
   const introAudioRef = useRef<HTMLAudioElement | null>(null);
+  const waitingMusicRef = useRef<HTMLAudioElement | null>(null);
+  const soldFanfareRef = useRef<HTMLAudioElement | null>(null);
 
 
   const playedIntroAudioKeyRef = useRef("");
@@ -1362,10 +1365,17 @@ export default function DemoAuctionPage({
     const audio = new Audio(src);
 
 
-    audio.volume = 0.65;
+    audio.volume = 0.45;
 
 
-    audio.play().catch(() => {});
+    soldFanfareRef.current?.pause();
+    soldFanfareRef.current = audio;
+    audio.onended = () => {
+      if (soldFanfareRef.current === audio) soldFanfareRef.current = null;
+    };
+    audio.play().catch(() => {
+      if (soldFanfareRef.current === audio) soldFanfareRef.current = null;
+    });
 
 
   }
@@ -1374,6 +1384,51 @@ export default function DemoAuctionPage({
 
 
 
+  function toggleWaitingMusic() {
+    const existing = waitingMusicRef.current;
+    if (existing) {
+      existing.pause();
+      existing.currentTime = 0;
+      waitingMusicRef.current = null;
+      setWaitingMusicPlaying(false);
+      return;
+    }
+
+    if (!joined || !isWaiting) return;
+
+    const audio = new Audio("/sounds/waiting-room.mp3");
+    audio.loop = true;
+    audio.volume = 0.22;
+    waitingMusicRef.current = audio;
+    audio.play().then(() => {
+      if (waitingMusicRef.current === audio) setWaitingMusicPlaying(true);
+    }).catch(() => {
+      if (waitingMusicRef.current === audio) waitingMusicRef.current = null;
+      setWaitingMusicPlaying(false);
+    });
+  }
+
+  useEffect(() => {
+    if (joined && isWaiting && soundEnabled) return;
+    const audio = waitingMusicRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+      waitingMusicRef.current = null;
+    }
+    setWaitingMusicPlaying(false);
+  }, [joined, isWaiting, soundEnabled]);
+
+  useEffect(() => {
+    if (auction?.status === "sold") return;
+    soldFanfareRef.current?.pause();
+    soldFanfareRef.current = null;
+  }, [auction?.status]);
+
+  useEffect(() => () => {
+    waitingMusicRef.current?.pause();
+    soldFanfareRef.current?.pause();
+  }, []);
   function playBidEnergySound(kind: "bid" | "reaction" = "bid") {
 
 
@@ -3010,7 +3065,7 @@ export default function DemoAuctionPage({
       if (currentStatus === "sold") {
 
 
-        playSound("/sounds/gavel.mp3");
+        playSound("/sounds/sold-fanfare.mp3");
 
 
 
@@ -5043,6 +5098,14 @@ export default function DemoAuctionPage({
 
 
 
+              <button
+                type="button"
+                onClick={toggleWaitingMusic}
+                aria-pressed={waitingMusicPlaying}
+                className="w-full rounded-[26px] border border-[#ffc857] bg-[#07152b] px-5 py-4 text-center text-base font-black text-[#ffc857] shadow-lg"
+              >
+                {waitingMusicPlaying ? "Pause waiting-room music" : "Play waiting-room music"}
+              </button>
               <div className="grid grid-cols-2 gap-3">
 
 
