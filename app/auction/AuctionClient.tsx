@@ -5409,16 +5409,13 @@ export default function DemoAuctionPage({
   return (
 
 
-    <main className="relative h-[100dvh] overflow-hidden text-[#07152b] flex flex-col">
+    <main className="relative flex h-[100dvh] flex-col overflow-hidden bg-[#070d1c] text-white">
 
 
-      <div className="absolute inset-0 bg-[url('/paintbrush.jpg')] bg-cover bg-center" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_16%,rgba(224,119,54,0.28),transparent_54%),linear-gradient(90deg,#170b12_0%,#070d1c_12%,#070d1c_88%,#170b12_100%)]" />
 
-
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.62),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,245,214,0.40))]" />
-
-
-      <div className="absolute inset-0 opacity-45 bg-[radial-gradient(circle,#ffffff_1.4px,transparent_1.4px)] bg-[size:28px_28px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[#862e20]/60 to-transparent" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-[#862e20]/60 to-transparent" />
 
 
 
@@ -5463,24 +5460,34 @@ export default function DemoAuctionPage({
 
 
 
-      <header className="relative z-20 shrink-0 border-b border-[#07152b]/10 bg-white/95 px-3 py-1.5 shadow-sm">
-        <div className="mx-auto flex h-11 max-w-md items-center justify-between gap-2">
-          <button type="button" onClick={() => setGalleryOpen(true)}
-            className="rounded-xl bg-[#ffc857] px-3 py-2 text-xs font-black" aria-label="Open gallery">
-            🖼️ Gallery
-          </button>
-          <p className="min-w-0 truncate text-center text-sm font-black">
-            {auction.child_name} {auction.child_surname}
-          </p>
-          <details className="relative shrink-0">
-            <summary aria-label="Auction details" className="cursor-pointer list-none rounded-xl bg-[#07152b] px-3 py-2 text-sm font-black text-white">⋯</summary>
-            <div className="absolute right-0 top-11 z-50 w-52 rounded-xl bg-[#07152b] p-3 text-xs font-bold text-white shadow-2xl">
-              <p>Bidding as {bidderName}</p>
-              <p className="mt-2">Raised tonight: R{parentRaisedTotal.toLocaleString()}</p>
-              <p className="mt-1">Artworks sold: {parentSoldCount}</p>
-            </div>
-          </details>
+      <header className="relative z-20 shrink-0 px-4 pb-2 pt-2.5">
+        <div className="mx-auto flex max-w-md items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg font-black leading-none tracking-tight text-white">BragWall</p>
+            <p className="mt-0.5 text-[9px] font-bold tracking-[0.12em] text-[#f5b16d]">Young Art. Big Pride.</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <button type="button" onClick={() => setGalleryOpen(true)}
+              className="min-h-10 rounded-lg px-2 text-sm font-black text-[#ffc07f]" aria-label="Open gallery">
+              Gallery
+            </button>
+            <details className="relative">
+              <summary aria-label="Auction details" className="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full border border-white/25 text-lg font-black text-white">⋯</summary>
+              <div className="absolute right-0 top-11 z-50 w-52 rounded-xl border border-[#e99061]/50 bg-[#07152b] p-3 text-xs font-bold text-white shadow-2xl">
+                <p>Bidding as {bidderName}</p>
+                <p className="mt-2">Raised tonight: R{parentRaisedTotal.toLocaleString()}</p>
+                <p className="mt-1">Artworks sold: {parentSoldCount}</p>
+                {topBidderRows.length > 0 && (
+                  <p className="mt-2 text-white/70">Top bids: {topBidderRows.map((bidder) => `${bidder.name} R${bidder.amount}`).join(" · ")}</p>
+                )}
+              </div>
+            </details>
+          </div>
         </div>
+        <p className="mx-auto mt-2 max-w-md truncate text-center text-base font-black leading-tight text-white">
+          {auction.child_name} {auction.child_surname}
+          {auction.grade ? <span className="font-semibold text-white/75"> · {auction.grade}</span> : null}
+        </p>
       </header>
 
       <AnimatePresence>
@@ -5894,7 +5901,7 @@ export default function DemoAuctionPage({
 
 
 
-      <div className={`relative flex-1 min-h-0 max-w-md mx-auto w-full px-2 py-1.5 flex flex-col gap-1.5 ${isSold ? "overflow-y-auto overscroll-contain" : "overflow-hidden"}`}>
+      <div className={`relative flex min-h-0 w-full max-w-md flex-1 flex-col gap-1.5 px-3 pb-1 pt-1 mx-auto ${isSold ? "overflow-y-auto overscroll-contain" : "overflow-hidden"}`}>
 
 
         {isSold && isWinningBidder && winnerEmailAlreadySubmitted && (
@@ -6013,19 +6020,19 @@ export default function DemoAuctionPage({
           </div>
         )}
 
-        <div className="flex-1 min-h-[100px] flex flex-col overflow-hidden rounded-[18px] border-2 border-white bg-white shadow-lg">
+        <div className="flex min-h-[100px] flex-1 flex-col overflow-hidden rounded-[8px] border border-[#f3b16e]/70 bg-[#0a1221] p-1 shadow-[0_0_26px_rgba(241,143,65,0.24)]">
 
 
-          <div className="flex-1 min-h-0 flex flex-col bg-[#fff5d6] p-1">
+          <div className="flex min-h-0 flex-1 flex-col bg-[#0a1221]">
 
 
-            <div className="flex-1 min-h-0 flex flex-col rounded-[16px] bg-gradient-to-br from-[#c78b25] via-[#f7df8f] to-[#6a3b0b] p-1">
+            <div className="flex min-h-0 flex-1 flex-col bg-[#0a1221]">
 
 
-              <div className="flex-1 min-h-0 flex flex-col rounded-[12px] bg-[#f8f5ef] p-1">
+              <div className="flex min-h-0 flex-1 flex-col bg-[#0a1221]">
 
 
-                <div className="relative flex-1 min-h-0 overflow-hidden rounded-[12px] bg-white flex items-center justify-center">
+                <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#0a1221]">
 
 
                   {auction.artwork_url ? (
@@ -6064,38 +6071,11 @@ export default function DemoAuctionPage({
 
 
 
-                  {(auction.child_name || auction.child_surname || auction.grade) && (
-
-
-                    <div className="absolute left-2 top-2 max-w-[54%] rounded-br-[16px] rounded-tl-[10px] bg-[#07152b]/86 px-2 py-1.5 text-white shadow-lg backdrop-blur-sm">
-
-
-                      <p className="truncate text-[10px] font-black leading-tight">
-
-
-                        {auction.child_name} {auction.child_surname}
-
-
-                      </p>
-
-
-                      <p className="truncate text-[8px] font-black uppercase tracking-[0.14em] text-[#ffc857]">
-
-
-                        {auction.grade || "Artwork"}
-
-
-                      </p>
-
-
-                    </div>
-
-
-                  )}
-
-
-
-
+                  <div className="pointer-events-none absolute left-2 top-2 z-10 rounded-full border border-white/60 bg-[#f07549] px-2.5 py-1 text-[10px] font-black tracking-[0.08em] text-white shadow-lg">
+                    {auction.status === "open" || auction.status === "going once" || auction.status === "going twice" ? "● LIVE" :
+                      auction.status === "paused" ? "PAUSED" :
+                      auction.status === "intro" ? "MC INTRO" : "UP NEXT"}
+                  </div>
 
                   <AnimatePresence mode="wait">
                     {auctionFlash?.kind === "bid" && (
@@ -6105,9 +6085,9 @@ export default function DemoAuctionPage({
                         exit={{ opacity: 0, scale: 1.18 }}
                         transition={{ duration: 0.35 }}
                         className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[#07152b]/25">
-                        <div className="rounded-2xl border-2 border-white bg-[#16d66d] px-5 py-3 text-center shadow-2xl">
+                        <div className="rounded-2xl border border-[#7bffb5] bg-[#07152b] px-5 py-3 text-center text-white shadow-[0_0_35px_rgba(22,214,109,0.55)]">
                           <p className="text-[10px] font-black uppercase">New bid!</p>
-                          <p className="text-5xl font-black leading-none text-[#07152b]">R{auction.current_bid.toLocaleString()}</p>
+                          <p className="text-5xl font-black leading-none text-[#17eb78]">R{auction.current_bid.toLocaleString()}</p>
                         </div>
                       </motion.div>
                     )}
@@ -6118,7 +6098,7 @@ export default function DemoAuctionPage({
                       <button key={kind} type="button" onClick={() => void sendReaction(kind)}
                         aria-label={kind === "heart" ? "Love this artwork" : kind === "cheer" ? "Cheer for this artwork" : "Dance for this artwork"}
                         disabled={!bidderContactId || !bidderToken || isSold}
-                        className="flex h-10 w-10 items-center justify-center rounded-full border border-white bg-white/90 text-xl shadow-lg disabled:opacity-40">
+                        className="flex h-11 w-11 items-center justify-center rounded-full border border-white/35 bg-[#07152b]/85 text-xl shadow-[0_5px_14px_rgba(0,0,0,0.3)] backdrop-blur-sm disabled:opacity-40">
                         {emoji}
                       </button>
                     ))}
@@ -6186,7 +6166,7 @@ export default function DemoAuctionPage({
 
 
 
-          <div className="h-3 bg-gradient-to-b from-[#ffc857] to-[#f59e0b]" />
+          <div className="h-[2px] bg-[#f3b16e]/70" />
 
 
         </div>
@@ -6240,213 +6220,24 @@ export default function DemoAuctionPage({
           }}
 
 
-          className="shrink-0 bg-white text-[#07152b] rounded-[24px] p-3 shadow-[0_14px_30px_rgba(7,21,43,0.16)] border-4 border-white"
-
-
+          className="shrink-0 border-t border-[#f3b16e]/35 bg-[#080f1f]/90 px-2 py-2.5 text-white"
         >
-
-
-          <div className="grid grid-cols-2 gap-3 items-end">
-
-
-            <div>
-
-
-              <p className="uppercase tracking-[0.22em] text-[9px] text-slate-400 font-black mb-1">
-
-
-                Highest Bid
-
-
-              </p>
-
-
-
-
-
-              <h2 className="text-3xl font-black text-[#16d66d] leading-none">
-
-
-                R{auction.current_bid.toLocaleString()}
-
-
-              </h2>
-
-
+          <div className="flex items-end justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/65">Highest bid</p>
+              <p className="truncate text-3xl font-black leading-none text-[#16e777]">R{auction.current_bid.toLocaleString()}</p>
             </div>
-
-
-
-
-
-            <div className="text-right min-w-0">
-
-
-              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-400 font-black mb-1">
-
-
-                Leading
-
-
-              </p>
-
-
-
-
-
-              <p className="font-black text-base truncate">
-
-
-                {auction.leading_bidder}
-
-
-                {auction.leading_bidder !== "No bids yet" ? " 👑" : ""}
-
-
-              </p>
-
-
+            <div className="min-w-0 flex-[1.2] text-right">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-white/65">Leading</p>
+              <p className="truncate text-sm font-black text-white">{auction.leading_bidder}{auction.leading_bidder !== "No bids yet" ? " 👑" : ""}</p>
+              <p className="mt-1 text-xs font-black text-[#17e777]">Next R{nextBidAmount.toLocaleString()}</p>
             </div>
-
-
           </div>
-
-
-
-
-
-          <div className="mt-3 rounded-[20px] bg-[#07152b] px-3 py-2 text-white shadow-inner">
-
-
-            <div className="flex items-center justify-between gap-3">
-
-
-              <div className="min-w-0">
-
-
-                <p className="text-[8px] font-black uppercase tracking-[0.24em] text-[#ffc857]">
-
-
-                  Bid Battle
-
-
-                </p>
-
-
-                <motion.p
-
-
-                  key={`${liveBidEnergyText}-${bidPulseKey}`}
-
-
-                  initial={{ opacity: 0.5, x: -4 }}
-
-
-                  animate={{ opacity: 1, x: 0 }}
-
-
-                  className="mt-0.5 truncate text-sm font-black leading-tight"
-
-
-                >
-
-
-                  🔥 {liveBidEnergyText}
-
-
-                </motion.p>
-
-
-              </div>
-
-
-
-
-
-              <div className="shrink-0 rounded-[14px] bg-[#16d66d] px-2.5 py-1 text-center text-[#07152b]">
-
-
-                <p className="text-[8px] font-black uppercase tracking-[0.16em]">
-
-
-                  Next
-
-
-                </p>
-
-
-                <p className="text-sm font-black leading-none">
-
-
-                  R{nextBidAmount.toLocaleString()}
-
-
-                </p>
-
-
-              </div>
-
-
-            </div>
-
-
-
-
-
-            {topBidderRows.length > 0 && (
-
-
-              <div className="mt-2 flex gap-1.5 overflow-hidden">
-
-
-                {topBidderRows.map((bidder, index) => (
-
-
-                  <div
-
-
-                    key={bidder.name}
-
-
-                    className="min-w-0 flex-1 rounded-[14px] bg-white/10 px-2 py-1"
-
-
-                  >
-
-
-                    <p className="truncate text-[9px] font-black leading-tight">
-
-
-                      {index + 1}. {bidder.name}
-
-
-                    </p>
-
-
-                    <p className="text-[9px] font-black leading-tight text-[#16d66d]">
-
-
-                      R{bidder.amount.toLocaleString()}
-
-
-                    </p>
-
-
-                  </div>
-
-
-                ))}
-
-
-              </div>
-
-
-            )}
-
-
-          </div>
-
-
+          <motion.p key={`${liveBidEnergyText}-${bidPulseKey}`}
+            initial={{ opacity: 0.5 }} animate={{ opacity: 1 }}
+            className="mt-1 truncate text-center text-[11px] font-semibold text-[#f7b883]">
+            {liveBidEnergyText}
+          </motion.p>
         </motion.div>
 
 
@@ -6513,7 +6304,7 @@ export default function DemoAuctionPage({
             animate={{ opacity: 1, y: 0 }}
 
 
-            className={`shrink-0 rounded-[22px] p-3 shadow-xl border ${
+            className={`shrink-0 rounded-xl px-3 py-1.5 shadow-lg border ${
 
 
               isUrgency && auction.status === "going twice"
@@ -6555,7 +6346,7 @@ export default function DemoAuctionPage({
 
 
 
-                <div className="text-3xl font-black leading-none">
+                <div className="text-xl font-black leading-none">
 
 
                   {isUrgency ? `${secondsRemaining}s` : `${pauseRemaining}s`}
@@ -6609,7 +6400,7 @@ export default function DemoAuctionPage({
 
 
 
-                <div className="text-3xl font-black leading-none">
+                <div className="text-xl font-black leading-none">
 
 
                   R{nextBidAmount.toLocaleString()}
@@ -6654,167 +6445,27 @@ export default function DemoAuctionPage({
 
 
       {!isSold && !isPreparingIntro && !isIntro && (
-
-
-        <div className="relative shrink-0 bg-white/92 backdrop-blur border-t-4 border-[#07152b]/10 shadow-[0_-10px_40px_rgba(7,21,43,0.16)]">
-
-
-          <div className="max-w-md mx-auto p-3">
-
-
-            <motion.button
-
-
-              whileTap={{ scale: canBid ? 0.97 : 1 }}
-
-
-              onClick={() => placeBid(nextBidAmount)}
-
-
-              disabled={!canBid}
-
-
-              className="w-full rounded-[22px] py-3.5 font-black text-2xl shadow-[0_12px_28px_rgba(22,214,109,0.25)] transition text-white disabled:opacity-40 disabled:cursor-not-allowed"
-
-
-              style={{
-
-
-                background: canBid
-
-
-                  ? "linear-gradient(135deg, #16d66d, #16b85d)"
-
-
-                  : "#94a3b8",
-
-
-              }}
-
-
-            >
-
-
-              {isPreparingIntro
-
-
-                ? "Waiting for MC"
-
-
-                : isIntro
-
-
-                ? `MC Intro • ${introSecondsRemaining}s`
-
-
-                : isNextArtworkCountdown
-
-
-                ? `Next art in ${secondsRemaining}s`
-
-
-                : isStartingSoon
-
-
-                ? `Starts in ${secondsRemaining}s`
-
-
-                : isBidPaused
-
-
-                ? `Paused • ${pauseRemaining}s`
-
-
-                : biddingNow
-
-
-                ? "Placing Bid..."
-
-
-                : canBid
-
-
-                ? `Bid R${nextBidAmount.toLocaleString()}`
-
-
-                : "Bidding Not Open"}
-
-
-            </motion.button>
-
-
-
-
-
-            <p
-
-
-              className={`text-center font-bold mt-1 text-xs ${
-
-
-                isUrgency ? "text-[#ef2b20]" : "text-slate-500"
-
-
-              }`}
-
-
-            >
-
-
-              {isPreparingIntro
-
-
-                ? "The artwork is ready. Please wait for the MC intro before bidding opens."
-
-
-                : isIntro
-
-
-                ? introAudioStatus === "playing"
-
-
-                  ? "The AI MC is presenting the artwork. Bidding opens when the full intro finishes."
-
-
-                  : "If sound does not start automatically on iPhone, tap the MC voice button above."
-
-
-                : isNextArtworkCountdown
-
-
-                ? "The next artwork is on screen. The AI MC starts after this countdown."
-
-
-                : isStartingSoon
-
-
-                ? "Bidding opens automatically after the countdown."
-
-
-                : isUrgency
-
-
-                ? "Last chance — tap to keep the artwork alive."
-
-
-                : canBid
-
-
-                ? `Tap fast • ${bidderCounterLabel} • next bid R${nextBidAmount.toLocaleString()}`
-
-
-                : "Bidding will open after the MC introduces the artwork."}
-
-
+        <div className="relative z-10 shrink-0 border-t border-[#f3b16e]/25 bg-[#070d1c] px-3 pb-[max(8px,env(safe-area-inset-bottom))] pt-1.5">
+          <div className="mx-auto max-w-md">
+            <p className="mb-1.5 truncate text-center text-xs font-semibold text-[#f6b681]">
+              {isNextArtworkCountdown ? `Next artwork in ${secondsRemaining}s` :
+                isStartingSoon ? `Bidding opens in ${secondsRemaining}s` :
+                isUrgency ? `Last chance · ${secondsRemaining}s left` :
+                isBidPaused ? `Next bid opens in ${pauseRemaining}s` :
+                canBid ? `${bidderCounterLabel} · Tap to bid` :
+                "Bidding opens after the MC intro"}
             </p>
-
-
+            <motion.button whileTap={{ scale: canBid ? 0.97 : 1 }}
+              onClick={() => placeBid(nextBidAmount)} disabled={!canBid}
+              className="min-h-[54px] w-full rounded-full bg-[#13ed77] px-3 py-2 text-xl font-black text-[#041424] shadow-[0_6px_24px_rgba(0,230,109,0.25)] transition disabled:cursor-not-allowed disabled:bg-[#505b6e] disabled:text-white/80 disabled:shadow-none">
+              {isNextArtworkCountdown ? `Next art in ${secondsRemaining}s` :
+                isStartingSoon ? `Starts in ${secondsRemaining}s` :
+                isBidPaused ? `Paused · ${pauseRemaining}s` :
+                biddingNow ? "Placing Bid..." :
+                canBid ? `Bid R${nextBidAmount.toLocaleString()}` : "Bidding Not Open"}
+            </motion.button>
           </div>
-
-
         </div>
-
-
       )}
 
 
