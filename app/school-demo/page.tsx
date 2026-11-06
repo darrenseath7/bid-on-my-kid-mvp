@@ -179,10 +179,8 @@ export default function SchoolDemoPage() {
             <form onSubmit={enterAuction} className="space-y-4 rounded-3xl border border-white/15 bg-[#07152b]/95 p-5 shadow-2xl sm:p-7">
               <h2 className="text-2xl font-black">Enter your school auction</h2>
               <label className="block text-sm font-bold">Your name<input required autoComplete="name" maxLength={120} value={contactPerson} onChange={event => setContactPerson(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white outline-none focus:border-[#16d66d]" /></label>
-              <label className="block text-sm font-bold">School name<input required autoComplete="organization" maxLength={180} value={schoolName} onChange={event => setSchoolName(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white outline-none focus:border-[#16d66d]" /></label>
-              <label className="block text-sm font-bold">Email<input required type="email" autoComplete="email" maxLength={160} value={email} onChange={event => setEmail(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white outline-none focus:border-[#16d66d]" /></label>
               <button type="submit" className="w-full rounded-2xl bg-[#16d66d] px-6 py-4 text-lg font-black text-[#07152b]">Enter the demo auction →</button>
-              <p className="text-xs leading-relaxed text-white/60">Tap to start the MC audio. Your details stay in this browser unless you request a call at the end. This is a simulation: no real bids or purchases.</p>
+              <p className="text-xs leading-relaxed text-white/60">Just your name to try it. Tap to hear the MC. If you request a call after SOLD, we will ask for your school and contact details then. This is a simulation with no real bids or purchases.</p>
             </form>
           </div>
         ) : null}
@@ -216,7 +214,9 @@ export default function SchoolDemoPage() {
             {phase === "sold" ? (
               <form onSubmit={requestCall} className="mt-5 space-y-3 rounded-3xl border border-white/15 bg-[#07152b] p-5 text-left">
                 <h2 className="text-xl font-black">Want to run this for real? Request a call.</h2>
-                <p className="text-sm text-white/70">We have your name, school and email. Add a phone number so we can call you.</p>
+                <p className="text-sm text-white/70">Enter your school and contact details if you would like us to call you. Your demo bids were only a simulation.</p>
+                <label className="block text-sm font-bold">School name<input required autoComplete="organization" maxLength={180} value={schoolName} onChange={event => setSchoolName(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white outline-none focus:border-[#16d66d]" /></label>
+                <label className="block text-sm font-bold">Email<input required type="email" autoComplete="email" maxLength={160} value={email} onChange={event => setEmail(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white outline-none focus:border-[#16d66d]" /></label>
                 <label className="block text-sm font-bold">Contact number<input required type="tel" autoComplete="tel" maxLength={80} value={phone} onChange={event => setPhone(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-base text-white outline-none focus:border-[#16d66d]" /></label>
                 <label className="flex items-start gap-2 text-xs text-white/70"><input required type="checkbox" className="mt-1 accent-[#16d66d]" />I agree that BragWall may contact me about a school auction.</label>
                 <button disabled={submitting} type="submit" className="w-full rounded-2xl bg-[#16d66d] px-6 py-4 text-lg font-black text-[#07152b] disabled:opacity-55">{submitting ? "Sending…" : "Request a call"}</button>
