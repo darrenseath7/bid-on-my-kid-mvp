@@ -163,18 +163,18 @@ export default function SchoolDemoPage() {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[url('/bragwall-paint-splatter.jpg')] bg-cover bg-center opacity-[0.12]" />
       <div className={`relative mx-auto flex w-full max-w-7xl flex-col px-3 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 sm:px-6 ${onStage ? "h-[100dvh]" : "min-h-[100dvh]"}`}>
         <header className="flex items-center justify-between gap-4">
-          <Link href="/" className="text-xl font-black tracking-tight">Brag<span className="text-[#16d66d]">Wall</span><span className="block text-[9px] font-bold uppercase tracking-[0.2em] text-[#ffc857]">Young Art. Big Pride.</span></Link>
+          <Link href="/" className="rounded-xl border border-white/15 bg-[#07152b]/90 px-4 py-2 text-3xl font-black tracking-tight shadow-lg sm:text-4xl">Brag<span className="text-[#16d66d]">Wall</span><span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#ffc857] sm:text-xs">Young Art. Big Pride.</span></Link>
           <span className="rounded-full border border-[#ffc857]/45 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-[#ffc857]">School demo</span>
           {onStage ? <button type="button" onClick={() => { audio.current?.pause(); if (mcEnabled) { setMcEnabled(false); } else { setMcEnabled(true); const clip = phase === "intro" ? "intro" : stage === "once" ? "going-once" : stage === "twice" ? "going-twice" : "other-bid"; const player = new Audio(`/school-demo/mc-${clip}.mp3`); audio.current = player; void player.play().then(() => setAudioBlocked(false)).catch(() => setAudioBlocked(true)); } }} className="rounded-full border border-white/30 px-2 py-1 text-xs font-bold">{mcEnabled ? "🔊 MC on" : "🔇 MC off"}</button> : null}
         </header>
 
         {phase === "entry" ? (
-          <div className="mx-auto my-auto grid w-full max-w-4xl items-center gap-8 py-8 md:grid-cols-2">
+          <div className="mx-auto my-auto grid w-full max-w-6xl items-center gap-8 py-8 md:grid-cols-2 lg:gap-14">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.22em] text-[#16d66d]">A two-minute auction you can try yourself</p>
               <h1 className="mt-4 text-4xl font-black leading-tight tracking-tight sm:text-5xl">Hear the MC. Make a bid. Feel the moment.</h1>
               <p className="mt-4 text-base text-white/75">Experience a sample school art auction, from the MC introduction through Going Once, Going Twice and SOLD.</p>
-              <div className="mt-6 max-h-52 overflow-hidden rounded-2xl border border-[#ffc857]/35 bg-[#0a1730] md:max-h-80"><DemoArtwork /></div>
+              <div className="mt-6 h-72 overflow-hidden rounded-2xl border border-[#ffc857]/35 bg-[#0a1730] p-2 sm:h-[380px] lg:h-[440px]"><DemoArtwork /></div>
             </div>
             <form onSubmit={enterAuction} className="space-y-4 rounded-3xl border border-white/15 bg-[#07152b]/95 p-5 shadow-2xl sm:p-7">
               <h2 className="text-2xl font-black">Enter your school auction</h2>
