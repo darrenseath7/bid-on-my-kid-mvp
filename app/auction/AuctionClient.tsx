@@ -445,6 +445,7 @@ export default function DemoAuctionPage({
 
 
   const [auctionFlash, setAuctionFlash] = useState<AuctionFlash | null>(null);
+  const [entranceCurtainVisible, setEntranceCurtainVisible] = useState(false);
   const [activeReaction, setActiveReaction] = useState<{ id: number; kind: string } | null>(null);
   const reactionArtworkRef = useRef<string | null>(null);
   const lastReactionIdRef = useRef<number | null>(null);
@@ -491,6 +492,8 @@ export default function DemoAuctionPage({
 
 
   const previousStatusRef = useRef<string | null>(null);
+  const previousWaitingStatusRef = useRef<string | null>(null);
+  const entranceCurtainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 
   const previousBidRef = useRef<number | null>(null);
@@ -2891,6 +2894,45 @@ export default function DemoAuctionPage({
 
 
 
+  // BRAGWALL_WAITING_CURTAIN_V1: visual only; never controls auction timing.
+  useEffect(() => {
+    const nextStatus = auction?.status || null;
+    const previousStatus = previousWaitingStatusRef.current;
+    previousWaitingStatusRef.current = nextStatus;
+
+    if (
+      !joined ||
+      previousStatus !== "waiting" ||
+      !nextStatus ||
+      ![
+        "preparing_intro",
+        "preparing intro",
+        "generating_intro",
+        "generating intro",
+        "intro",
+        "starting_soon",
+        "open",
+      ].includes(nextStatus)
+    ) return;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    if (entranceCurtainTimerRef.current) {
+      clearTimeout(entranceCurtainTimerRef.current);
+    }
+
+    setEntranceCurtainVisible(true);
+    entranceCurtainTimerRef.current = setTimeout(() => {
+      setEntranceCurtainVisible(false);
+      entranceCurtainTimerRef.current = null;
+    }, 2000);
+  }, [auction?.status, joined]);
+
+  useEffect(() => () => {
+    if (entranceCurtainTimerRef.current) {
+      clearTimeout(entranceCurtainTimerRef.current);
+    }
+  }, []);
   function showAuctionFlash(nextFlash: Omit<AuctionFlash, "id">) {
 
 
@@ -3192,6 +3234,12 @@ export default function DemoAuctionPage({
   useEffect(() => {
 
 
+    previousWaitingStatusRef.current = null;
+    if (entranceCurtainTimerRef.current) {
+      clearTimeout(entranceCurtainTimerRef.current);
+      entranceCurtainTimerRef.current = null;
+    }
+    setEntranceCurtainVisible(false);
     previousStatusRef.current = null;
 
 
@@ -5066,6 +5114,45 @@ export default function DemoAuctionPage({
 
       <AuctionFlashToast flash={auctionFlash?.kind === "bid" ? null : auctionFlash} />
       <SoldConfetti burstId={auctionFlash?.kind === "sold" ? auctionFlash.id : null} />
+      <AnimatePresence>
+        {entranceCurtainVisible && (
+          <motion.div
+            aria-label="Opening the auction"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="pointer-events-none fixed inset-0 z-[75] overflow-hidden"
+          >
+            <motion.div
+              aria-hidden="true"
+              initial={{ x: 0 }}
+              animate={{ x: "-102%" }}
+              transition={{ duration: 1.85, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-y-0 left-0 w-1/2 border-r-2 border-[#e8ba70] bg-[radial-gradient(circle_at_right,rgba(151,63,45,0.35),transparent_65%),linear-gradient(90deg,#070d1c,#142039)] shadow-[12px_0_35px_rgba(0,0,0,0.45)]"
+            />
+            <motion.div
+              aria-hidden="true"
+              initial={{ x: 0 }}
+              animate={{ x: "102%" }}
+              transition={{ duration: 1.85, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-y-0 right-0 w-1/2 border-l-2 border-[#e8ba70] bg-[radial-gradient(circle_at_left,rgba(151,63,45,0.35),transparent_65%),linear-gradient(90deg,#142039,#070d1c)] shadow-[-12px_0_35px_rgba(0,0,0,0.45)]"
+            />
+            <motion.div
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              className="absolute inset-0 flex flex-col items-center justify-center text-center"
+            >
+              <p className="text-xs font-black uppercase tracking-[0.35em] text-[#e8ba70]">
+                BragWall presents
+              </p>
+              <p className="mt-3 text-4xl font-black text-white">
+                Let the art begin
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
 
       <BidNoticeToast notice={bidNotice} />
