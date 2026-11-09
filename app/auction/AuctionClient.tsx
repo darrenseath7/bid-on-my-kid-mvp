@@ -535,6 +535,8 @@ export default function DemoAuctionPage({
 
 
   const introAudioRef = useRef<HTMLAudioElement | null>(null);
+  const mcCueAudioRef = useRef<HTMLAudioElement | null>(null);
+  const mcCueRotationRef = useRef(0);
   const waitingMusicRef = useRef<HTMLAudioElement | null>(null);
   const soldFanfareRef = useRef<HTMLAudioElement | null>(null);
 
@@ -1428,6 +1430,50 @@ export default function DemoAuctionPage({
   useEffect(() => () => {
     waitingMusicRef.current?.pause();
     soldFanfareRef.current?.pause();
+  }, []);
+  function playSavedMcCue(
+    cue: "going-once" | "going-twice" | "sold" | "bid-1" | "bid-2" | "bid-3"
+  ) {
+    if (!joined || !soundEnabled || !audioUnlockedRef.current) return;
+    if (introAudioRef.current) return;
+
+    mcCueAudioRef.current?.pause();
+
+    const audio = new Audio(`/sounds/mc-cues/${cue}.mp3`);
+    mcCueAudioRef.current = audio;
+    audio.volume = 0.85;
+
+    audio.onended = () => {
+      if (mcCueAudioRef.current !== audio) return;
+      mcCueAudioRef.current = null;
+      if (cue === "sold") playSound("/sounds/sold-fanfare.mp3");
+    };
+
+    audio.play().catch(() => {
+      if (mcCueAudioRef.current !== audio) return;
+      mcCueAudioRef.current = null;
+      if (cue === "sold") playSound("/sounds/sold-fanfare.mp3");
+    });
+  }
+
+  useEffect(() => {
+    if (
+      joined &&
+      ["open", "going once", "going twice", "sold"].includes(auction?.status || "")
+    ) return;
+
+    mcCueAudioRef.current?.pause();
+    mcCueAudioRef.current = null;
+  }, [joined, auction?.status]);
+
+  useEffect(() => {
+    mcCueRotationRef.current = 0;
+    mcCueAudioRef.current?.pause();
+    mcCueAudioRef.current = null;
+  }, [auction?.artwork_id]);
+
+  useEffect(() => () => {
+    mcCueAudioRef.current?.pause();
   }, []);
   function playBidEnergySound(kind: "bid" | "reaction" = "bid") {
 
@@ -2976,7 +3022,11 @@ export default function DemoAuctionPage({
 
 
 
-        playBidEnergySound("reaction");
+        const cueNumber = (mcCueRotationRef.current % 3) + 1;
+        mcCueRotationRef.current += 1;
+        if (currentStatus === "open") {
+          playSavedMcCue(`bid-${cueNumber}` as "bid-1" | "bid-2" | "bid-3");
+        }
 
       } else {
 
@@ -3009,6 +3059,7 @@ export default function DemoAuctionPage({
 
 
       if (currentStatus === "going once") {
+        playSavedMcCue("going-once");
 
 
         showAuctionFlash({
@@ -3039,6 +3090,7 @@ export default function DemoAuctionPage({
 
 
       if (currentStatus === "going twice") {
+        playSavedMcCue("going-twice");
 
 
         showAuctionFlash({
@@ -3065,7 +3117,7 @@ export default function DemoAuctionPage({
       if (currentStatus === "sold") {
 
 
-        playSound("/sounds/sold-fanfare.mp3");
+        playSavedMcCue("sold");
 
 
 
