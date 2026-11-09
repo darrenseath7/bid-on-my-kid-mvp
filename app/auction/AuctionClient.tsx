@@ -2925,7 +2925,7 @@ export default function DemoAuctionPage({
     entranceCurtainTimerRef.current = setTimeout(() => {
       setEntranceCurtainVisible(false);
       entranceCurtainTimerRef.current = null;
-    }, 2000);
+    }, 3100);
   }, [auction?.status, joined]);
 
   useEffect(() => () => {
@@ -5120,33 +5120,41 @@ export default function DemoAuctionPage({
             aria-label="Opening the auction"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
+            transition={{ duration: 0.15 }}
             className="pointer-events-none fixed inset-0 z-[75] overflow-hidden"
           >
             <motion.div
               aria-hidden="true"
               initial={{ x: 0 }}
               animate={{ x: "-102%" }}
-              transition={{ duration: 1.85, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-y-0 left-0 w-1/2 border-r-2 border-[#e8ba70] bg-[radial-gradient(circle_at_right,rgba(151,63,45,0.35),transparent_65%),linear-gradient(90deg,#070d1c,#142039)] shadow-[12px_0_35px_rgba(0,0,0,0.45)]"
+              transition={{ delay: 0.6, duration: 2.2, ease: [0.65, 0, 0.35, 1] }}
+              className="absolute inset-y-0 left-0 w-1/2 border-r-[3px] border-[#e8ba70] shadow-[18px_0_45px_rgba(0,0,0,0.65)]"
+              style={{
+                backgroundColor: "#64152b",
+                backgroundImage: "linear-gradient(180deg,rgba(0,0,0,0.45),transparent 20%,rgba(0,0,0,0.35)),repeating-linear-gradient(90deg,#390c1b 0px,#711831 14px,#a8324d 28px,#711831 42px,#390c1b 56px)",
+              }}
             />
             <motion.div
               aria-hidden="true"
               initial={{ x: 0 }}
               animate={{ x: "102%" }}
-              transition={{ duration: 1.85, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-y-0 right-0 w-1/2 border-l-2 border-[#e8ba70] bg-[radial-gradient(circle_at_left,rgba(151,63,45,0.35),transparent_65%),linear-gradient(90deg,#142039,#070d1c)] shadow-[-12px_0_35px_rgba(0,0,0,0.45)]"
+              transition={{ delay: 0.6, duration: 2.2, ease: [0.65, 0, 0.35, 1] }}
+              className="absolute inset-y-0 right-0 w-1/2 border-l-[3px] border-[#e8ba70] shadow-[-18px_0_45px_rgba(0,0,0,0.65)]"
+              style={{
+                backgroundColor: "#64152b",
+                backgroundImage: "linear-gradient(180deg,rgba(0,0,0,0.45),transparent 20%,rgba(0,0,0,0.35)),repeating-linear-gradient(270deg,#390c1b 0px,#711831 14px,#a8324d 28px,#711831 42px,#390c1b 56px)",
+              }}
             />
             <motion.div
               initial={{ opacity: 1 }}
               animate={{ opacity: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-              className="absolute inset-0 flex flex-col items-center justify-center text-center"
+              transition={{ duration: 0.45, delay: 0.6 }}
+              className="absolute inset-0 flex flex-col items-center justify-center px-4 text-center"
             >
               <p className="text-xs font-black uppercase tracking-[0.35em] text-[#e8ba70]">
                 BragWall presents
               </p>
-              <p className="mt-3 text-4xl font-black text-white">
+              <p className="mt-3 text-3xl font-black text-white sm:text-4xl">
                 Let the art begin
               </p>
             </motion.div>
