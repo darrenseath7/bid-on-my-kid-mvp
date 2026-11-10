@@ -5757,6 +5757,11 @@ export default function DemoAuctionPage({
 
 
                 <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#0a1221]">
+                  <BragWallArtworkSpotlight
+                    key={`${activeArtworkKey}:${auction.artwork_url}`}
+                    imageUrl={auction.artwork_url}
+                    visible={!entranceCurtainVisible && !isArtworkRevealing && !shouldShowArtworkSoldBanner}
+                  />
 
 
                   {auction.artwork_url ? (
@@ -8152,4 +8157,161 @@ function NextStep({ icon, title }: { icon: string; title: string }) {
   );
 
 
+}
+
+
+// BRAGWALL_ARTWORK_SPOTLIGHT_V1
+function BragWallArtworkSpotlight({
+  imageUrl,
+  visible,
+}: {
+  imageUrl: string;
+  visible: boolean;
+}) {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(false);
+    const image = overlayRef.current?.parentElement?.querySelector("img");
+    if (!image || !imageUrl) return;
+
+    let frame: number | undefined;
+    const loaded = () => {
+      if (!image.naturalWidth) return;
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => setReady(true));
+    };
+
+    image.addEventListener("load", loaded);
+    if (image.complete) loaded();
+
+    return () => {
+      image.removeEventListener("load", loaded);
+      if (frame !== undefined) window.cancelAnimationFrame(frame);
+    };
+  }, [imageUrl]);
+
+  return (
+    <div
+      ref={overlayRef}
+      aria-hidden="true"
+      className={`bw-art-light ${ready && visible ? "is-lit" : ""}`}
+    >
+      <span className="bw-art-light-beam bw-art-light-left" />
+      <span className="bw-art-light-beam bw-art-light-right" />
+      <span className="bw-art-light-glow" />
+      <span className="bw-art-light-lamp bw-art-light-lamp-left" />
+      <span className="bw-art-light-lamp bw-art-light-lamp-right" />
+
+      <style>{`
+        .bw-art-light {
+          position: absolute;
+          inset: 0;
+          z-index: 5;
+          overflow: hidden;
+          pointer-events: none;
+        }
+
+        .bw-art-light-beam {
+          position: absolute;
+          top: -10%;
+          width: 70%;
+          height: 135%;
+          opacity: 0;
+          transform-origin: 50% 0;
+          clip-path: polygon(47% 0, 53% 0, 100% 100%, 0 100%);
+          background: linear-gradient(
+            180deg,
+            rgba(255, 242, 200, 0.5) 0%,
+            rgba(255, 210, 125, 0.16) 42%,
+            rgba(255, 210, 125, 0.03) 78%,
+            transparent 100%
+          );
+        }
+
+        .bw-art-light-left {
+          left: -22%;
+          transform: rotate(-32deg);
+        }
+
+        .bw-art-light-right {
+          right: -22%;
+          transform: rotate(32deg);
+        }
+
+        .bw-art-light.is-lit .bw-art-light-left {
+          animation: bw-art-light-sweep-left 2s ease-out both;
+        }
+
+        .bw-art-light.is-lit .bw-art-light-right {
+          animation: bw-art-light-sweep-right 2s ease-out both;
+        }
+
+        .bw-art-light-glow {
+          position: absolute;
+          inset: 0;
+          border: 1px solid rgba(255, 212, 140, 0.5);
+          box-shadow:
+            inset 0 0 20px rgba(255, 199, 100, 0.24),
+            inset 0 0 5px rgba(255, 222, 168, 0.3);
+          opacity: 0;
+          transition: opacity 1.8s ease-out;
+        }
+
+        .bw-art-light.is-lit .bw-art-light-glow {
+          opacity: 1;
+        }
+
+        .bw-art-light-lamp {
+          position: absolute;
+          top: 1px;
+          width: 22px;
+          height: 3px;
+          border-radius: 50%;
+          background: #fff2cc;
+          box-shadow: 0 0 16px 5px rgba(255, 210, 130, 0.6);
+          opacity: 0;
+          transition: opacity 1.2s ease-out;
+        }
+
+        .bw-art-light-lamp-left { left: 11%; }
+        .bw-art-light-lamp-right { right: 11%; }
+
+        .bw-art-light.is-lit .bw-art-light-lamp {
+          opacity: 0.85;
+        }
+
+        @keyframes bw-art-light-sweep-left {
+          from { opacity: 0; transform: rotate(-32deg); }
+          to { opacity: 0.65; transform: rotate(-14deg); }
+        }
+
+        @keyframes bw-art-light-sweep-right {
+          from { opacity: 0; transform: rotate(32deg); }
+          to { opacity: 0.65; transform: rotate(14deg); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .bw-art-light.is-lit .bw-art-light-beam {
+            animation: none;
+            opacity: 0.65;
+          }
+
+          .bw-art-light.is-lit .bw-art-light-left {
+            transform: rotate(-14deg);
+          }
+
+          .bw-art-light.is-lit .bw-art-light-right {
+            transform: rotate(14deg);
+          }
+
+          .bw-art-light-glow,
+          .bw-art-light-lamp {
+            transition: none;
+          }
+        }
+      `}</style>
+    </div>
+  );
 }
