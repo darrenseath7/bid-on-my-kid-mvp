@@ -8160,7 +8160,7 @@ function NextStep({ icon, title }: { icon: string; title: string }) {
 }
 
 
-// BRAGWALL_ARTWORK_SPOTLIGHT_V1
+// BRAGWALL_ARTWORK_SPOTLIGHT_V2
 function BragWallArtworkSpotlight({
   imageUrl,
   visible,
@@ -8200,6 +8200,7 @@ function BragWallArtworkSpotlight({
     >
       <span className="bw-art-light-beam bw-art-light-left" />
       <span className="bw-art-light-beam bw-art-light-right" />
+      <span className="bw-art-light-sheen" />
       <span className="bw-art-light-glow" />
       <span className="bw-art-light-lamp bw-art-light-lamp-left" />
       <span className="bw-art-light-lamp bw-art-light-lamp-right" />
@@ -8215,48 +8216,79 @@ function BragWallArtworkSpotlight({
 
         .bw-art-light-beam {
           position: absolute;
-          top: -10%;
-          width: 70%;
-          height: 135%;
+          top: -8%;
+          width: 80%;
+          height: 145%;
           opacity: 0;
           transform-origin: 50% 0;
-          clip-path: polygon(47% 0, 53% 0, 100% 100%, 0 100%);
-          background: linear-gradient(
-            180deg,
-            rgba(255, 242, 200, 0.5) 0%,
-            rgba(255, 210, 125, 0.16) 42%,
-            rgba(255, 210, 125, 0.03) 78%,
-            transparent 100%
+          background: conic-gradient(
+            from 150deg at 50% 0%,
+            transparent 0deg,
+            rgba(255, 210, 130, 0.12) 7deg,
+            rgba(255, 226, 164, 0.48) 20deg,
+            rgba(255, 244, 211, 0.58) 30deg,
+            rgba(255, 226, 164, 0.48) 40deg,
+            rgba(255, 210, 130, 0.12) 53deg,
+            transparent 60deg
           );
+          -webkit-mask-image: linear-gradient(
+            to bottom, #000 0%, #000 30%, transparent 95%
+          );
+          mask-image: linear-gradient(
+            to bottom, #000 0%, #000 30%, transparent 95%
+          );
+          filter: blur(5px);
         }
 
         .bw-art-light-left {
-          left: -22%;
-          transform: rotate(-32deg);
+          left: -26%;
+          transform: rotate(-34deg);
         }
 
         .bw-art-light-right {
-          right: -22%;
-          transform: rotate(32deg);
+          right: -26%;
+          transform: rotate(34deg);
         }
 
         .bw-art-light.is-lit .bw-art-light-left {
-          animation: bw-art-light-sweep-left 2s ease-out both;
+          animation: bw-art-light-sweep-left 2.6s ease-in-out both;
         }
 
         .bw-art-light.is-lit .bw-art-light-right {
-          animation: bw-art-light-sweep-right 2s ease-out both;
+          animation: bw-art-light-sweep-right 2.6s ease-in-out both;
+        }
+
+        .bw-art-light-sheen {
+          position: absolute;
+          top: -15%;
+          left: -70%;
+          width: 38%;
+          height: 130%;
+          opacity: 0;
+          background: linear-gradient(
+            90deg,
+            transparent,
+            rgba(255, 224, 165, 0.08) 25%,
+            rgba(255, 245, 215, 0.28) 50%,
+            rgba(255, 224, 165, 0.08) 75%,
+            transparent
+          );
+          filter: blur(9px);
+        }
+
+        .bw-art-light.is-lit .bw-art-light-sheen {
+          animation: bw-art-light-sheen-pass 2.6s ease-in-out both;
         }
 
         .bw-art-light-glow {
           position: absolute;
-          inset: 0;
-          border: 1px solid rgba(255, 212, 140, 0.5);
+          inset: 1px;
+          border: 1px solid rgba(255, 222, 160, 0.85);
           box-shadow:
-            inset 0 0 20px rgba(255, 199, 100, 0.24),
-            inset 0 0 5px rgba(255, 222, 168, 0.3);
+            inset 0 0 28px rgba(255, 194, 92, 0.42),
+            inset 0 0 7px rgba(255, 232, 183, 0.6);
           opacity: 0;
-          transition: opacity 1.8s ease-out;
+          transition: opacity 1s ease-out;
         }
 
         .bw-art-light.is-lit .bw-art-light-glow {
@@ -8266,36 +8298,55 @@ function BragWallArtworkSpotlight({
         .bw-art-light-lamp {
           position: absolute;
           top: 1px;
-          width: 22px;
-          height: 3px;
+          width: 28px;
+          height: 4px;
           border-radius: 50%;
-          background: #fff2cc;
-          box-shadow: 0 0 16px 5px rgba(255, 210, 130, 0.6);
+          background: #fff6df;
+          box-shadow:
+            0 0 12px 5px rgba(255, 221, 154, 0.85),
+            0 0 32px 10px rgba(255, 193, 95, 0.45);
           opacity: 0;
-          transition: opacity 1.2s ease-out;
+          transition: opacity 0.7s ease-out;
         }
 
         .bw-art-light-lamp-left { left: 11%; }
         .bw-art-light-lamp-right { right: 11%; }
 
         .bw-art-light.is-lit .bw-art-light-lamp {
-          opacity: 0.85;
+          opacity: 1;
         }
 
         @keyframes bw-art-light-sweep-left {
-          from { opacity: 0; transform: rotate(-32deg); }
-          to { opacity: 0.65; transform: rotate(-14deg); }
+          0% { opacity: 0; transform: rotate(-34deg); }
+          35% { opacity: 0.95; transform: rotate(-20deg); }
+          65% { opacity: 0.95; transform: rotate(-10deg); }
+          100% { opacity: 0.42; transform: rotate(-14deg); }
         }
 
         @keyframes bw-art-light-sweep-right {
-          from { opacity: 0; transform: rotate(32deg); }
-          to { opacity: 0.65; transform: rotate(14deg); }
+          0% { opacity: 0; transform: rotate(34deg); }
+          35% { opacity: 0.95; transform: rotate(20deg); }
+          65% { opacity: 0.95; transform: rotate(10deg); }
+          100% { opacity: 0.42; transform: rotate(14deg); }
+        }
+
+        @keyframes bw-art-light-sheen-pass {
+          0% {
+            opacity: 0;
+            transform: translateX(0) skewX(-18deg);
+          }
+          20% { opacity: 0.8; }
+          70% { opacity: 0.8; }
+          100% {
+            opacity: 0;
+            transform: translateX(460%) skewX(-18deg);
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {
           .bw-art-light.is-lit .bw-art-light-beam {
             animation: none;
-            opacity: 0.65;
+            opacity: 0.42;
           }
 
           .bw-art-light.is-lit .bw-art-light-left {
@@ -8306,12 +8357,17 @@ function BragWallArtworkSpotlight({
             transform: rotate(14deg);
           }
 
+          .bw-art-light.is-lit .bw-art-light-sheen {
+            animation: none;
+            opacity: 0;
+          }
+
           .bw-art-light-glow,
           .bw-art-light-lamp {
             transition: none;
           }
         }
-      `}</style>
+`}</style>
     </div>
   );
 }
