@@ -473,7 +473,7 @@ export default function DemoAuctionPage({
   } | null>(null);
 
 
-  const [mcReaction, setMcReaction] = useState<{
+  const [, setMcReaction] = useState<{
 
 
     id: number;
@@ -6002,49 +6002,7 @@ export default function DemoAuctionPage({
 
 
 
-        {mcReaction && !isSold && (
 
-
-          <motion.div
-
-
-            key={mcReaction.id}
-
-
-            initial={{ opacity: 0, y: 6 }}
-
-
-            animate={{ opacity: 1, y: 0 }}
-
-
-            className="shrink-0 rounded-[18px] border-2 border-[#ffc857] bg-[#07152b]/94 px-3 py-1.5 text-white shadow-lg"
-
-
-          >
-
-
-            <p className="text-[9px] font-black uppercase tracking-[0.24em] text-[#ffc857]">
-
-
-              AI MC
-
-
-            </p>
-
-
-            <p className="mt-0.5 text-xs font-black leading-snug">
-
-
-              {mcReaction.text}
-
-
-            </p>
-
-
-          </motion.div>
-
-
-        )}
 
 
 
