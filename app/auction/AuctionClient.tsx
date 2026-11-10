@@ -1340,10 +1340,10 @@ export default function DemoAuctionPage({
     if (introAudioRef.current) {
 
 
-      introAudioRef.current.pause();
+      if (introAudioRef.current !== mcCueAudioRef.current) introAudioRef.current.pause();
 
 
-      introAudioRef.current.currentTime = 0;
+      if (introAudioRef.current !== mcCueAudioRef.current) introAudioRef.current.currentTime = 0;
 
 
       introAudioRef.current = null;
@@ -1434,27 +1434,36 @@ export default function DemoAuctionPage({
     waitingMusicRef.current?.pause();
     soldFanfareRef.current?.pause();
   }, []);
+  // Reuse the MC player started by the parent's tap for later automatic cues.
   function playSavedMcCue(
     cue: "going-once" | "going-twice" | "sold" | "bid-1" | "bid-2" | "bid-3"
   ) {
     if (!joined || !soundEnabled || !audioUnlockedRef.current) return;
-    if (introAudioRef.current) return;
+    if (introAudioRef.current && !introAudioRef.current.ended) return;
 
-    mcCueAudioRef.current?.pause();
-
-    const audio = new Audio(`/sounds/mc-cues/${cue}.mp3`);
+    const audio = mcCueAudioRef.current || new Audio();
     mcCueAudioRef.current = audio;
+    audio.pause();
+    audio.onloadedmetadata = null;
+    audio.onplay = null;
+    audio.onerror = null;
+    audio.onended = null;
+    audio.src = `/sounds/mc-cues/${cue}.mp3`;
     audio.volume = 0.85;
 
     audio.onended = () => {
-      if (mcCueAudioRef.current !== audio) return;
-      mcCueAudioRef.current = null;
-      if (cue === "sold") playSound("/sounds/sold-fanfare.mp3");
+      if (mcCueAudioRef.current !== audio || cue !== "sold") return;
+      audio.onended = null;
+      audio.src = "/sounds/sold-fanfare.mp3";
+      audio.volume = 0.45;
+      audio.play().catch((error) => {
+        console.warn("SOLD fanfare could not play:", error);
+      });
     };
 
-    audio.play().catch(() => {
+    audio.play().catch((error) => {
       if (mcCueAudioRef.current !== audio) return;
-      mcCueAudioRef.current = null;
+      console.warn(`MC cue ${cue} could not play:`, error);
       if (cue === "sold") playSound("/sounds/sold-fanfare.mp3");
     });
   }
@@ -1465,8 +1474,10 @@ export default function DemoAuctionPage({
       ["open", "going once", "going twice", "sold"].includes(auction?.status || "")
     ) return;
 
-    mcCueAudioRef.current?.pause();
-    mcCueAudioRef.current = null;
+    // Keep the finished MC player; never interrupt the intro during countdown.
+    if (mcCueAudioRef.current !== introAudioRef.current) {
+      mcCueAudioRef.current?.pause();
+    }
   }, [joined, auction?.status]);
 
   useEffect(() => {
@@ -2790,6 +2801,10 @@ export default function DemoAuctionPage({
 
 
       audio.onended = () => {
+
+
+        // This is the player the parent started by tapping Play MC.
+        if (introAudioRef.current === audio) mcCueAudioRef.current = audio;
 
 
         setIntroAudioStatus("finished");
