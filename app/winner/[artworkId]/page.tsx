@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { validWinnerToken, winnerDb } from "@/lib/server/winnerWhatsapp";
+import WinnerMomentMusic from "./WinnerMomentMusic";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   title: "Your BragWall SOLD moment",
   robots: { index: false, follow: false },
   referrer: "no-referrer",
@@ -14,6 +15,37 @@ type Props = {
   searchParams: Promise<{ token?: string }>;
 };
 
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
+  const { artworkId } = await params;
+  const { token } = await searchParams;
+  if (!/^[0-9a-f-]{36}$/i.test(artworkId) || !token) return baseMetadata;
+
+  const db = winnerDb();
+  const { data } = await db.from("auction_winner_whatsapp")
+    .select("bidder_contact_id").eq("artwork_id", artworkId).maybeSingle();
+  if (!data || !validWinnerToken(artworkId, data.bidder_contact_id, token)) {
+    return baseMetadata;
+  }
+
+  const origin = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.BRAGWALL_PUBLIC_URL ||
+      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  const image = new URL(
+    `/api/winner-keepsake/${artworkId}?token=${encodeURIComponent(token)}`,
+    origin
+  ).toString();
+
+  return {
+    ...baseMetadata,
+    openGraph: {
+      title: "Your BragWall SOLD moment is ready!",
+      description: "Open your winning artwork, celebrate its young artist and hear the MC.",
+      type: "website",
+      images: [{ url: image, width: 1080, height: 1920, alt: "BragWall SOLD artwork keepsake" }],
+    },
+  };
+}
 export default async function WinnerMoment({ params, searchParams }: Props) {
   const { artworkId } = await params;
   const { token } = await searchParams;
@@ -95,16 +127,18 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
                 <span className="text-white/70">{artwork.grade || "School artwork"}</span>
                 <span className="rounded-full bg-[#ffc857]/15 px-3 py-1 text-[#ffc857]">
-                  Winning bid · R{Number(artwork.sold_amount || 0).toLocaleString("en-ZA")}
+                  Winning bid Â· R{Number(artwork.sold_amount || 0).toLocaleString("en-ZA")}
                 </span>
               </div>
             </div>
+
+            <WinnerMomentMusic mcAudioUrl={artwork.mc_audio_url || null} />
 
             {artwork.mc_audio_url ? (
               <div className="mt-5 rounded-2xl border border-[#ffc857]/30 bg-[#ffc857]/[.07] p-4 sm:p-5">
                 <p className="text-sm font-black text-[#ffc857]">Hear the moment it all began</p>
                 <p className="mt-1 text-xs text-white/65">Press play to hear the MC introduce this artwork.</p>
-                <audio controls preload="metadata" src={artwork.mc_audio_url}
+                <audio id="winner-mc-audio" controls preload="metadata" src={artwork.mc_audio_url}
                   controlsList="nodownload" className="mt-3 w-full" aria-label="Play the artwork introduction" />
               </div>
             ) : <p className="mt-5 text-sm text-white/60">MC audio is unavailable for this artwork.</p>}
