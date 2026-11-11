@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { validWinnerToken, winnerDb } from "@/lib/server/winnerWhatsapp";
-import WinnerMomentMusic from "./WinnerMomentMusic";
+import WinnerMomentReveal from "./WinnerMomentReveal";
 
 export const dynamic = "force-dynamic";
 const baseMetadata: Metadata = {
@@ -78,6 +78,7 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
     <main className="relative isolate flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#050d1b] px-3 py-5 text-white sm:px-6 sm:py-10">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_22%,rgba(255,200,87,.16),transparent_34%),radial-gradient(circle_at_85%_80%,rgba(19,237,119,.11),transparent_36%)]" />
       <div aria-hidden="true" className="winner-paint pointer-events-none absolute inset-0" />
+      <WinnerMomentReveal winnerName={winnerFirstName}>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         {Array.from({ length: 26 }, (_, i) => (
           <span key={i} className="winner-confetti absolute -top-8 block h-3 w-2 rounded-sm"
@@ -127,12 +128,10 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
               <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
                 <span className="text-white/70">{artwork.grade || "School artwork"}</span>
                 <span className="rounded-full bg-[#ffc857]/15 px-3 py-1 text-[#ffc857]">
-                  Winning bid Â· R{Number(artwork.sold_amount || 0).toLocaleString("en-ZA")}
+                  Winning bid Ã‚Â· R{Number(artwork.sold_amount || 0).toLocaleString("en-ZA")}
                 </span>
               </div>
             </div>
-
-            <WinnerMomentMusic mcAudioUrl={artwork.mc_audio_url || null} />
 
             {artwork.mc_audio_url ? (
               <div className="mt-5 rounded-2xl border border-[#ffc857]/30 bg-[#ffc857]/[.07] p-4 sm:p-5">
@@ -157,6 +156,7 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
           </div>
         </div>
       </article>
+      </WinnerMomentReveal>
       <style>{`
         .winner-paint { background:
           radial-gradient(circle at 10% 50%, rgba(19,237,119,.18) 0 5%, transparent 25%),
