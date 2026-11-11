@@ -40,6 +40,7 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
     ? rawWinnerFirstName.charAt(0).toLocaleUpperCase() + rawWinnerFirstName.slice(1)
     : "";
   const artistFirstName = String(artwork.child_name || "").trim();
+  const keepsakeUrl = `/api/winner-keepsake/${artworkId}?token=${encodeURIComponent(token)}`;
 
   return (
     <main className="relative isolate flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#050d1b] px-3 py-5 text-white sm:px-6 sm:py-10">
@@ -68,10 +69,13 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
 
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]">
           <div className="flex items-center justify-center bg-[#101c30] p-3 sm:p-6 lg:min-h-[520px] lg:p-8">
-            <div className="flex w-full items-center justify-center overflow-hidden rounded-[20px] border border-[#ffc857]/50 bg-[#07152b] p-2 shadow-[0_20px_60px_rgba(0,0,0,.3)] sm:p-3">
+            <div className="relative flex w-full items-center justify-center overflow-hidden rounded-[20px] border border-[#ffc857]/50 bg-[#07152b] p-2 shadow-[0_20px_60px_rgba(0,0,0,.3)] sm:p-3">
               {/* Show the full artwork, including its original proportions. */}
               <img src={displayUrl} alt={`Artwork by ${artist || "a young artist"}`} referrerPolicy="no-referrer"
-                className="block max-h-[44dvh] w-full object-contain lg:max-h-[min(70dvh,640px)]" />
+                className="winner-art-reveal block max-h-[44dvh] w-full object-contain lg:max-h-[min(70dvh,640px)]" />
+              <span aria-hidden="true" className="winner-sold-stamp pointer-events-none absolute bottom-4 right-4 rotate-[-9deg] rounded-xl border-[3px] border-[#ffc857] bg-[#07152b]/95 px-5 py-2 text-xl font-black tracking-[.12em] text-[#ffc857] shadow-2xl sm:text-3xl">
+                SOLD!
+              </span>
             </div>
           </div>
 
@@ -105,6 +109,14 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
               </div>
             ) : <p className="mt-5 text-sm text-white/60">MC audio is unavailable for this artwork.</p>}
 
+            <a href={keepsakeUrl} download="BragWall-SOLD-moment.png" rel="noreferrer"
+              className="mt-6 flex min-h-14 items-center justify-center rounded-2xl bg-[#13ed77] px-5 py-3 text-center text-base font-black text-[#07152b] shadow-[0_14px_32px_rgba(19,237,119,.18)] transition hover:bg-[#65f4a1] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ffc857]">
+              Save your SOLD keepsake
+            </a>
+            <p className="mt-2 text-center text-xs text-white/60">
+              A picture to keep on your phone and share with family.
+            </p>
+
             <p className="mt-7 text-sm leading-relaxed text-white/60">
               A young artist made this. You made this moment. Thank you for believing in young art.
             </p>
@@ -116,9 +128,16 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
           radial-gradient(circle at 10% 50%, rgba(19,237,119,.18) 0 5%, transparent 25%),
           radial-gradient(circle at 90% 74%, rgba(255,200,87,.2) 0 4%, transparent 24%); }
         .winner-confetti { animation: winner-fall linear both; }
+        .winner-art-reveal { animation: winner-art-unveil 1.25s ease-out .15s both; }
+        .winner-sold-stamp { animation: winner-stamp-pop .65s cubic-bezier(.16,1.4,.35,1) 1.15s both; }
+        @keyframes winner-art-unveil { from { clip-path: inset(0 100% 0 0); opacity: .8; }
+          to { clip-path: inset(0 0 0 0); opacity: 1; } }
+        @keyframes winner-stamp-pop { from { opacity: 0; transform: rotate(-16deg) scale(2); }
+          to { opacity: 1; transform: rotate(-9deg) scale(1); } }
         @keyframes winner-fall { from { transform: translate3d(0,-10vh,0) rotate(0deg); opacity: 0; }
           10% { opacity: 1; } to { transform: translate3d(42px,110vh,0) rotate(840deg); opacity: 0; } }
-        @media (prefers-reduced-motion: reduce) { .winner-confetti { display: none; } }
+        @media (prefers-reduced-motion: reduce) { .winner-confetti { display: none; }
+          .winner-art-reveal, .winner-sold-stamp { animation: none; } }
       `}</style>
     </main>
   );
