@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         .select("bidder_contact_id,auction_code")
         .eq("artwork_id", artworkId).eq("auction_code", auctionCode).maybeSingle(),
       db.from("demo_artworks")
-        .select("status,winning_bidder,auction_code")
+        .select("status,winning_bidder,auction_code,child_name,child_surname")
         .eq("id", artworkId).eq("auction_code", auctionCode).maybeSingle(),
     ]);
     if (queued.error || artwork.error) throw queued.error || artwork.error;
@@ -73,7 +73,13 @@ export async function POST(request: NextRequest) {
     if (!token) return fail("Winner link is not configured.", 503);
     const soldPage = new URL(`/winner/${artworkId}`, origin);
     soldPage.searchParams.set("token", token);
-    const message = `Congratulations! Your BragWall bid has won. View your SOLD moment and artwork here: ${soldPage.toString()}`;
+    const rawFirstName = String(contact.bidder_name || "").trim().split(/\s+/)[0];
+    const firstName = rawFirstName
+      ? rawFirstName.charAt(0).toLocaleUpperCase() + rawFirstName.slice(1)
+      : "Winner";
+    const artistName = [artwork.data.child_name, artwork.data.child_surname].filter(Boolean).join(" ").trim();
+    const artworkCredit = artistName ? `${artistName}’s artwork` : "a young artist’s artwork";
+    const message = `🎉 ${firstName}, you did it! Your bid won ${artworkCredit}.\n\nYour support gives a young artist a moment worth celebrating. See your SOLD moment, the artwork and hear the MC introduce it:\n${soldPage.toString()}`;
     const phone = contact.bidder_phone_e164.slice(1);
     const chatUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     return NextResponse.json({ chatUrl }, { headers: noStore });

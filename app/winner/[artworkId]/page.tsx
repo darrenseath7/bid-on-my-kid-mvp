@@ -29,71 +29,96 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
 
   const { data: artwork, error: artworkError } = await db
     .from("demo_artworks")
-    .select("id,auction_code,status,child_name,child_surname,grade,artwork_url,enhanced_artwork_url,mc_audio_url,sold_amount")
+    .select("id,auction_code,status,child_name,child_surname,grade,artwork_url,enhanced_artwork_url,mc_audio_url,sold_amount,winning_bidder")
     .eq("id", artworkId).eq("auction_code", message.auction_code).maybeSingle();
   if (artworkError || !artwork || artwork.status !== "sold") notFound();
   const displayUrl = artwork.enhanced_artwork_url || artwork.artwork_url;
   if (!displayUrl) notFound();
   const artist = [artwork.child_name, artwork.child_surname].filter(Boolean).join(" ");
+  const rawWinnerFirstName = String(artwork.winning_bidder || "").trim().split(/\s+/)[0];
+  const winnerFirstName = rawWinnerFirstName
+    ? rawWinnerFirstName.charAt(0).toLocaleUpperCase() + rawWinnerFirstName.slice(1)
+    : "";
+  const artistFirstName = String(artwork.child_name || "").trim();
 
   return (
-    <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#070d1c] px-4 py-8 text-white">
-      <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(circle_at_0%_75%,rgba(151,63,45,.36),transparent_40%),radial-gradient(circle_at_100%_18%,rgba(255,200,87,.2),transparent_38%)]" />
-      <div aria-hidden="true" className="winner-paint pointer-events-none absolute inset-0 opacity-60" />
+    <main className="relative isolate flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#050d1b] px-3 py-5 text-white sm:px-6 sm:py-10">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_22%,rgba(255,200,87,.16),transparent_34%),radial-gradient(circle_at_85%_80%,rgba(19,237,119,.11),transparent_36%)]" />
+      <div aria-hidden="true" className="winner-paint pointer-events-none absolute inset-0" />
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        {Array.from({ length: 32 }, (_, i) => (
+        {Array.from({ length: 26 }, (_, i) => (
           <span key={i} className="winner-confetti absolute -top-8 block h-3 w-2 rounded-sm"
             style={{
-              left: `${(i * 47) % 100}%`,
+              left: `${(i * 47 + 9) % 100}%`,
               backgroundColor: ["#ffc857", "#13ed77", "#ff737a", "#63c8ff"][i % 4],
-              animationDelay: `${(i * 0.31) % 3}s`,
-              animationDuration: `${3.5 + (i % 5) * 0.6}s`,
+              animationDelay: `${(i * 0.17) % 2.1}s`,
+              animationDuration: `${3.2 + (i % 5) * 0.45}s`,
             }} />
         ))}
       </div>
 
-      <article className="relative z-10 w-full max-w-[480px] overflow-hidden rounded-[28px] border border-[#e8ba70] bg-[#08142a]/95 p-4 shadow-[0_28px_90px_rgba(0,0,0,.65)] sm:p-6">
-        <header className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-2xl font-black tracking-tight">BragWall</p>
-            <p className="text-xs font-black tracking-[.16em] text-[#ffc857]">YOUNG ART. BIG PRIDE.</p>
+      <article className="relative z-10 w-full max-w-5xl overflow-hidden rounded-[28px] border border-[#e8ba70]/70 bg-[#08142a]/95 shadow-[0_28px_90px_rgba(0,0,0,.6)] sm:rounded-[36px]">
+        <header className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4 sm:px-8 sm:py-5">
+          <div className="leading-tight">
+            <p className="text-2xl font-black tracking-tight sm:text-3xl">BragWall</p>
+            <p className="text-[10px] font-black tracking-[.2em] text-[#ffc857] sm:text-xs">YOUNG ART. BIG PRIDE.</p>
           </div>
-          <p className="rounded-full bg-[#13ed77] px-4 py-2 text-sm font-black text-[#07152b]">SOLD!</p>
+          <p className="rounded-full bg-[#13ed77] px-4 py-2 text-sm font-black text-[#07152b] shadow-[0_0_24px_rgba(19,237,119,.24)]">SOLD!</p>
         </header>
 
-        <div className="relative flex h-[min(50dvh,450px)] items-center justify-center overflow-hidden rounded-[20px] border border-[#ffc857]/60 bg-[#07152b]">
-          {/* The original artwork is always shown without cropping. */}
-          <img src={displayUrl} alt={`Artwork by ${artist}`} referrerPolicy="no-referrer"
-            className="h-full w-full object-contain" />
-        </div>
-        <p className="mt-4 text-[11px] font-black uppercase tracking-[.22em] text-[#13ed77]">Your winning artwork</p>
-        <h1 className="mt-1 text-2xl font-black sm:text-3xl">{artist || "A young artist"}</h1>
-        <div className="mt-2 flex items-center justify-between text-sm font-bold text-[#ffc857]">
-          <span>{artwork.grade || "School artwork"}</span>
-          <span>R{Number(artwork.sold_amount || 0).toLocaleString("en-ZA")}</span>
-        </div>
-
-        {artwork.mc_audio_url ? (
-          <div className="mt-4 rounded-2xl bg-white/10 p-3">
-            <p className="mb-2 text-sm font-bold">Hear the MC introduce your artwork</p>
-            <audio controls preload="none" src={artwork.mc_audio_url}
-              controlsList="nodownload" className="w-full" />
+        <div className="grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]">
+          <div className="flex items-center justify-center bg-[#101c30] p-3 sm:p-6 lg:min-h-[520px] lg:p-8">
+            <div className="flex w-full items-center justify-center overflow-hidden rounded-[20px] border border-[#ffc857]/50 bg-[#07152b] p-2 shadow-[0_20px_60px_rgba(0,0,0,.3)] sm:p-3">
+              {/* Show the full artwork, including its original proportions. */}
+              <img src={displayUrl} alt={`Artwork by ${artist || "a young artist"}`} referrerPolicy="no-referrer"
+                className="block max-h-[44dvh] w-full object-contain lg:max-h-[min(70dvh,640px)]" />
+            </div>
           </div>
-        ) : <p className="mt-4 text-xs text-white/60">MC audio is unavailable for this artwork.</p>}
-        <p className="mt-4 text-center text-xs text-white/70">A moment to celebrate. Thank you for supporting young art.</p>
+
+          <div className="flex flex-col justify-center px-5 py-7 sm:px-8 sm:py-10 lg:px-10">
+            <p className="text-[11px] font-black uppercase tracking-[.24em] text-[#13ed77]">The moment you won</p>
+            <h1 className="mt-3 text-4xl font-black leading-[1.02] tracking-tight text-white sm:text-5xl lg:text-6xl">
+              {winnerFirstName ? `${winnerFirstName}, ` : ""}you did it<span className="text-[#ffc857]">!</span>
+            </h1>
+            <p className="mt-4 text-base leading-relaxed text-white/75">
+              {artistFirstName ? `${artistFirstName} made something special.` : "A young artist made something special."}
+              {" "}You saw it. Your winning bid gives that creativity a moment worth celebrating.
+            </p>
+
+            <div className="mt-7 rounded-2xl border border-white/15 bg-white/[.06] p-4 sm:p-5">
+              <p className="text-[10px] font-black uppercase tracking-[.2em] text-[#13ed77]">Your winning artwork</p>
+              <h2 className="mt-2 break-words text-2xl font-black sm:text-3xl">{artist || "A young artist"}</h2>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
+                <span className="text-white/70">{artwork.grade || "School artwork"}</span>
+                <span className="rounded-full bg-[#ffc857]/15 px-3 py-1 text-[#ffc857]">
+                  Winning bid · R{Number(artwork.sold_amount || 0).toLocaleString("en-ZA")}
+                </span>
+              </div>
+            </div>
+
+            {artwork.mc_audio_url ? (
+              <div className="mt-5 rounded-2xl border border-[#ffc857]/30 bg-[#ffc857]/[.07] p-4 sm:p-5">
+                <p className="text-sm font-black text-[#ffc857]">Hear the moment it all began</p>
+                <p className="mt-1 text-xs text-white/65">Press play to hear the MC introduce this artwork.</p>
+                <audio controls preload="metadata" src={artwork.mc_audio_url}
+                  controlsList="nodownload" className="mt-3 w-full" aria-label="Play the artwork introduction" />
+              </div>
+            ) : <p className="mt-5 text-sm text-white/60">MC audio is unavailable for this artwork.</p>}
+
+            <p className="mt-7 text-sm leading-relaxed text-white/60">
+              A young artist made this. You made this moment. Thank you for believing in young art.
+            </p>
+          </div>
+        </div>
       </article>
       <style>{`
-        .winner-paint { animation: winner-splash 1.1s ease-out both; background:
-          radial-gradient(circle at 13% 50%, rgba(19,237,119,.2) 0 5%, transparent 18%),
-          radial-gradient(circle at 90% 74%, rgba(255,200,87,.26) 0 4%, transparent 20%),
-          radial-gradient(circle at 53% 12%, rgba(255,114,122,.17) 0 3%, transparent 16%); }
-        .winner-confetti { animation: winner-fall linear infinite; }
-        @keyframes winner-splash { from { opacity: 0; transform: scale(.65) rotate(-8deg); }
-          to { opacity: .6; transform: scale(1) rotate(0); } }
+        .winner-paint { background:
+          radial-gradient(circle at 10% 50%, rgba(19,237,119,.18) 0 5%, transparent 25%),
+          radial-gradient(circle at 90% 74%, rgba(255,200,87,.2) 0 4%, transparent 24%); }
+        .winner-confetti { animation: winner-fall linear both; }
         @keyframes winner-fall { from { transform: translate3d(0,-10vh,0) rotate(0deg); opacity: 0; }
-          10% { opacity: 1; } to { transform: translate3d(42px,115vh,0) rotate(840deg); opacity: 0; } }
-        @media (prefers-reduced-motion: reduce) { .winner-confetti { animation: none; display: none; }
-          .winner-paint { animation: none; } }
+          10% { opacity: 1; } to { transform: translate3d(42px,110vh,0) rotate(840deg); opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) { .winner-confetti { display: none; } }
       `}</style>
     </main>
   );
