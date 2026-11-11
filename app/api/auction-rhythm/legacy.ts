@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { queueWinnerWhatsapp } from "@/lib/server/winnerWhatsapp";
 
 const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
@@ -932,6 +933,15 @@ export async function runLegacyAuctionRhythm(request: Request) {
       }
 
       await addActivity(supabaseAdmin, auctionCode, `SOLD to ${leadingBidder} for R${currentBid.toLocaleString()}`);
+      // Queue only after both the auction and the artwork show SOLD.
+      // The database primary key keeps controller and legacy calls from sending twice.
+      if (leadingContactId) {
+        try {
+          await queueWinnerWhatsapp(supabaseAdmin, auctionCode, savedArtwork.id, leadingContactId);
+        } catch (error) {
+          console.error("Winner WhatsApp queue failed; sale remains saved:", error);
+        }
+      }
       return NextResponse.json({ action: "sold", auction: updatedAuction });
     }
 

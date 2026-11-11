@@ -318,6 +318,8 @@ export default function DemoAuctionPage({
 
 
   const [bidderEmail, setBidderEmail] = useState("");
+  const [bidderPhone, setBidderPhone] = useState("");
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
 
 
   const [bidderContactId, setBidderContactId] = useState<string | null>(null);
@@ -381,6 +383,8 @@ export default function DemoAuctionPage({
 
 
         setBidderEmail(saved.bidderEmail);
+
+        setWhatsappOptIn(saved.whatsappOptIn === true);
 
 
       }
@@ -2290,105 +2294,35 @@ export default function DemoAuctionPage({
 
 
 
-      if (
-
-
-        saved &&
-
-
+      const matchingSaved = saved &&
         saved.bidderName === cleanBidderName &&
-
-
         saved.bidderEmail === cleanBidderEmail &&
-
-
         typeof saved.bidderContactId === "string" &&
-
-
         typeof saved.bidderToken === "string" &&
+        saved.bidderToken.length >= 32;
 
-
-        saved.bidderToken.length >= 32
-
-
-      ) {
-
-
-        contactId = saved.bidderContactId;
-
-
-        contactToken = saved.bidderToken;
-
-
-      } else {
-
-
-        const response = await fetch("/api/register-auction-bidder", {
-
-
-          method: "POST",
-
-
-          headers: {
-
-
-            "Content-Type": "application/json",
-
-
-          },
-
-
-          body: JSON.stringify({
-
-
-            auctionCode,
-
-
-            bidderName: cleanBidderName,
-
-
-            bidderEmail: cleanBidderEmail,
-
-
-          }),
-
-
-        });
-
-
-
-
-
-        const result = await response.json().catch(() => null);
-
-
-
-
-
-        if (!response.ok || !result?.bidderContactId || !result?.bidderToken) {
-
-
-          throw new Error(result?.error || "Could not register bidder.");
-
-
-        }
-
-
-
-
-
-        contactId = result.bidderContactId;
-
-
-        contactToken = result.bidderToken;
-
-
+      // Always verify with the server: rejoining may update or revoke WhatsApp consent.
+      const response = await fetch("/api/register-auction-bidder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          auctionCode,
+          bidderName: cleanBidderName,
+          bidderEmail: cleanBidderEmail,
+          bidderPhone: whatsappOptIn ? bidderPhone.trim() : "",
+          whatsappOptIn,
+          ...(matchingSaved ? {
+            bidderContactId: saved.bidderContactId,
+            bidderToken: saved.bidderToken,
+          } : {}),
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.bidderContactId || !result?.bidderToken) {
+        throw new Error(result?.error || "Could not register bidder.");
       }
-
-
-
-
-
+      contactId = result.bidderContactId;
+      contactToken = result.bidderToken;
       localStorage.setItem(
 
 
@@ -2402,6 +2336,9 @@ export default function DemoAuctionPage({
 
 
           bidderEmail: cleanBidderEmail,
+
+
+          whatsappOptIn,
 
 
           bidderContactId: contactId,
@@ -4814,7 +4751,7 @@ export default function DemoAuctionPage({
           .bw-join-headline { font-size: 24px; }
           .bw-join-help { display: none; }
         }
-        @media (max-height: 520px) {
+        @media (max-height: 720px) {
           .bw-join-shell { overflow-y: auto; }
           .bw-join-stage { flex: none; height: 188px; }
         }`}</style>
@@ -4889,6 +4826,20 @@ export default function DemoAuctionPage({
             <input type="email" value={bidderEmail} onChange={(event) => setBidderEmail(event.target.value)}
               placeholder="Your email address" aria-label="Your email address" autoComplete="email"
               className="min-h-11 w-full rounded-lg border border-white/25 bg-white/10 px-4 py-2 text-base font-semibold text-white outline-none placeholder:text-white/65 focus:border-[#ffd47e]" />
+
+            <label className="flex items-start gap-2 text-[11px] leading-tight text-white/85">
+              <input type="checkbox" checked={whatsappOptIn}
+                onChange={(event) => setWhatsappOptIn(event.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[#13ed77]" />
+              BragWall may WhatsApp me my artwork if I win. Optional; no other messages.
+            </label>
+            {whatsappOptIn && (
+              <input type="tel" inputMode="tel" autoComplete="tel" value={bidderPhone}
+                onChange={(event) => setBidderPhone(event.target.value)}
+                placeholder="Your WhatsApp number (e.g. 082 123 4567)"
+                aria-label="Your WhatsApp number"
+                className="min-h-11 w-full rounded-lg border border-white/25 bg-white/10 px-4 py-2 text-base font-semibold text-white outline-none placeholder:text-white/65 focus:border-[#ffd47e]" />
+            )}
 
             <button type="button"
               onTouchStart={() => { audioUnlockedRef.current = true; }}

@@ -21,6 +21,7 @@ type SoldArtwork = {
   winning_bidder: string | null;
   auction_code?: string | null;
   winner_email?: string | null;
+  whatsapp_ready?: boolean;
   invoice_email_requested_at?: string | null;
   certificate_email_requested_at?: string | null;
 };
@@ -223,7 +224,37 @@ function SaleCard({
   const emailCaptured = Boolean(item.winner_email);
   const isAfterAuctionRequest = item.status === "after_auction_request";
   const [releasingCertificate, setReleasingCertificate] = useState(false);
+  const [preparingWhatsApp, setPreparingWhatsApp] = useState(false);
   const [preview, setPreview] = useState<"invoice" | "certificate" | null>(null);
+
+  async function openWinnerWhatsApp() {
+    if (preparingWhatsApp) return;
+    // Open under the user's click so mobile browsers allow the new tab.
+    const tab = window.open("about:blank", "_blank");
+    if (tab) tab.opener = null;
+    setPreparingWhatsApp(true);
+    try {
+      const response = await fetch("/api/admin/winner-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auctionCode, artworkId: item.id }),
+        cache: "no-store",
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(result?.error || "Could not prepare WhatsApp.");
+      const link = new URL(result?.chatUrl || "");
+      if (link.protocol !== "https:" || link.hostname !== "wa.me") {
+        throw new Error("Invalid WhatsApp link.");
+      }
+      if (tab) tab.location.replace(link.toString());
+      else window.location.assign(link.toString());
+    } catch (error) {
+      tab?.close();
+      alert(error instanceof Error ? error.message : "Could not prepare WhatsApp.");
+    } finally {
+      setPreparingWhatsApp(false);
+    }
+  }
 
   async function releaseCertificate() {
     if (!emailCaptured || certificateReleased || releasingCertificate) {
@@ -336,6 +367,17 @@ function SaleCard({
             </p>
 
             <div className="flex flex-wrap gap-3">
+              {item.status === "sold" && item.whatsapp_ready && (
+                <div className="flex flex-col gap-1">
+                  <button type="button" onClick={openWinnerWhatsApp} disabled={preparingWhatsApp}
+                    className="rounded-full bg-[#16d66d] px-4 py-2 text-sm font-black text-[#07152b] disabled:opacity-50">
+                    {preparingWhatsApp ? "Preparing WhatsApp..." : "WhatsApp winner"}
+                  </button>
+                  <span className="max-w-56 text-xs text-white/60">
+                    Check the sending account in WhatsApp before you tap Send.
+                  </span>
+                </div>
+              )}
               {isAfterAuctionRequest && (
                 <ActionBadge
                   label="After-auction invoice request"

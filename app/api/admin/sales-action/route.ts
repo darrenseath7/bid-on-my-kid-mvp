@@ -141,7 +141,21 @@ export async function GET(request: NextRequest) {
       );
     });
 
-    return NextResponse.json({ sales });
+    const soldIds = sales.filter((item) => item.status === "sold").map((item) => item.id);
+    let whatsappReady = new Set<string>();
+    if (soldIds.length) {
+      const { data: queued, error: queueError } = await supabaseAdmin
+        .from("auction_winner_whatsapp")
+        .select("artwork_id")
+        .eq("auction_code", auctionCode)
+        .in("artwork_id", soldIds);
+      if (queueError) throw queueError;
+      whatsappReady = new Set((queued || []).map((item) => item.artwork_id));
+    }
+
+    return NextResponse.json({
+      sales: sales.map((item) => ({ ...item, whatsapp_ready: whatsappReady.has(item.id) })),
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return jsonError(
       error instanceof Error ? error.message : "Could not load sales records.",

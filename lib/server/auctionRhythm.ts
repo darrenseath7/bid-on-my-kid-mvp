@@ -3,6 +3,7 @@ import { getVerifiedMcIntroDuration } from "@/lib/server/verifiedMcIntroDuration
 import { createMcAudioEventKey } from "@/lib/mcAudioJobs";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { queueWinnerWhatsapp } from "@/lib/server/winnerWhatsapp";
 
 // BRAGWALL_OPTIONAL_SERVER_INTRO_TIMING_V1
 
@@ -1773,6 +1774,15 @@ export async function runAuctionRhythm(request: Request) {
         auctionCode,
         `SOLD to ${leadingBidder} for R${currentBid.toLocaleString()}`
       );
+
+      // The sale is already committed. Message failures must never roll it back
+      // or delay parents seeing SOLD. The unique artwork id prevents duplicates.
+      try {
+        const contactId = updatedAuction.leading_bidder_contact_id as string | null;
+        await queueWinnerWhatsapp(supabaseAdmin, auctionCode, auction.artwork_id, contactId);
+      } catch (error) {
+        console.error("Winner WhatsApp queue failed; sale remains saved:", error);
+      }
 
       return publicRhythmResponse({
         action: "sold",
