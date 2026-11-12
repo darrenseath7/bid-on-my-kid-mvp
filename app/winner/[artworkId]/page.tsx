@@ -125,11 +125,15 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
             <div className="mt-7 rounded-2xl border border-white/15 bg-white/[.06] p-4 sm:p-5">
               <p className="text-[10px] font-black uppercase tracking-[.2em] text-[#13ed77]">Your winning artwork</p>
               <h2 className="mt-2 break-words text-2xl font-black sm:text-3xl">{artist || "A young artist"}</h2>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm font-bold">
-                <span className="text-white/70">{artwork.grade || "School artwork"}</span>
-                <span className="rounded-full bg-[#ffc857]/15 px-3 py-1 text-[#ffc857]">
-                  Winning bid Ã‚Â· R{Number(artwork.sold_amount || 0).toLocaleString("en-ZA")}
-                </span>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-sm font-bold">
+                <div className="rounded-xl bg-white/[.06] p-3">
+                  <span className="block text-[10px] uppercase tracking-wider text-white/60">Artist's class</span>
+                  <span className="mt-1 block text-white">{artwork.grade || "School artwork"}</span>
+                </div>
+                <div className="rounded-xl bg-[#ffc857]/10 p-3">
+                  <span className="block text-[10px] uppercase tracking-wider text-white/60">Winning bid</span>
+                  <span className="mt-1 block text-[#ffc857]">R{Number(artwork.sold_amount || 0).toLocaleString("en-ZA")}</span>
+                </div>
               </div>
             </div>
 

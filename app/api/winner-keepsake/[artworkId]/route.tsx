@@ -70,6 +70,49 @@ export async function GET(request: NextRequest, { params }: Context) {
     }).format(new Date(winner.created_at));
     const imageData = `data:${mediaType};base64,${Buffer.from(imageBytes).toString("base64")}`;
 
+    if (request.nextUrl.searchParams.get("variant") === "share") {
+      return new ImageResponse(
+        <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%",
+          padding: 66, backgroundColor: "#fff8ed", color: "#0a1731", fontFamily: "sans-serif" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ fontSize: 84, fontWeight: 900, letterSpacing: -4 }}>BragWall</div>
+            <div style={{ marginTop: 3, fontSize: 21, fontWeight: 900, color: "#9b6400", letterSpacing: 5 }}>
+              YOUNG ART. BIG PRIDE.
+            </div>
+            <div style={{ display: "flex", marginTop: 35, fontSize: 37, fontWeight: 900, textAlign: "center" }}>
+              {winnerName}, your proud moment is here!
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", width: "100%", height: 1140,
+            padding: 20, marginTop: 50, borderRadius: 35, backgroundColor: "#dca842" }}>
+            <div style={{ display: "flex", width: "100%", height: "100%", padding: 21,
+              alignItems: "center", justifyContent: "center", borderRadius: 22,
+              backgroundColor: "#ffffff" }}>
+              <img src={imageData} alt="Winning artwork"
+                style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 36 }}>
+            <div style={{ display: "flex", flexDirection: "column", maxWidth: 675 }}>
+              <div style={{ color: "#0a7849", fontWeight: 900, fontSize: 23, letterSpacing: 3 }}>
+                THE WINNING ARTWORK
+              </div>
+              <div style={{ marginTop: 14, fontSize: 57, fontWeight: 900 }}>{art}</div>
+            </div>
+            <div style={{ display: "flex", borderRadius: 70, padding: "24px 36px",
+              backgroundColor: "#0a1731", color: "#ffc857", fontSize: 49, fontWeight: 900 }}>
+              SOLD!
+            </div>
+          </div>
+          <div style={{ display: "flex", marginTop: "auto", paddingTop: 35,
+            borderTop: "3px solid #dca842", fontSize: 25, color: "#4c5871" }}>
+            A young artist made this. You made this moment.  {date}
+          </div>
+        </div>,
+        { width: 1080, height: 1920, headers: { ...noStore,
+          "Content-Disposition": 'attachment; filename="BragWall-SOLD-art-card.png"' } }
+      );
+    }
     return new ImageResponse(
       <div style={{
         display: "flex", flexDirection: "column", width: "100%", height: "100%",
