@@ -32,7 +32,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
     : process.env.BRAGWALL_PUBLIC_URL ||
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
   const image = new URL(
-    `/api/winner-keepsake/${artworkId}?token=${encodeURIComponent(token)}`,
+    `/api/winner-keepsake/${artworkId}?token=${encodeURIComponent(token)}&variant=preview`,
     origin
   ).toString();
 
@@ -42,7 +42,7 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
       title: "Your BragWall SOLD moment is ready!",
       description: "Open your winning artwork, celebrate its young artist and hear the MC.",
       type: "website",
-      images: [{ url: image, width: 1080, height: 1920, alt: "BragWall SOLD artwork keepsake" }],
+      images: [{ url: image, width: 1200, height: 630, alt: "BragWall SOLD artwork preview" }],
     },
   };
 }

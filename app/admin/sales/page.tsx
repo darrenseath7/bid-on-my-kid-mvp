@@ -225,7 +225,6 @@ function SaleCard({
   const isAfterAuctionRequest = item.status === "after_auction_request";
   const [releasingCertificate, setReleasingCertificate] = useState(false);
   const [preparingWhatsApp, setPreparingWhatsApp] = useState(false);
-  const [savingWinnerCard, setSavingWinnerCard] = useState(false);
   const [preview, setPreview] = useState<"invoice" | "certificate" | null>(null);
 
   async function openWinnerWhatsApp() {
@@ -257,48 +256,6 @@ function SaleCard({
     }
   }
 
-  async function saveWinnerCard() {
-    if (savingWinnerCard) return;
-    setSavingWinnerCard(true);
-    try {
-      const response = await fetch("/api/admin/winner-whatsapp", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ auctionCode, artworkId: item.id }),
-        cache: "no-store",
-      });
-      const details = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(details?.error || "Could not prepare art card.");
-
-      const url = new URL(details?.cardUrl || "", window.location.origin);
-      if (url.origin !== window.location.origin ||
-          url.pathname !== `/api/winner-keepsake/${item.id}`) {
-        throw new Error("Invalid art card link.");
-      }
-      const cardResponse = await fetch(url, {
-        cache: "no-store",
-        referrerPolicy: "no-referrer",
-      });
-      if (!cardResponse.ok ||
-          !cardResponse.headers.get("content-type")?.startsWith("image/png")) {
-        throw new Error("Could not generate the art card. Please try again.");
-      }
-
-      const file = await cardResponse.blob();
-      const objectUrl = URL.createObjectURL(file);
-      const download = document.createElement("a");
-      download.href = objectUrl;
-      download.download = `BragWall-SOLD-${item.id.slice(0, 8)}.png`;
-      document.body.appendChild(download);
-      download.click();
-      download.remove();
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Could not save the art card.");
-    } finally {
-      setSavingWinnerCard(false);
-    }
-  }
   async function releaseCertificate() {
     if (!emailCaptured || certificateReleased || releasingCertificate) {
       return;
@@ -412,16 +369,12 @@ function SaleCard({
             <div className="flex flex-wrap gap-3">
               {item.status === "sold" && item.whatsapp_ready && (
                 <div className="flex flex-col gap-1">
-                  <button type="button" onClick={saveWinnerCard} disabled={savingWinnerCard}
-                    className="rounded-full border border-[#ffc857] px-4 py-2 text-sm font-black text-[#ffc857] disabled:opacity-50">
-                    {savingWinnerCard ? "Saving art card..." : "1. Save SOLD art card"}
-                  </button>
                   <button type="button" onClick={openWinnerWhatsApp} disabled={preparingWhatsApp}
                     className="rounded-full bg-[#16d66d] px-4 py-2 text-sm font-black text-[#07152b] disabled:opacity-50">
-                    {preparingWhatsApp ? "Preparing WhatsApp..." : "2. WhatsApp winner"}
+                    {preparingWhatsApp ? "Preparing WhatsApp..." : "WhatsApp winner"}
                   </button>
                   <span className="max-w-56 text-xs text-white/60">
-                    Open the winner chat, attach the saved art card, and send your message and photo. Check the sending account first.
+                    Check the sending account in WhatsApp before you tap Send.
                   </span>
                 </div>
               )}
@@ -708,8 +661,8 @@ function InvoicePreview({
             </h4>
             <p className="mt-4 max-w-2xl text-lg font-bold leading-relaxed text-slate-600">
               {isAfterAuctionRequest
-                ? "What a proud moment â€” you are helping celebrate a young artist while supporting their school."
-                : "What a proud moment â€” you have just helped celebrate a young artist while supporting their school."}
+                ? "What a proud moment Ã¢â‚¬â€ you are helping celebrate a young artist while supporting their school."
+                : "What a proud moment Ã¢â‚¬â€ you have just helped celebrate a young artist while supporting their school."}
             </p>
           </div>
           <div className="rounded-3xl bg-white/92 p-4 shadow-sm ring-1 ring-slate-200">

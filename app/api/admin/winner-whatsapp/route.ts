@@ -80,12 +80,9 @@ export async function POST(request: NextRequest) {
     const artistName = [artwork.data.child_name, artwork.data.child_surname].filter(Boolean).join(" ").trim();
     const artworkCredit = artistName ? `${artistName}'s artwork` : "a young artist's artwork";
     const message = `${firstName}, you did it! Your bid won ${artworkCredit}.\n\nYour support gives a young artist a moment worth celebrating. Open your SOLD moment to see the artwork, hear the MC and save your keepsake:\n${soldPage.toString()}`;
-    const cardUrl = new URL(`/api/winner-keepsake/${artworkId}`, origin);
-    cardUrl.searchParams.set("token", token);
-    cardUrl.searchParams.set("variant", "share");
     const phone = contact.bidder_phone_e164.slice(1);
     const chatUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    return NextResponse.json({ chatUrl, cardUrl: cardUrl.pathname + cardUrl.search }, { headers: noStore });
+    return NextResponse.json({ chatUrl }, { headers: noStore });
   } catch (error) {
     console.error("Could not prepare winner WhatsApp:", error);
     return fail("Could not prepare the winner message. Please try again.", 500);
