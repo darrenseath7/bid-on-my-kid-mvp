@@ -846,6 +846,12 @@ export default function AdminSetupPage() {
               >
                 {savingProfile ? "Saving Setup..." : "Save School Setup"}
               </button>
+              <a
+                href={`/admin/schools/cleanup?auctionCode=${encodeURIComponent(auctionCode)}`}
+                className="rounded-[18px] border border-red-400/40 px-6 py-4 text-center text-sm font-bold text-red-200 hover:bg-red-400/10"
+              >
+                Remove a test school
+              </a>
             </div>
           </AdminPanel>
 
