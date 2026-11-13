@@ -65,6 +65,8 @@ declare
   batch text;
   remaining bigint;
   live_status text;
+  scheduler_on boolean;
+  controller_running boolean;
 begin
   if p_code is null or p_code !~ '^[a-z0-9][a-z0-9-]{0,79}$'
      or p_confirmation is distinct from p_code then
@@ -78,13 +80,18 @@ begin
     raise exception 'School data changed; preview it again before removing';
   end if;
   select status into live_status from public.live_auction_state where auction_code=p_code for update;
-  if live_status is not null and live_status not in ('complete','completed','ended')
-     and not (
-       live_status = 'waiting'
-       and coalesce((snapshot->'counts'->>'demo_artworks')::bigint,0)=0
-       and coalesce((snapshot->'counts'->>'auction_bidder_contacts')::bigint,0)=0
-     ) then
-    raise exception 'This school still has an active or prepared auction; finish it first';
+  select enabled into scheduler_on from public.auction_scheduler_config
+    where auction_code=p_code for update;
+  select exists (
+    select 1 from public.auction_controller_locks
+    where auction_code=p_code and lease_expires_at > clock_timestamp()
+  ) into controller_running;
+  if coalesce(scheduler_on,false) or controller_running then
+    raise exception 'Stop this school scheduler or live controller before removal';
+  end if;
+  if live_status is not null and live_status not in
+    ('waiting','sold','complete','completed','ended') then
+    raise exception 'This auction is active; move it to waiting or finish it first';
   end if;
   batch := p_code || '-' || to_char(clock_timestamp(), 'YYYYMMDD-HH24MISS-US');
   for item in
