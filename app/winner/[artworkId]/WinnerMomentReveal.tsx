@@ -15,21 +15,28 @@ export default function WinnerMomentReveal({ children, winnerName }: {
 
   useEffect(() => {
     if (!revealed) return;
-    const mc = document.getElementById("winner-mc-audio") as HTMLAudioElement | null;
+    const voices = Array.from(document.querySelectorAll<HTMLAudioElement>(
+      '#winner-mc-audio, [data-winner-voice]'
+    ));
     const track = music.current;
-    if (!mc || !track) return;
+    if (!track) return;
 
     const adjust = () => {
-      track.volume = (mc.paused ? 0.42 : 0.12) *
-        Math.min(1, Math.max(0, (15 - track.currentTime) / 3));
+      const remaining = Number.isFinite(track.duration) ? track.duration - track.currentTime : Infinity;
+      track.volume = (voices.some(voice => !voice.paused) ? 0.12 : 0.42) *
+        Math.min(1, Math.max(0, remaining / 3));
     };
-    mc.addEventListener("play", adjust);
-    mc.addEventListener("pause", adjust);
-    mc.addEventListener("ended", adjust);
+    voices.forEach(voice => {
+      voice.addEventListener("play", adjust);
+      voice.addEventListener("pause", adjust);
+      voice.addEventListener("ended", adjust);
+    });
     return () => {
-      mc.removeEventListener("play", adjust);
-      mc.removeEventListener("pause", adjust);
-      mc.removeEventListener("ended", adjust);
+      voices.forEach(voice => {
+        voice.removeEventListener("play", adjust);
+        voice.removeEventListener("pause", adjust);
+        voice.removeEventListener("ended", adjust);
+      });
     };
   }, [revealed]);
 
@@ -54,7 +61,7 @@ export default function WinnerMomentReveal({ children, winnerName }: {
       setMusicPlaying(false);
       return;
     }
-    if (track.currentTime >= 15) track.currentTime = 0;
+    if (Number.isFinite(track.duration) && track.currentTime >= track.duration - 0.1) track.currentTime = 0;
     void track.play()
       .then(() => setMusicPlaying(true))
       .catch(() => setMusicAvailable(false));
@@ -63,15 +70,11 @@ export default function WinnerMomentReveal({ children, winnerName }: {
   function updateMusic() {
     const track = music.current;
     if (!track) return;
-    if (track.currentTime >= 15) {
-      track.pause();
-      setMusicPlaying(false);
-      return;
-    }
-    const mc = document.getElementById("winner-mc-audio") as HTMLAudioElement | null;
-    const normal = mc && !mc.paused ? 0.12 : 0.42;
+    const voices = document.querySelectorAll<HTMLAudioElement>('#winner-mc-audio, [data-winner-voice]');
+    const normal = Array.from(voices).some(voice => !voice.paused) ? 0.12 : 0.42;
+    const remaining = Number.isFinite(track.duration) ? track.duration - track.currentTime : Infinity;
     track.volume = normal *
-      Math.min(1, Math.max(0, (15 - track.currentTime) / 3));
+      Math.min(1, Math.max(0, remaining / 3));
   }
 
   return (
