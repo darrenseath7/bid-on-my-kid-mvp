@@ -26,12 +26,14 @@ function parseCsv(text: string): string[][] {
   let row: string[] = [];
   let field = '';
   let quoted = false;
-  const source = text.replace(/^\uFEFF/, '');
+  const source = text.replace(/^\uFEFF/, '').replace(/^sep=[;,]\r?\n/i, '');
+  const firstLine = source.split(/\r?\n/, 1)[0];
+  const delimiter = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ';' : ',';
   for (let i = 0; i < source.length; i++) {
     const character = source[i];
     if (quoted && character === '"' && source[i + 1] === '"') { field += '"'; i++; }
     else if (character === '"') { quoted = !quoted; }
-    else if (!quoted && character === ',') { row.push(field); field = ''; }
+    else if (!quoted && character === delimiter) { row.push(field); field = ''; }
     else if (!quoted && (character === '\r' || character === '\n')) {
       if (character === '\r' && source[i + 1] === '\n') i++;
       row.push(field); field = '';
@@ -191,7 +193,7 @@ export async function readManifest(file: File): Promise<BulkRow[]> {
     className: column('class', 'classname'),
   };
   if (Object.entries(indexes).some(([key, value]) => key !== 'className' && value < 0))
-    throw new Error('Spreadsheet needs filename, first_name, surname, grade and school columns. Class is optional.');
+    throw new Error(`Spreadsheet needs filename, first_name, surname, grade and school columns. Found: ${rows[0].slice(0, 8).join(' | ')}. If saved from Excel, try uploading the .xlsx workbook instead.`);
   const records = rows.slice(1).filter(row => row.some(value => value?.trim())).map(row => ({
     filename: String(row[indexes.filename] || '').trim(),
     firstName: String(row[indexes.firstName] || '').trim(),
