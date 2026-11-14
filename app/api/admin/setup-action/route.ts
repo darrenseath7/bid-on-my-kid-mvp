@@ -246,9 +246,29 @@ export async function POST(request: NextRequest) {
       const childName = cleanText(formData.get("childName"), 100);
       const childSurname = cleanText(formData.get("childSurname"), 100);
       const grade = cleanText(formData.get("grade"), 60);
+      const className = cleanText(formData.get("className"), 60);
       const fallbackPreview = cleanText(formData.get("storyPreview"), 1200);
       const nextSortOrder = getSafeBidIncrement(formData.get("nextSortOrder"));
       const shouldEnhance = String(formData.get("enhanceArtwork") || "false") === "true";
+      const isBulkUpload = String(formData.get("bulkUpload") || "false") === "true";
+      const bulkSourceKey = cleanText(formData.get("bulkSourceKey"), 100);
+
+      if (isBulkUpload) {
+        if (!/^[a-f0-9-]{36}:[0-9]{1,3}$/.test(bulkSourceKey))
+          return jsonError("Invalid bulk upload batch. Reload and try again.", 400);
+        const { data: school, error: schoolError } = await supabaseAdmin
+          .from("demo_school_profile").select("school_name").eq("auction_code", auctionCode).maybeSingle();
+        if (schoolError || !school) return jsonError("Select an existing school before bulk upload.", 400);
+        const { data: state, error: stateError } = await supabaseAdmin
+          .from("live_auction_state").select("status").eq("auction_code", auctionCode).maybeSingle();
+        if (stateError) return jsonError("Could not check the auction status.", 500);
+        if (state && !["waiting", "sold", "complete", "completed", "ended"].includes(state.status))
+          return jsonError("The school auction is active. Finish it before adding bulk artwork.", 409);
+        const { data: scheduler, error: schedulerError } = await supabaseAdmin
+          .from("auction_scheduler_config").select("enabled").eq("auction_code", auctionCode).maybeSingle();
+        if (schedulerError || scheduler?.enabled)
+          return jsonError("Stop the scheduled auction before adding bulk artwork.", 409);
+      }
 
       if (!childName || !childSurname || !grade) {
         return jsonError("Please complete all artwork fields.");
@@ -260,6 +280,14 @@ export async function POST(request: NextRequest) {
 
       if (!file.type.startsWith("image/")) {
         return jsonError("Artwork upload must be an image file.");
+      }
+
+      if (isBulkUpload) {
+        const { data: existing, error: existingError } = await supabaseAdmin
+          .from("demo_artworks").select("id")
+          .eq("auction_code", auctionCode).eq("bulk_source_key", bulkSourceKey).maybeSingle();
+        if (existingError) return jsonError("Could not verify artwork upload status.", 500);
+        if (existing) return NextResponse.json({ ok: true, message: "Artwork already added in this batch." });
       }
 
       const extension = getExtension(file.name, file.type);
@@ -300,6 +328,8 @@ export async function POST(request: NextRequest) {
           child_name: childName,
           child_surname: childSurname,
           grade,
+          ...(className ? { class_name: className } : {}),
+          ...(isBulkUpload ? { bulk_source_key: bulkSourceKey } : {}),
           artwork_url: publicUrlData.publicUrl,
           enhanced_artwork_url: null,
           enhancement_status: shouldEnhance ? "processing" : "not_enhanced",

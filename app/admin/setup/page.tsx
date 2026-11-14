@@ -862,6 +862,14 @@ export default function AdminSetupPage() {
             action={<div className="flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#fff2d2] text-3xl shadow-xl">🎨</div>}
           >
             <div className="grid gap-4">
+              <a
+                href={`/admin/schools/bulk-upload?auctionCode=${encodeURIComponent(auctionCode)}`}
+                className="block rounded-[22px] border border-[#ffc857]/50 bg-[#ffc857]/10 p-5 transition hover:bg-[#ffc857]/15"
+              >
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-[#ffc857]">New · Internal admins only</span>
+                <span className="mt-2 block text-xl font-black">Bulk Artwork Upload →</span>
+                <span className="mt-1 block text-sm text-white/65">Upload a school, grade or class from images or ZIP plus a spreadsheet. Review each artwork before adding the batch.</span>
+              </a>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Child Name" value={childName} onChange={setChildName} placeholder="Ethan" />
                 <Field label="Child Surname" value={childSurname} onChange={setChildSurname} placeholder="Smith" />
