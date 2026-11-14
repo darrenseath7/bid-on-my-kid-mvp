@@ -161,6 +161,9 @@ type Artwork = {
   enhanced_artwork_url?: string | null;
 
 
+  child_voice_path?: string | null;
+
+
   status?: string | null;
 
 
@@ -7563,6 +7566,9 @@ function GalleryModal({
 
 
 
+
+
+                    {artwork.child_voice_path && <div className="mt-4 rounded-xl border border-[#16d66d]/30 bg-[#e8fff0] p-3"><p className="mb-2 text-sm font-black">Hear the young artist</p><audio controls preload="none" src={`/api/artwork-voice/${artwork.id}`} className="w-full" aria-label={`Play voice note by ${artwork.child_name}`} /></div>}
 
 
                     {isArchivedArtwork && !isAfterAuctionRequest && (

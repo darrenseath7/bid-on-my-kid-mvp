@@ -92,6 +92,7 @@ type RawArtwork = {
   winning_bidder?: string | null;
   ai_intro?: string | null;
   mc_audio_url?: string | null;
+  child_voice_path?: string | null;
   winner_email?: string | null;
   invoice_email_requested_at?: string | null;
 };
@@ -149,6 +150,7 @@ function sanitizeArtwork(artwork: RawArtwork) {
     winning_bidder: artwork.winning_bidder || null,
     ai_intro: artwork.ai_intro || null,
     mc_audio_url: artwork.mc_audio_url || null,
+    child_voice_path: artwork.child_voice_path || null,
     invoice_email_requested: Boolean(artwork.winner_email || artwork.invoice_email_requested_at),
   };
 }
@@ -219,7 +221,7 @@ async function loadAuctionSnapshot(
       supabase
         .from("demo_artworks")
         .select(
-          "id,auction_code,child_name,child_surname,grade,artwork_url,enhanced_artwork_url,status,sort_order,sold_amount,winning_bidder,winner_email,invoice_email_requested_at,ai_intro,mc_audio_url"
+          "id,auction_code,child_name,child_surname,grade,artwork_url,enhanced_artwork_url,status,sort_order,sold_amount,winning_bidder,winner_email,invoice_email_requested_at,ai_intro,mc_audio_url,child_voice_path"
         )
         .eq("auction_code", auctionCode)
         .order("sort_order", { ascending: true }),

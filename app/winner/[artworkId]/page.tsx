@@ -61,7 +61,7 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
 
   const { data: artwork, error: artworkError } = await db
     .from("demo_artworks")
-    .select("id,auction_code,status,child_name,child_surname,grade,artwork_url,enhanced_artwork_url,mc_audio_url,sold_amount,winning_bidder")
+    .select("id,auction_code,status,child_name,child_surname,grade,artwork_url,enhanced_artwork_url,mc_audio_url,child_voice_path,sold_amount,winning_bidder")
     .eq("id", artworkId).eq("auction_code", message.auction_code).maybeSingle();
   if (artworkError || !artwork || artwork.status !== "sold") notFound();
   const displayUrl = artwork.enhanced_artwork_url || artwork.artwork_url;
@@ -136,6 +136,8 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
                 </div>
               </div>
             </div>
+
+            {artwork.child_voice_path && <div className="mt-5 rounded-2xl border border-[#13ed77]/30 bg-[#13ed77]/[.07] p-4 sm:p-5"><p className="text-sm font-black text-[#13ed77]">A message from the young artist</p><p className="mt-1 text-xs text-white/65">Press play to hear the child describe their artwork.</p><audio controls preload="none" src={`/api/artwork-voice/${artworkId}`} className="mt-3 w-full" aria-label="Play the young artist’s voice note" /></div>}
 
             {artwork.mc_audio_url ? (
               <div className="mt-5 rounded-2xl border border-[#ffc857]/30 bg-[#ffc857]/[.07] p-4 sm:p-5">

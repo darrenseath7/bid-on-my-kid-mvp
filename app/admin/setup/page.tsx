@@ -870,6 +870,7 @@ export default function AdminSetupPage() {
                 <span className="mt-2 block text-xl font-black">Bulk Artwork Upload →</span>
                 <span className="mt-1 block text-sm text-white/65">Upload a school, grade or class from images or ZIP plus a spreadsheet. Review each artwork before adding the batch.</span>
               </a>
+              <a href="/admin/schools/submissions" className="block rounded-[22px] border border-[#16d66d]/50 bg-[#16d66d]/10 p-5 font-black text-[#16d66d]">School upload access & submissions →</a>
               <div className="grid gap-4 md:grid-cols-2">
                 <Field label="Child Name" value={childName} onChange={setChildName} placeholder="Ethan" />
                 <Field label="Child Surname" value={childSurname} onChange={setChildSurname} placeholder="Smith" />
