@@ -84,7 +84,7 @@ export default function SchoolUploadPage() {
     return () => subscription.unsubscribe();
   }, []);
   useEffect(() => {
-    if (!signedIn || !code) { setSchool(''); setRows([]); setImages(new Map()); setBatchId(''); setSubmitted(false); return; }
+    if (!signedIn || !code) { setSchool(''); return; }
     let active = true;
     setCheckingSchool(true);
     (async () => { try { const result = await api(); if (active) { setSchool(result.school); setError(''); setCheckingSchool(false); } }
@@ -99,6 +99,12 @@ export default function SchoolUploadPage() {
     });
     if (authError) setError(authError.message);
     else setMessage('Check your school email for your sign-in link. Open it on this device.');
+  }
+
+  async function signOut() {
+    setSchool(''); setRows([]); setImages(new Map()); setBatchId('');
+    setSubmitted(false); setSheetName(''); setMessage(''); setError('');
+    await supabase.auth.signOut();
   }
 
   const names = useMemo(() => {
@@ -184,7 +190,7 @@ export default function SchoolUploadPage() {
     <div className="mx-auto max-w-6xl px-5 py-8">
       <header className="mb-10 flex flex-wrap items-center justify-between gap-4 border-b border-white/15 pb-5">
         <div><p className="text-3xl font-black">Brag<span className="text-[#ffc857]">Wall</span></p><p className="text-xs font-bold tracking-widest text-white/50">SCHOOL ARTWORK PORTAL</p></div>
-        {signedIn && <div className="flex items-center gap-3"><span className="text-xs text-white/65">Signed in: {signedInEmail}</span><button className="rounded-lg border border-white/30 px-4 py-2 text-sm" onClick={() => void supabase.auth.signOut()}>Sign out</button></div>}
+        {signedIn && <div className="flex items-center gap-3"><span className="text-xs text-white/65">Signed in: {signedInEmail}</span><button disabled={busy} className="rounded-lg border border-white/30 px-4 py-2 text-sm disabled:opacity-40" onClick={() => void signOut()}>Sign out</button></div>}
       </header>
       {!signedIn ? <section className="mx-auto max-w-md rounded-3xl border border-[#ffc857]/40 bg-[#0d2538] p-8">
         <h1 className="text-3xl font-black">School sign in</h1>
