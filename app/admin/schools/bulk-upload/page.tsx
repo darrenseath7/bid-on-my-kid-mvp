@@ -191,7 +191,7 @@ export default function BulkArtworkUpload() {
       </div>
       {error && <p role="alert" className="mt-5 rounded-xl bg-red-900/50 p-4 text-red-100">{error}</p>}
       {progress && <p role="status" className="mt-5 rounded-xl bg-[#16d66d]/10 p-4 text-[#16d66d]">{progress}</p>}
-      <div className="mt-6 grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-[#0c2037] p-4 text-center font-bold sm:gap-5"><div>{rows.length - needsReview.length} ready</div><div className="text-[#ffc857]">{needsReview.length} need review</div><div>{rows.filter(row => row.uploaded).length} added</div></div>
+      <div className="mt-6 grid grid-cols-3 gap-2 rounded-2xl border border-white/10 bg-[#0c2037] p-4 text-center font-bold sm:gap-5"><div>{rows.filter(row => !row.uploaded && !issues(row)).length} ready</div><div className="text-[#ffc857]">{needsReview.length} need review</div><div>{rows.filter(row => row.uploaded).length} added</div></div>
       <div className="mt-4 flex gap-3"><button onClick={() => setFilter("all")} className={`rounded-full px-4 py-2 text-sm ${filter === "all" ? "bg-[#16d66d] text-[#031124]" : "border border-white/20"}`}>All {rows.length}</button><button onClick={() => setFilter("review")} className={`rounded-full px-4 py-2 text-sm ${filter === "review" ? "bg-[#ffc857] text-[#031124]" : "border border-white/20"}`}>Needs review {needsReview.length}</button></div>
       <div className="mt-4 space-y-3">{rows.map((row, index) => {
         const issue = issues(row);
@@ -206,7 +206,7 @@ export default function BulkArtworkUpload() {
         </div>;
       })}</div>
       {unusedImages.length > 0 && <p className="mt-4 text-sm text-[#ffc857]">{unusedImages.length} images are not listed in the spreadsheet. Every image needs one row.</p>}
-      <div className="sticky bottom-3 mt-7 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ffc857]/50 bg-[#0c2037] p-4 shadow-2xl"><p className="text-sm">{needsReview.length || unusedImages.length ? "Resolve all rows before approval." : "Only an internal admin can add this reviewed batch."}</p><button onClick={() => void approve()} disabled={!canApprove} className="rounded-xl bg-[#16d66d] px-6 py-3 font-black text-[#031124] disabled:cursor-not-allowed disabled:opacity-40">{loading ? "Adding artworks..." : rows.some(row => row.uploaded) ? "Resume remaining artworks" : `Approve & add ${rows.length} artworks`}</button></div>
+      <div className="sticky bottom-3 mt-7 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ffc857]/50 bg-[#0c2037] p-4 shadow-2xl"><p className="text-sm">{ready ? "Batch complete. All artworks were added." : needsReview.length || unusedImages.length ? "Resolve all rows before approval." : "Only an internal admin can add this reviewed batch."}</p><button onClick={() => void approve()} disabled={!canApprove} className="rounded-xl bg-[#16d66d] px-6 py-3 font-black text-[#031124] disabled:cursor-not-allowed disabled:opacity-40">{ready ? "Batch complete" : loading ? "Adding artworks..." : rows.some(row => row.uploaded) ? "Resume remaining artworks" : `Approve & add ${rows.length} artworks`}</button></div>
     </div>
     </div>
   </AdminShell>;

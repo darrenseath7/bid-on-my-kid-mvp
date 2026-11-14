@@ -1,4 +1,4 @@
--- Run in BragWall STAGING Supabase only, before deploying the Preview branch.
+-- Run on staging first, then on production before deploying this feature.
 -- Class is optional and existing artwork uploads remain valid.
 begin;
 alter table public.demo_artworks add column if not exists class_name text;
