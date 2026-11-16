@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import BrandHeader from "@/components/BrandHeader";
 import AdminAuctionSelector from "@/components/AdminAuctionSelector";
 import AdminShell from "@/components/admin/AdminShell";
@@ -24,6 +25,16 @@ type SoldArtwork = {
   whatsapp_ready?: boolean;
   invoice_email_requested_at?: string | null;
   certificate_email_requested_at?: string | null;
+  payment?: PaymentDetails | null;
+};
+
+type PaymentDetails = {
+  payment_route: "bragwall" | "school";
+  account_holder: string;
+  bank_name: string;
+  account_number: string;
+  branch_code: string;
+  account_type: string;
 };
 
 const DEFAULT_AUCTION_CODE = "demo";
@@ -480,20 +491,32 @@ function DocumentPreviewModal({
   const winnerName = item.winning_bidder || "Winning bidder";
   const winnerEmail = item.winner_email || "Winner email not captured";
   const artworkName = `${item.child_name} ${item.child_surname}`.trim() || `Artwork #${item.sort_order}`;
+  const [payment, setPayment] = useState<PaymentDetails | null>(item.payment || null);
+  const [printError, setPrintError] = useState("");
+  const [printing, setPrinting] = useState(false);
 
-  function printDocument() {
+  async function printDocument() {
+    if (printing || (isInvoice && !payment)) return;
+    setPrinting(true);
+    setPrintError("");
+    // Open on the click before awaiting the server, including on mobile browsers.
+    const printWindow = window.open("", "_blank", "width=900,height=1100");
+    if (!printWindow) { setPrintError("Please allow pop-ups to print this document."); setPrinting(false); return; }
+    try {
+      if (isInvoice) {
+        const response = await fetch("/api/admin/sales-action", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "issue-invoice", artworkId: item.id, auctionCode: item.auction_code }),
+          cache: "no-store",
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result?.payment) throw new Error(result?.error || "Could not confirm invoice payment account.");
+        flushSync(() => setPayment(result.payment));
+      }
     const documentElement = document.getElementById("bragwall-print-document");
 
     if (!documentElement) {
-      alert("Could not find the document to print.");
-      return;
-    }
-
-    const printWindow = window.open("", "_blank", "width=900,height=1100");
-
-    if (!printWindow) {
-      alert("Please allow pop-ups to print this document.");
-      return;
+      throw new Error("Could not find the document to print.");
     }
 
     const styles = Array.from(
@@ -552,6 +575,12 @@ function DocumentPreviewModal({
       printWindow.focus();
       printWindow.print();
     };
+    } catch (reason) {
+      printWindow.close();
+      setPrintError(reason instanceof Error ? reason.message : "Could not print document.");
+    } finally {
+      setPrinting(false);
+    }
   }
 
   return (
@@ -570,10 +599,11 @@ function DocumentPreviewModal({
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={printDocument}
-              className="rounded-2xl bg-[#07152b] px-4 py-3 text-sm font-black text-white"
+              onClick={() => void printDocument()}
+              disabled={printing || (isInvoice && !payment)}
+              className="rounded-2xl bg-[#07152b] px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Print / Save PDF
+              {printing ? "Preparing invoice…" : "Print / Save PDF"}
             </button>
             <button
               type="button"
@@ -585,10 +615,14 @@ function DocumentPreviewModal({
           </div>
         </div>
 
+        {isInvoice && !payment && <p role="alert" className="mb-4 rounded-xl bg-amber-100 p-4 font-bold text-amber-950">Payment details are not configured for this school. Choose and verify an account in Add School &amp; Artwork before printing this invoice.</p>}
+        {printError && <p role="alert" className="mb-4 rounded-xl bg-red-100 p-4 font-bold text-red-900">{printError}</p>}
+
         <div id="bragwall-print-document">
         {isInvoice ? (
           <InvoicePreview
             item={item}
+            payment={payment}
             amount={amount}
             winnerName={winnerName}
             winnerEmail={winnerEmail}
@@ -611,12 +645,14 @@ function DocumentPreviewModal({
 
 function InvoicePreview({
   item,
+  payment,
   amount,
   winnerName,
   winnerEmail,
   artworkName,
 }: {
   item: SoldArtwork;
+  payment: PaymentDetails | null;
   amount: number;
   winnerName: string;
   winnerEmail: string;
@@ -689,26 +725,27 @@ function InvoicePreview({
         <div className="mt-7 grid gap-5 lg:grid-cols-[1fr_0.85fr]">
           <div className="rounded-[28px] bg-[#07152b] p-6 text-white shadow-xl">
             <p className="text-xs font-black uppercase tracking-[0.25em] text-white/45">Payment Details</p>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <PaymentLine label="Account Holder" value="Rynfield Primary" />
-              <PaymentLine label="Bank" value="ABSA" />
-              <PaymentLine label="Branch Code" value="630242" />
-              <PaymentLine label="Account Type" value="Cheque Account" />
-              <PaymentLine label="Account Number" value="220143422" />
+            {payment ? <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <PaymentLine label="Payee" value={payment.payment_route === "bragwall" ? "BragWall" : "School"} />
+              <PaymentLine label="Account Holder" value={payment.account_holder} />
+              <PaymentLine label="Bank" value={payment.bank_name} />
+              <PaymentLine label="Branch Code" value={payment.branch_code} />
+              <PaymentLine label="Account Type" value={payment.account_type} />
+              <PaymentLine label="Account Number" value={payment.account_number} />
               <PaymentLine label="Reference" value={paymentReference} highlight />
               <PaymentLine label="Amount" value={`R${amount.toLocaleString()}`} highlight />
-            </div>
+            </div> : <p className="mt-5 font-bold text-[#ffc857]">Payment details are not configured. Do not issue this invoice.</p>}
           </div>
 
           <div className="rounded-[28px] border border-[#16d66d]/30 bg-white/88 p-6 shadow-sm">
             <p className="text-xs font-black uppercase tracking-[0.25em] text-[#16a064]">Important</p>
             <p className="mt-3 text-lg font-black leading-relaxed text-[#07152b]">
-              Please use the unique invoice reference shown under Payment Details when making your EFT directly to Rynfield Primary.
+              {payment ? `Please use the unique invoice reference shown under Payment Details when making your EFT to ${payment.account_holder}.` : "An account must be selected and verified before this invoice can be issued."}
             </p>
             <p className="mt-4 text-sm font-bold leading-relaxed text-slate-500">
               {isAfterAuctionRequest
-                ? "The amount uses the opening bid for this after-auction request. The school can confirm collection once payment is received."
-                : "Your winning bid amount has pulled through from the sold auction record. The school can confirm collection once payment is received."}
+                ? "The amount uses the opening bid for this after-auction request. Collection can be confirmed once payment is received."
+                : "Your winning bid amount has pulled through from the sold auction record. Collection can be confirmed once payment is received."}
             </p>
           </div>
         </div>

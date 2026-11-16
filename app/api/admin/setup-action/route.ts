@@ -12,7 +12,23 @@ type SchoolProfilePayload = {
   payment_reference_prefix?: string;
   collection_instructions?: string;
   bid_increment?: number | string | null;
+  payment_route?: string;
+  bank?: Record<string, unknown>;
 };
+
+function verifiedBank(value: unknown) {
+  const input = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const account_holder = cleanText(input.account_holder, 160);
+  const bank_name = cleanText(input.bank_name, 100);
+  const account_number = cleanText(input.account_number, 40).replace(/\s/g, "");
+  const branch_code = cleanText(input.branch_code, 20).replace(/\s/g, "");
+  const account_type = cleanText(input.account_type, 60);
+  if (!account_holder || !bank_name || !account_type ||
+      !/^\d{6,20}$/.test(account_number) || !/^\d{6}$/.test(branch_code)) {
+    throw new Error("Enter and verify the account holder, bank, 6–20 digit account number, 6-digit branch code and account type.");
+  }
+  return { account_holder, bank_name, account_number, branch_code, account_type };
+}
 
 const DEFAULT_AUCTION_CODE = "demo";
 const DEFAULT_BID_STEP = 100;
@@ -212,8 +228,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const [paymentResult, platformResult] = await Promise.all([
+      supabaseAdmin.from("bragwall_school_payment").select("*")
+        .eq("auction_code", auctionCode).maybeSingle(),
+      supabaseAdmin.from("bragwall_platform_bank").select("*")
+        .eq("id", true).maybeSingle(),
+    ]);
+    if (paymentResult.error || platformResult.error) {
+      return jsonError("Could not load payment settings. Run the staging payment SQL first.", 500);
+    }
     return NextResponse.json(
-      { profile: data },
+      { profile: data, payment: paymentResult.data, platformBank: platformResult.data },
       { headers: { "Cache-Control": "private, no-store" } }
     );
   } catch (error) {
@@ -370,7 +395,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => null) as
-      | { action?: string; profile?: SchoolProfilePayload; artworkId?: string }
+      | { action?: string; profile?: SchoolProfilePayload; bank?: Record<string, unknown>; artworkId?: string }
       | null;
 
     if (!body) return jsonError("Invalid JSON body.");
@@ -378,8 +403,27 @@ export async function POST(request: NextRequest) {
     const action = String(body.action || "");
     const auctionCode = getSafeAuctionCode((body as { auctionCode?: unknown }).auctionCode || body.profile?.auction_code);
 
+    if (action === "save-platform-bank") {
+      const bank = verifiedBank(body.bank);
+      const { error } = await supabaseAdmin.from("bragwall_platform_bank")
+        .upsert({ id: true, ...bank, updated_at: new Date().toISOString() });
+      if (error) throw new Error(error.message);
+      return NextResponse.json({ ok: true, message: "BragWall payment account saved." });
+    }
+
     if (action === "save-profile") {
       const profile = body.profile || {};
+      const paymentRoute = profile.payment_route;
+      if (paymentRoute !== undefined && paymentRoute !== "bragwall" && paymentRoute !== "school") {
+        return jsonError("Choose who parents should pay before saving the school.");
+      }
+      const schoolBank = paymentRoute === "school" ? verifiedBank(profile.bank) : null;
+      if (paymentRoute === "bragwall") {
+        const { data: platformBank, error: bankError } = await supabaseAdmin
+          .from("bragwall_platform_bank").select("id").eq("id", true).maybeSingle();
+        if (bankError) throw new Error(bankError.message);
+        if (!platformBank) return jsonError("Save BragWall's verified bank account before selecting it for this school.");
+      }
 
       const { error } = await supabaseAdmin.from("demo_school_profile").upsert(
         {
@@ -394,6 +438,21 @@ export async function POST(request: NextRequest) {
       );
 
       if (error) throw new Error(error.message);
+
+      if (paymentRoute) {
+        const { error: paymentError } = await supabaseAdmin.from("bragwall_school_payment")
+          .upsert({
+            auction_code: auctionCode,
+            payment_route: paymentRoute,
+            account_holder: schoolBank?.account_holder ?? null,
+            bank_name: schoolBank?.bank_name ?? null,
+            account_number: schoolBank?.account_number ?? null,
+            branch_code: schoolBank?.branch_code ?? null,
+            account_type: schoolBank?.account_type ?? null,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "auction_code" });
+        if (paymentError) throw new Error(paymentError.message);
+      }
 
       const { error: stateError } = await supabaseAdmin.from("live_auction_state").upsert(
         {

@@ -8,6 +8,16 @@ import AdminStatCard from "@/components/admin/AdminStatCard";
 import { supabase } from "@/lib/supabase";
 import { sanitizeAuctionCode, useAdminAuctionCode } from "@/lib/useAdminAuctionCode";
 
+type BankDetails = {
+  account_holder: string;
+  bank_name: string;
+  account_number: string;
+  branch_code: string;
+  account_type: string;
+};
+
+const emptyBank = (): BankDetails => ({ account_holder: "", bank_name: "", account_number: "", branch_code: "", account_type: "" });
+
 type SchoolProfile = {
   id?: string;
   auction_code: string;
@@ -16,6 +26,8 @@ type SchoolProfile = {
   payment_reference_prefix: string;
   collection_instructions: string;
   bid_increment?: number | null;
+  payment_route: "" | "bragwall" | "school";
+  bank: BankDetails;
 };
 
 type Artwork = {
@@ -242,7 +254,11 @@ export default function AdminSetupPage() {
     payment_reference_prefix: "",
     collection_instructions: "",
     bid_increment: 100,
+    payment_route: "",
+    bank: emptyBank(),
   });
+  const [platformBank, setPlatformBank] = useState<BankDetails>(emptyBank());
+  const [savingPlatformBank, setSavingPlatformBank] = useState(false);
 
   const [childName, setChildName] = useState("");
   const [childSurname, setChildSurname] = useState("");
@@ -305,6 +321,8 @@ export default function AdminSetupPage() {
       payment_reference_prefix: "",
       collection_instructions: "",
       bid_increment: current.bid_increment || 100,
+      payment_route: "",
+      bank: emptyBank(),
     }));
 
     fetchProfile(activeAuctionCode, () => cancelled);
@@ -360,6 +378,7 @@ export default function AdminSetupPage() {
     const data = result.profile;
 
     if (isCancelled() || activeAuctionCodeRef.current !== cleanAuctionCode) return;
+    setPlatformBank(result.platformBank || emptyBank());
 
     if (data) {
       setProfile({
@@ -369,6 +388,14 @@ export default function AdminSetupPage() {
         payment_reference_prefix: data.payment_reference_prefix || "",
         collection_instructions: data.collection_instructions || "",
         bid_increment: data.bid_increment || 100,
+        payment_route: result.payment?.payment_route || "",
+        bank: result.payment?.payment_route === "school" ? {
+          account_holder: result.payment.account_holder || "",
+          bank_name: result.payment.bank_name || "",
+          account_number: result.payment.account_number || "",
+          branch_code: result.payment.branch_code || "",
+          account_type: result.payment.account_type || "",
+        } : emptyBank(),
       });
     } else {
       setProfile((current) => ({
@@ -379,6 +406,8 @@ export default function AdminSetupPage() {
         payment_reference_prefix: "",
         collection_instructions: "",
         bid_increment: current.bid_increment || 100,
+        payment_route: "",
+        bank: emptyBank(),
       }));
     }
   }
@@ -423,6 +452,23 @@ export default function AdminSetupPage() {
     }));
   }
 
+  function updateSchoolBank(field: keyof BankDetails, value: string) {
+    setProfile(current => ({ ...current, bank: { ...current.bank, [field]: value } }));
+  }
+
+  async function savePlatformBank() {
+    setSavingPlatformBank(true);
+    setMessage("");
+    try {
+      const result = await runSetupAction({ action: "save-platform-bank", bank: platformBank });
+      setMessage(result.message || "BragWall account saved.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not save BragWall account.");
+    } finally {
+      setSavingPlatformBank(false);
+    }
+  }
+
   function updateBidIncrement(value: string) {
     const parsed = Number(value);
 
@@ -458,6 +504,12 @@ export default function AdminSetupPage() {
 
       if (!targetAuctionCode) {
         setMessage("Please type a School URL slug first, for example: great-foundation.");
+        setSavingProfile(false);
+        return;
+      }
+
+      if (!profile.payment_route) {
+        setMessage("Choose whether parents should pay BragWall or the school first.");
         setSavingProfile(false);
         return;
       }
@@ -791,6 +843,33 @@ export default function AdminSetupPage() {
                 onChange={(value) => updateProfileField("auction_code", value)}
                 placeholder="prime-primary"
               />
+
+              <div className="rounded-[20px] border border-[#ffc857]/30 bg-[#ffc857]/5 p-5">
+                <p className="text-sm font-black text-[#ffc857]">Where should parents pay?</p>
+                <p className="mt-1 text-sm text-white/65">Choose a recipient for this school. The account shown on an issued invoice is saved with that invoice.</p>
+                <div className="mt-4 flex flex-wrap gap-5 text-sm font-bold">
+                  <label className="flex cursor-pointer items-center gap-2"><input type="radio" name="payment-route" checked={profile.payment_route === "bragwall"} onChange={() => updateProfileField("payment_route", "bragwall")} /> Pay BragWall</label>
+                  <label className="flex cursor-pointer items-center gap-2"><input type="radio" name="payment-route" checked={profile.payment_route === "school"} onChange={() => updateProfileField("payment_route", "school")} /> Pay the school</label>
+                </div>
+                {profile.payment_route === "school" && <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <Field label="School account holder" value={profile.bank.account_holder} onChange={value => updateSchoolBank("account_holder", value)} placeholder="Name on the bank account" />
+                  <Field label="Bank name" value={profile.bank.bank_name} onChange={value => updateSchoolBank("bank_name", value)} placeholder="Bank" />
+                  <Field label="Account number" value={profile.bank.account_number} onChange={value => updateSchoolBank("account_number", value)} placeholder="Account number" />
+                  <Field label="Bank branch code" value={profile.bank.branch_code} onChange={value => updateSchoolBank("branch_code", value)} placeholder="6 digits" />
+                  <Field label="Account type" value={profile.bank.account_type} onChange={value => updateSchoolBank("account_type", value)} placeholder="Current / Savings" />
+                </div>}
+                {profile.payment_route === "bragwall" && <div className="mt-5 space-y-4 rounded-2xl border border-white/10 bg-[#061124]/80 p-4">
+                  <p className="text-sm font-bold text-white/80">BragWall account — shared by schools that choose BragWall. Enter verified details once, then save them here.</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="BragWall account holder" value={platformBank.account_holder} onChange={value => setPlatformBank(bank => ({...bank, account_holder:value}))} placeholder="Name on the bank account" />
+                    <Field label="Bank name" value={platformBank.bank_name} onChange={value => setPlatformBank(bank => ({...bank, bank_name:value}))} placeholder="Bank" />
+                    <Field label="Account number" value={platformBank.account_number} onChange={value => setPlatformBank(bank => ({...bank, account_number:value}))} placeholder="Account number" />
+                    <Field label="Bank branch code" value={platformBank.branch_code} onChange={value => setPlatformBank(bank => ({...bank, branch_code:value}))} placeholder="6 digits" />
+                    <Field label="Account type" value={platformBank.account_type} onChange={value => setPlatformBank(bank => ({...bank, account_type:value}))} placeholder="Current / Savings" />
+                  </div>
+                  <button type="button" disabled={savingPlatformBank} onClick={() => void savePlatformBank()} className="rounded-xl border border-[#16d66d] px-4 py-2 text-sm font-black text-[#16d66d] disabled:opacity-50">{savingPlatformBank ? "Saving…" : "Save BragWall bank account"}</button>
+                </div>}
+              </div>
 
               <div className="rounded-[20px] border border-[#16d66d]/20 bg-[#16d66d]/10 px-4 py-3">
                 <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#16d66d]">

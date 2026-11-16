@@ -15,6 +15,26 @@ type SalesArtworkRecord = {
   created_at?: string | null;
 };
 
+type PaymentInfo = {
+  payment_route: "bragwall" | "school";
+  account_holder: string;
+  bank_name: string;
+  account_number: string;
+  branch_code: string;
+  account_type: string;
+};
+
+function usablePayment(value: any): PaymentInfo | null {
+  if (!value || !["bragwall", "school"].includes(value.payment_route)) return null;
+  const bank = [value.account_holder, value.bank_name, value.account_number,
+    value.branch_code, value.account_type];
+  return bank.every(item => typeof item === "string" && item.trim())
+    ? { payment_route: value.payment_route, account_holder: value.account_holder,
+        bank_name: value.bank_name, account_number: value.account_number,
+        branch_code: value.branch_code, account_type: value.account_type }
+    : null;
+}
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
@@ -153,8 +173,27 @@ export async function GET(request: NextRequest) {
       whatsappReady = new Set((queued || []).map((item) => item.artwork_id));
     }
 
+    const [schoolBank, platformBank, savedInvoices] = await Promise.all([
+      supabaseAdmin.from("bragwall_school_payment").select("*")
+        .eq("auction_code", auctionCode).maybeSingle(),
+      supabaseAdmin.from("bragwall_platform_bank").select("*")
+        .eq("id", true).maybeSingle(),
+      sales.length ? supabaseAdmin.from("bragwall_invoice_payment_snapshot")
+        .select("*").eq("auction_code", auctionCode)
+        .in("artwork_id", sales.map(item => item.id))
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (schoolBank.error || platformBank.error || savedInvoices.error) {
+      throw schoolBank.error || platformBank.error || savedInvoices.error;
+    }
+    const issued = new Map((savedInvoices.data || []).map((row: { artwork_id: string }) => [row.artwork_id, row]));
+    const selectedPayment = schoolBank.data?.payment_route === "bragwall"
+      ? usablePayment(platformBank.data ? { ...platformBank.data, payment_route: "bragwall" } : null)
+      : usablePayment(schoolBank.data);
+
     return NextResponse.json({
-      sales: sales.map((item) => ({ ...item, whatsapp_ready: whatsappReady.has(item.id) })),
+      sales: sales.map((item) => ({ ...item, whatsapp_ready: whatsappReady.has(item.id),
+        payment: issued.has(item.id) ? usablePayment(issued.get(item.id)) : selectedPayment })),
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return jsonError(
@@ -185,6 +224,19 @@ export async function POST(request: NextRequest) {
 
     if (!artworkId) {
       return jsonError("Missing artwork id.", 400);
+    }
+
+    if (action === "issue-invoice") {
+      if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(artworkId)) {
+        return jsonError("Invalid artwork ID.");
+      }
+      const { data, error } = await getSupabaseAdmin().rpc("bragwall_issue_invoice_payment", {
+        p_code: auctionCode, p_artwork: artworkId,
+      });
+      if (error) return jsonError(error.message, 409);
+      const payment = usablePayment(Array.isArray(data) ? data[0] : data);
+      if (!payment) return jsonError("Invoice bank details could not be verified.", 409);
+      return NextResponse.json({ payment }, { headers: { "Cache-Control": "private, no-store" } });
     }
 
     if (action !== "release-certificate") {
