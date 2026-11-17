@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { validWinnerToken, winnerDb } from "@/lib/server/winnerWhatsapp";
 import WinnerMomentReveal from "./WinnerMomentReveal";
+import WinnerInvoiceTab from "./WinnerInvoiceTab";
 
 export const dynamic = "force-dynamic";
 const baseMetadata: Metadata = {
@@ -155,6 +156,8 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
             <p className="mt-2 text-center text-xs text-white/60">
               A picture to keep on your phone and share with family.
             </p>
+
+            <WinnerInvoiceTab artworkId={artworkId} token={token} />
 
             <p className="mt-7 text-sm leading-relaxed text-white/60">
               A young artist made this. You made this moment. Thank you for believing in young art.

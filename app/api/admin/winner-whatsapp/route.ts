@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       : "Winner";
     const artistName = [artwork.data.child_name, artwork.data.child_surname].filter(Boolean).join(" ").trim();
     const artworkCredit = artistName ? `${artistName}'s artwork` : "a young artist's artwork";
-    const message = `${firstName}, you did it! Your bid won ${artworkCredit}.\n\nYour support gives a young artist a moment worth celebrating. Open your SOLD moment to see the artwork, hear the MC and save your keepsake:\n${soldPage.toString()}`;
+    const message = `${firstName}, you did it! Your bid won ${artworkCredit}.\n\nYour support gives a young artist a moment worth celebrating. Open your SOLD moment to see the artwork, hear the MC and save your keepsake. Your invoice and payment details will be available in the same link once ready:\n${soldPage.toString()}`;
     const phone = contact.bidder_phone_e164.slice(1);
     const chatUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     return NextResponse.json({ chatUrl }, { headers: noStore });

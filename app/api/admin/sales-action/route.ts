@@ -17,6 +17,7 @@ type SalesArtworkRecord = {
 
 type PaymentInfo = {
   payment_route: "bragwall" | "school";
+  payment_reference?: string;
   account_holder: string;
   bank_name: string;
   account_number: string;
@@ -29,7 +30,8 @@ function usablePayment(value: any): PaymentInfo | null {
   const bank = [value.account_holder, value.bank_name, value.account_number,
     value.branch_code, value.account_type];
   return bank.every(item => typeof item === "string" && item.trim())
-    ? { payment_route: value.payment_route, account_holder: value.account_holder,
+    ? { payment_route: value.payment_route, payment_reference: value.payment_reference || undefined,
+        account_holder: value.account_holder,
         bank_name: value.bank_name, account_number: value.account_number,
         branch_code: value.branch_code, account_type: value.account_type }
     : null;
