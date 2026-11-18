@@ -178,7 +178,7 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
           radial-gradient(circle at 90% 74%, rgba(255,200,87,.2) 0 4%, transparent 24%); }
         .winner-confetti { animation: winner-burst 2.1s cubic-bezier(.17,.72,.3,1) both; }
         .winner-frame-flash { animation: winner-flash 1.15s ease-out .62s both; }
-        .winner-art-reveal { animation: winner-art-unveil 1.25s ease-out .15s both; }
+        .winner-art-reveal { animation: winner-art-unveil .5s ease-out both; }
         .winner-sold-stamp { animation: winner-stamp-pop .55s cubic-bezier(.16,1.4,.35,1) .62s both; }
         @keyframes winner-art-unveil { from { clip-path: inset(0 100% 0 0); opacity: .8; }
           to { clip-path: inset(0 0 0 0); opacity: 1; } }

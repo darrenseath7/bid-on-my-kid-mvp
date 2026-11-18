@@ -11,15 +11,18 @@ export default function WinnerMomentReveal({ children, winnerName, artworkImage,
   artistFirstName: string;
 }) {
   const music = useRef<HTMLAudioElement>(null);
-  const [phase, setPhase] = useState<"ready" | "spotlight" | "revealed">("ready");
+  const [phase, setPhase] = useState<"ready" | "spotlight" | "handoff" | "revealed">("ready");
   const [replayKey, setReplayKey] = useState(0);
-  const revealed = phase === "revealed";
+  const revealed = phase === "handoff" || phase === "revealed";
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [musicAvailable, setMusicAvailable] = useState(true);
 
   useEffect(() => {
-    if (phase !== "spotlight") return;
-    const timer = window.setTimeout(() => setPhase("revealed"), 2700);
+    if (phase !== "spotlight" && phase !== "handoff") return;
+    const timer = window.setTimeout(
+      () => setPhase(phase === "spotlight" ? "handoff" : "revealed"),
+      phase === "spotlight" ? 2700 : 750
+    );
     return () => window.clearTimeout(timer);
   }, [phase]);
 
@@ -99,23 +102,27 @@ export default function WinnerMomentReveal({ children, winnerName, artworkImage,
         onEnded={() => setMusicPlaying(false)}
         onError={() => setMusicAvailable(false)} />
 
-      {revealed ? (
+      {revealed && (
         <>
           <div key={replayKey} className="contents">{children}</div>
-          <button type="button" onClick={replay}
-            className="winner-replay-button fixed bottom-20 left-5 z-50 min-h-11 rounded-full border border-[#ffc857] bg-[#07152b] px-4 py-2 text-sm font-bold text-white shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#13ed77] sm:bottom-5">
-            ↻ Watch the reveal again
-          </button>
-          {musicAvailable && (
+          {phase === "revealed" && (
+            <button type="button" onClick={replay}
+              className="winner-replay-button fixed bottom-20 left-5 z-50 min-h-11 rounded-full border border-[#ffc857] bg-[#07152b] px-4 py-2 text-sm font-bold text-white shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#13ed77] sm:bottom-5">
+              ↻ Watch the reveal again
+            </button>
+          )}
+          {phase === "revealed" && musicAvailable && (
             <button type="button" onClick={toggleMusic}
               className="fixed bottom-5 right-5 z-50 min-h-12 rounded-full border border-[#ffc857] bg-[#07152b] px-5 py-2 text-sm font-bold text-white shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#13ed77]">
               {musicPlaying ? "♪ Music on · turn off" : "♪ Play music again"}
             </button>
           )}
         </>
-      ) : phase === "spotlight" ? (
-        <section className="relative z-10 mx-auto flex min-h-[min(90dvh,760px)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden rounded-[30px] border border-[#ffc857]/70 bg-[#071225] px-5 py-8 text-center shadow-[0_28px_90px_rgba(0,0,0,.7)] sm:px-10"
-          aria-label="Revealing your winning artwork">
+      )}
+      {(phase === "spotlight" || phase === "handoff") && (
+        <div aria-hidden={phase === "handoff"} className={`fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-[#050d1b] px-3 py-5 transition-opacity duration-[750ms] sm:px-6 ${phase === "handoff" ? "pointer-events-none opacity-0" : "opacity-100"}`}>
+          <section className="mx-auto flex min-h-[min(90dvh,760px)] w-full max-w-3xl flex-col items-center justify-center overflow-hidden rounded-[30px] border border-[#ffc857]/70 bg-[#071225] px-5 py-8 text-center shadow-[0_28px_90px_rgba(0,0,0,.7)] sm:px-10"
+            aria-label="Revealing your winning artwork">
           <p className="text-xs font-black uppercase tracking-[.25em] text-[#ffc857]">BragWall · Young art. Big pride.</p>
           <h1 className="mt-5 text-3xl font-black leading-tight sm:text-5xl">
             {winnerName ? `${winnerName}, you won something special…` : "You won something special…"}
@@ -128,12 +135,14 @@ export default function WinnerMomentReveal({ children, winnerName, artworkImage,
           <p className="mt-6 text-lg font-bold text-white/90">
             {artistFirstName ? `Created by ${artistFirstName}. Made yours tonight.` : "Created by a young artist. Made yours tonight."}
           </p>
-          <button type="button" onClick={() => setPhase("revealed")}
+          <button type="button" disabled={phase === "handoff"} onClick={() => setPhase("handoff")}
             className="mt-5 min-h-11 rounded-xl border border-white/35 px-5 py-2 text-sm font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#13ed77]">
             Show my artwork now
           </button>
-        </section>
-      ) : (
+          </section>
+        </div>
+      )}
+      {phase === "ready" && (
         <section className="relative z-10 mx-auto flex w-full max-w-lg flex-col items-center rounded-[28px] border border-[#ffc857]/70 bg-[#08142a]/95 px-6 py-12 text-center shadow-[0_28px_90px_rgba(0,0,0,.6)] sm:px-10">
           <p className="text-2xl font-black">BragWall</p>
           <p className="mt-1 text-[10px] font-black tracking-[.2em] text-[#ffc857]">
