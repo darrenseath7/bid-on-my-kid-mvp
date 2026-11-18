@@ -4830,20 +4830,25 @@ export default function DemoAuctionPage({
               placeholder="Your email address" aria-label="Your email address" autoComplete="email"
               className="min-h-11 w-full rounded-lg border border-white/25 bg-white/10 px-4 py-2 text-base font-semibold text-white outline-none placeholder:text-white/65 focus:border-[#ffd47e]" />
 
-            <label className="flex items-start gap-2 text-[11px] leading-tight text-white/85">
+            <div className="space-y-1">
+              <label htmlFor="bidder-whatsapp-number" className="block text-sm font-bold text-white">
+                WhatsApp cellphone number <span className="font-normal text-white/70">(optional)</span>
+              </label>
+              <input id="bidder-whatsapp-number" type="tel" inputMode="tel" autoComplete="tel" value={bidderPhone}
+                onChange={(event) => setBidderPhone(event.target.value)}
+                placeholder="e.g. 082 123 4567"
+                aria-describedby="bidder-whatsapp-help"
+                className="min-h-11 w-full rounded-lg border border-white/25 bg-white/10 px-4 py-2 text-base font-semibold text-white outline-none placeholder:text-white/65 focus:border-[#ffd47e]" />
+              <p id="bidder-whatsapp-help" className="text-xs text-white/75">
+                Want your winning artwork and reveal by WhatsApp? Enter your number and tick the box below.
+              </p>
+            </div>
+            <label className="flex items-start gap-2 text-sm leading-snug text-white/90">
               <input type="checkbox" checked={whatsappOptIn}
                 onChange={(event) => setWhatsappOptIn(event.target.checked)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#13ed77]" />
+                className="mt-0.5 h-5 w-5 shrink-0 accent-[#13ed77]" />
               BragWall may WhatsApp me my artwork if I win. Optional; no other messages.
             </label>
-            {whatsappOptIn && (
-              <input type="tel" inputMode="tel" autoComplete="tel" value={bidderPhone}
-                onChange={(event) => setBidderPhone(event.target.value)}
-                placeholder="Your WhatsApp number (e.g. 082 123 4567)"
-                aria-label="Your WhatsApp number"
-                className="min-h-11 w-full rounded-lg border border-white/25 bg-white/10 px-4 py-2 text-base font-semibold text-white outline-none placeholder:text-white/65 focus:border-[#ffd47e]" />
-            )}
-
             <button type="button"
               onTouchStart={() => { audioUnlockedRef.current = true; }}
               onMouseDown={() => { audioUnlockedRef.current = true; }}
