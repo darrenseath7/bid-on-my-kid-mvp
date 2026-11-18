@@ -12,6 +12,7 @@ export default function WinnerMomentReveal({ children, winnerName, artworkImage,
 }) {
   const music = useRef<HTMLAudioElement>(null);
   const [phase, setPhase] = useState<"ready" | "spotlight" | "revealed">("ready");
+  const [replayKey, setReplayKey] = useState(0);
   const revealed = phase === "revealed";
   const [musicPlaying, setMusicPlaying] = useState(false);
   const [musicAvailable, setMusicAvailable] = useState(true);
@@ -62,6 +63,11 @@ export default function WinnerMomentReveal({ children, winnerName, artworkImage,
     setPhase(window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "revealed" : "spotlight");
   }
 
+  function replay() {
+    setReplayKey(key => key + 1);
+    start();
+  }
+
   function toggleMusic() {
     const track = music.current;
     if (!track) return;
@@ -95,7 +101,11 @@ export default function WinnerMomentReveal({ children, winnerName, artworkImage,
 
       {revealed ? (
         <>
-          {children}
+          <div key={replayKey} className="contents">{children}</div>
+          <button type="button" onClick={replay}
+            className="winner-replay-button fixed bottom-20 left-5 z-50 min-h-11 rounded-full border border-[#ffc857] bg-[#07152b] px-4 py-2 text-sm font-bold text-white shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#13ed77] sm:bottom-5">
+            ↻ Watch the reveal again
+          </button>
           {musicAvailable && (
             <button type="button" onClick={toggleMusic}
               className="fixed bottom-5 right-5 z-50 min-h-12 rounded-full border border-[#ffc857] bg-[#07152b] px-5 py-2 text-sm font-bold text-white shadow-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#13ed77]">
@@ -159,6 +169,7 @@ export default function WinnerMomentReveal({ children, winnerName, artworkImage,
         @keyframes winner-glow { from { opacity: 0; } 65% { opacity: 1; } to { opacity: .6; } }
         @media (prefers-reduced-motion: reduce) {
           .winner-spotlight-image, .winner-spotlight-glow { animation: none; }
+          .winner-replay-button { display: none; }
         }
       `}</style>
     </>

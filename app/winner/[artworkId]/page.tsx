@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { validWinnerToken, winnerDb } from "@/lib/server/winnerWhatsapp";
 import WinnerMomentReveal, { YoungArtistVoice } from "./WinnerMomentReveal";
 import WinnerInvoiceTab from "./WinnerInvoiceTab";
@@ -80,18 +81,6 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_22%,rgba(255,200,87,.16),transparent_34%),radial-gradient(circle_at_85%_80%,rgba(19,237,119,.11),transparent_36%)]" />
       <div aria-hidden="true" className="winner-paint pointer-events-none absolute inset-0" />
       <WinnerMomentReveal winnerName={winnerFirstName} artworkImage={displayUrl} artistFirstName={artistFirstName}>
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-        {Array.from({ length: 26 }, (_, i) => (
-          <span key={i} className="winner-confetti absolute -top-8 block h-3 w-2 rounded-sm"
-            style={{
-              left: `${(i * 47 + 9) % 100}%`,
-              backgroundColor: ["#ffc857", "#13ed77", "#ff737a", "#63c8ff"][i % 4],
-              animationDelay: `${(i * 0.17) % 2.1}s`,
-              animationDuration: `${3.2 + (i % 5) * 0.45}s`,
-            }} />
-        ))}
-      </div>
-
       <article className="relative z-10 w-full max-w-5xl overflow-hidden rounded-[28px] border border-[#e8ba70]/70 bg-[#08142a]/95 shadow-[0_28px_90px_rgba(0,0,0,.6)] sm:rounded-[36px]">
         <header className="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-4 sm:px-8 sm:py-5">
           <div className="leading-tight">
@@ -103,11 +92,28 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
 
         <div className="grid gap-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]">
           <div className="flex items-center justify-center bg-[#101c30] p-3 sm:p-6 lg:min-h-[520px] lg:p-8">
-            <div className="relative flex w-full items-center justify-center overflow-hidden rounded-[20px] border border-[#ffc857]/50 bg-[#07152b] p-2 shadow-[0_20px_60px_rgba(0,0,0,.3)] sm:p-3">
+            <div className="relative flex w-full items-center justify-center rounded-[20px] border border-[#ffc857]/50 bg-[#07152b] p-2 shadow-[0_20px_60px_rgba(0,0,0,.3)] sm:p-3">
               {/* Show the full artwork, including its original proportions. */}
               <img src={displayUrl} alt={`Artwork by ${artist || "a young artist"}`} referrerPolicy="no-referrer"
                 className="winner-art-reveal block max-h-[44dvh] w-full object-contain lg:max-h-[min(70dvh,640px)]" />
-              <span aria-hidden="true" className="winner-sold-stamp pointer-events-none absolute bottom-4 right-4 rotate-[-9deg] rounded-xl border-[3px] border-[#ffc857] bg-[#07152b]/95 px-5 py-2 text-xl font-black tracking-[.12em] text-[#ffc857] shadow-2xl sm:text-3xl">
+              <div aria-hidden="true" className="winner-frame-flash pointer-events-none absolute inset-0 z-20 rounded-[20px] border-[3px] border-[#ffc857] bg-[radial-gradient(circle_at_center,rgba(255,200,87,.4),transparent_65%)]" />
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-30">
+                {Array.from({ length: 44 }, (_, i) => (
+                  <span key={i} className="winner-confetti absolute block rounded-[2px]"
+                    style={{
+                      left: i % 2 === 0 ? "5%" : "95%",
+                      top: "88%",
+                      width: `${8 + (i % 4) * 2}px`,
+                      height: `${12 + (i % 3) * 3}px`,
+                      backgroundColor: ["#ffc857", "#13ed77", "#ff737a", "#63c8ff"][i % 4],
+                      animationDelay: `${0.62 + (i % 6) * 0.045}s`,
+                      "--burst-x": `${(i % 2 === 0 ? 1 : -1) * (45 + (i * 73) % 240)}px`,
+                      "--burst-up": `${-(130 + (i * 41) % 210)}px`,
+                      "--burst-spin": `${(i % 2 === 0 ? 1 : -1) * (360 + i * 21)}deg`,
+                    } as CSSProperties} />
+                ))}
+              </div>
+              <span aria-hidden="true" className="winner-sold-stamp pointer-events-none absolute bottom-4 right-4 z-40 rotate-[-9deg] rounded-xl border-[3px] border-[#ffc857] bg-[#07152b]/95 px-5 py-2 text-xl font-black tracking-[.12em] text-[#ffc857] shadow-2xl sm:text-3xl">
                 SOLD!
               </span>
             </div>
@@ -170,16 +176,22 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
         .winner-paint { background:
           radial-gradient(circle at 10% 50%, rgba(19,237,119,.18) 0 5%, transparent 25%),
           radial-gradient(circle at 90% 74%, rgba(255,200,87,.2) 0 4%, transparent 24%); }
-        .winner-confetti { animation: winner-fall linear both; }
+        .winner-confetti { animation: winner-burst 2.1s cubic-bezier(.17,.72,.3,1) both; }
+        .winner-frame-flash { animation: winner-flash 1.15s ease-out .62s both; }
         .winner-art-reveal { animation: winner-art-unveil 1.25s ease-out .15s both; }
-        .winner-sold-stamp { animation: winner-stamp-pop .65s cubic-bezier(.16,1.4,.35,1) 1.15s both; }
+        .winner-sold-stamp { animation: winner-stamp-pop .55s cubic-bezier(.16,1.4,.35,1) .62s both; }
         @keyframes winner-art-unveil { from { clip-path: inset(0 100% 0 0); opacity: .8; }
           to { clip-path: inset(0 0 0 0); opacity: 1; } }
         @keyframes winner-stamp-pop { from { opacity: 0; transform: rotate(-16deg) scale(2); }
           to { opacity: 1; transform: rotate(-9deg) scale(1); } }
-        @keyframes winner-fall { from { transform: translate3d(0,-10vh,0) rotate(0deg); opacity: 0; }
-          10% { opacity: 1; } to { transform: translate3d(42px,110vh,0) rotate(840deg); opacity: 0; } }
-        @media (prefers-reduced-motion: reduce) { .winner-confetti { display: none; }
+        @keyframes winner-flash { from { opacity: 0; transform: scale(.98); box-shadow: 0 0 0 rgba(255,200,87,0); }
+          25% { opacity: 1; box-shadow: 0 0 55px 18px rgba(255,200,87,.5); }
+          to { opacity: 0; transform: scale(1.04); box-shadow: 0 0 90px 28px rgba(255,200,87,0); } }
+        @keyframes winner-burst { 0% { transform: translate3d(0,0,0) rotate(0deg) scale(.6); opacity: 0; }
+          12% { opacity: 1; }
+          43% { transform: translate3d(var(--burst-x),var(--burst-up),0) rotate(var(--burst-spin)) scale(1); opacity: 1; }
+          100% { transform: translate3d(var(--burst-x),180px,0) rotate(var(--burst-spin)) scale(.8); opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) { .winner-confetti, .winner-frame-flash { display: none; }
           .winner-art-reveal, .winner-sold-stamp { animation: none; } }
       `}</style>
     </main>
