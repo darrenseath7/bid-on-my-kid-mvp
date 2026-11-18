@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { validWinnerToken, winnerDb } from "@/lib/server/winnerWhatsapp";
-import WinnerMomentReveal from "./WinnerMomentReveal";
+import WinnerMomentReveal, { YoungArtistVoice } from "./WinnerMomentReveal";
 import WinnerInvoiceTab from "./WinnerInvoiceTab";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +79,7 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
     <main className="relative isolate flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[#050d1b] px-3 py-5 text-white sm:px-6 sm:py-10">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_22%,rgba(255,200,87,.16),transparent_34%),radial-gradient(circle_at_85%_80%,rgba(19,237,119,.11),transparent_36%)]" />
       <div aria-hidden="true" className="winner-paint pointer-events-none absolute inset-0" />
-      <WinnerMomentReveal winnerName={winnerFirstName}>
+      <WinnerMomentReveal winnerName={winnerFirstName} artworkImage={displayUrl} artistFirstName={artistFirstName}>
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
         {Array.from({ length: 26 }, (_, i) => (
           <span key={i} className="winner-confetti absolute -top-8 block h-3 w-2 rounded-sm"
@@ -123,6 +123,8 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
               {" "}You saw it. Your winning bid gives that creativity a moment worth celebrating.
             </p>
 
+            {artwork.child_voice_path && <YoungArtistVoice artworkId={artworkId} artistFirstName={artistFirstName} />}
+
             <div className="mt-7 rounded-2xl border border-white/15 bg-white/[.06] p-4 sm:p-5">
               <p className="text-[10px] font-black uppercase tracking-[.2em] text-[#13ed77]">Your winning artwork</p>
               <h2 className="mt-2 break-words text-2xl font-black sm:text-3xl">{artist || "A young artist"}</h2>
@@ -137,8 +139,6 @@ export default async function WinnerMoment({ params, searchParams }: Props) {
                 </div>
               </div>
             </div>
-
-            {artwork.child_voice_path && <div className="mt-5 rounded-2xl border border-[#13ed77]/30 bg-[#13ed77]/[.07] p-4 sm:p-5"><p className="text-sm font-black text-[#13ed77]">A message from the young artist</p><p className="mt-1 text-xs text-white/65">Press play to hear the child describe their artwork.</p><audio controls preload="none" data-winner-voice src={`/api/artwork-voice/${artworkId}`} className="mt-3 w-full" aria-label="Play the young artist’s voice note" /></div>}
 
             {artwork.mc_audio_url ? (
               <div className="mt-5 rounded-2xl border border-[#ffc857]/30 bg-[#ffc857]/[.07] p-4 sm:p-5">
